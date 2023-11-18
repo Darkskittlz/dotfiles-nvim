@@ -2,6 +2,9 @@
 -- Default keymaps that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/keymaps.lua
 -- Add any additional keymaps here
 
+-- local discipline = require("discipline")
+-- discipline.cowboy()
+
 local keymap = vim.keymap
 local opts = { noremap = true, silent = true }
 
@@ -45,3 +48,10 @@ end, opts)
 -- Press jk fast to exit insert mode
 keymap.set("i", "jk", "<ESC>", opts)
 keymap.set("i", "kj", "<ESC>", opts)
+
+-- Visual Block --
+-- Move text up and down
+keymap.set("x", "J", ":m '>+1<CR>gv=gv")
+keymap.set("x", "K", ":m '<-2<CR>gv=gv")
+keymap.set("x", "<A-j>", ":m '>+1<CR>gv=gv")
+keymap.set("x", "<A-k>", ":m '<-2<CR>gv=gv")
