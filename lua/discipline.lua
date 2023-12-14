@@ -5,7 +5,14 @@ function M.cowboy()
   local id
   local ok = true
 
-  for _, key in ipairs({ "h", "j", "k", "l", "+", "-" }) do
+  for _, key in ipairs({
+    "h",
+    "j",
+    "k",
+    "l",
+    "+",
+    "-",
+  }) do
     local count = 0
     local timer = assert(vim.loop.new_timer())
     local map = key

@@ -93,7 +93,7 @@ return {
         diagnostics = "nvim_lsp",
         truncate_names = true, -- whether or not tab names should be truncated
         mode = "buffers", -- set to "tabs" to only show tabpages instead
-        style_preset = bufferline.style_preset.minimal, -- or bufferline.style_preset.minimal,
+        -- style_preset = bufferline.style_preset.minimal, -- or bufferline.style_preset.minimal,
         themable = true, -- allows highlight groups to be overriden i.e. sets highlights as default
         close_command = "bdelete! %d", -- can be a string | function, | false see "Mouse actions"
         right_mouse_command = "bdelete! %d", -- can be a string | function | false, see "Mouse actions"
@@ -136,7 +136,7 @@ return {
         move_wraps_at_ends = false, -- whether or not the move command "wraps" at the first or last position
         -- can also be a table containing 2 custom separators
         -- [focused and unfocused]. eg: { '|', '|' }
-        separator_style = "padded_slope",
+        separator_style = "line",
         enforce_regular_tabs = true,
         always_show_bufferline = true,
         buffer_close_icon = "󰅖",
