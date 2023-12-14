@@ -5,6 +5,7 @@ return {
   { "alvan/vim-closetag" },
   { "windwp/nvim-autopairs" },
   { "nvim-lua/plenary.nvim" },
+  { "tveskag/nvim-blame-line" },
 
   {
     "iamcco/markdown-preview.nvim",
@@ -167,7 +168,7 @@ return {
     --   table.insert(opts.sections.lualine_x, "😄")
     -- end,
     config = function()
-      local lualine = require("lualine")
+      -- local lualine = require("lualine")
       local lazy_status = require("lazy.status") -- to configure lazy pending updates count
       -- Bubbles config for lualine
       -- Author: lokesh-krishna
