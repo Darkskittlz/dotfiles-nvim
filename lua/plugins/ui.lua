@@ -21,6 +21,13 @@ return {
   },
 
   {
+    'numToStr/Comment.nvim',
+    config = function()
+        require('Comment').setup()
+    end
+  },
+
+  {
     "folke/noice.nvim",
     opts = function(_, opts)
       table.insert(opts.routes, {
