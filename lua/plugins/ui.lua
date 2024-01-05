@@ -6,6 +6,7 @@ return {
   { "windwp/nvim-autopairs" },
   { "nvim-lua/plenary.nvim" },
   { "tveskag/nvim-blame-line" },
+  { 'voldikss/vim-floaterm'},
 
   {
     "iamcco/markdown-preview.nvim",
@@ -19,14 +20,18 @@ return {
       vim.fn["mkdp#util#install"]()
     end,
   },
-
+  {
+    "craftzdog/solarized-osaka.nvim",
+    lazy = false,
+    priority = 1000,
+    opts = {},
+  },
   {
     'numToStr/Comment.nvim',
     config = function()
         require('Comment').setup()
     end
   },
-
   {
     "folke/noice.nvim",
     opts = function(_, opts)
