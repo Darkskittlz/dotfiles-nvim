@@ -7,8 +7,67 @@ return {
   { "nvim-lua/plenary.nvim" },
   { "tveskag/nvim-blame-line" },
   { 'voldikss/vim-floaterm'},
-  { 'ms-jpq/coq_nvim', branch = 'coq' },
 
+  {
+    "nvim-telescope/telescope.nvim",
+    requires = {
+      {
+        "nvim-telescope/telescope-fzf-native.nvim",
+        run = "make",
+      },
+      {
+        "nvim-telescope/telescope-symbols.nvim",
+        config = function()
+          require("telescope").load_extension("symbols")
+        end,
+      },
+      {
+        "tiagovla/scope.nvim",
+        opts = {},
+        init = function()
+          require("lazyvim.util").on_load(
+            "telescope",
+            function()
+              require("telescope").load_extension(
+                "scope"
+              )
+            end
+          )
+        end,
+        keys = {
+          {
+            "<leader>ba",
+            "<Cmd>Telescope scope buffers theme=dropdown<CR>",
+            desc = "Search buffers from all tabs",
+          },
+          {
+            "<leader>bm",
+            "<Cmd>ScopeMoveBuf<CR>",
+            desc = "Move buffer to another tab",
+          },
+        },
+      },
+    },
+    config = function()
+      require("telescope").setup({
+        defaults = {
+          sorting_strategy = "ascending",
+          layout_config = {
+            prompt_position = "top",
+            horizontal = {
+              preview_width = 0.5,
+            },
+          },
+        },
+        extensions = {
+          fzf = {
+            -- override_generic_sorter = true, -- override the generic sorter
+            -- override_file_sorter = true, -- override the file sorter
+          },
+        },
+      })
+    end,
+  },
 
   {
     "iamcco/markdown-preview.nvim",
@@ -48,26 +107,6 @@ return {
       opts.presets.lsp_doc_border = true
     end,
   },
-    config = function()
-      require("telescope").setup({
-        defaults = {
-          layout_config = {
-            vertical = {
-              preview_width = 0.6,
-              width = 0.8,
-              height = 0.9
-            },
-          },
-        },
-        extensions = {
-          fzf = {
-            override_generic_sorter = true, -- override the generic sorter
-            override_file_sorter = true, -- override the file sorter
-          },
-        },
-      })
-    end,
-  },
 
   {
     "rcarriga/nvim-notify",
@@ -96,9 +135,6 @@ return {
     enabled = true,
     event = "BufEnter",
     dependencies = {
-      -- {
-      --   'nvim-telescope/telescope.nvim', tag = '0.1.5',
-      -- }
       {
         "tiagovla/scope.nvim",
         opts = {},
