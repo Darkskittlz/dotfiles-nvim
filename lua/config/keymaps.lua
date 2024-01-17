@@ -59,3 +59,4 @@ keymap.set("x", "J", ":m '>+1<CR>gv=gv")
 keymap.set("x", "K", ":m '<-2<CR>gv=gv")
 keymap.set("x", "<A-j>", ":m '>+1<CR>gv=gv")
 keymap.set("x", "<A-k>", ":m '<-2<CR>gv=gv")
+

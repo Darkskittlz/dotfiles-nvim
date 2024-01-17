@@ -7,6 +7,8 @@ return {
   { "nvim-lua/plenary.nvim" },
   { "tveskag/nvim-blame-line" },
   { 'voldikss/vim-floaterm'},
+  { 'ms-jpq/coq_nvim', branch = 'coq' },
+
 
   {
     "iamcco/markdown-preview.nvim",
@@ -46,6 +48,26 @@ return {
       opts.presets.lsp_doc_border = true
     end,
   },
+    config = function()
+      require("telescope").setup({
+        defaults = {
+          layout_config = {
+            vertical = {
+              preview_width = 0.6,
+              width = 0.8,
+              height = 0.9
+            },
+          },
+        },
+        extensions = {
+          fzf = {
+            override_generic_sorter = true, -- override the generic sorter
+            override_file_sorter = true, -- override the file sorter
+          },
+        },
+      })
+    end,
+  },
 
   {
     "rcarriga/nvim-notify",
@@ -74,6 +96,9 @@ return {
     enabled = true,
     event = "BufEnter",
     dependencies = {
+      -- {
+      --   'nvim-telescope/telescope.nvim', tag = '0.1.5',
+      -- }
       {
         "tiagovla/scope.nvim",
         opts = {},
