@@ -1,12 +1,22 @@
 -- Set the virtual_column option to keep cursor column numbers the same
 vim.o.virtual_column = "all"
+vim.g.lazygit = {
+  colors = {
+    bg = "#000000", -- Set the background color to black
+    -- Add other color settings as needed
+  },
+}
+
 
 return {
   { "alvan/vim-closetag" },
   { "windwp/nvim-autopairs" },
   { "nvim-lua/plenary.nvim" },
   { "tveskag/nvim-blame-line" },
-  { 'voldikss/vim-floaterm'},
+  { 'voldikss/vim-floaterm' },
+  { 'tpope/vim-surround' },
+  {'terrortylor/nvim-comment'},
+  {'JoosepAlviste/nvim-ts-context-commentstring'},
 
   {
     "nvim-telescope/telescope.nvim",
@@ -55,14 +65,16 @@ return {
           layout_config = {
             prompt_position = "top",
             horizontal = {
-              preview_width = 0.5,
+              height=0.9,
+              width = 0.9,
+              preview_width = 0.6,
             },
           },
         },
         extensions = {
           fzf = {
-            -- override_generic_sorter = true, -- override the generic sorter
-            -- override_file_sorter = true, -- override the file sorter
+            override_generic_sorter = true, -- override the generic sorter
+            override_file_sorter = true, -- override the file sorter
           },
         },
       })
@@ -81,11 +93,20 @@ return {
       vim.fn["mkdp#util#install"]()
     end,
   },
+
+--[[   Color Schemes ]]
   {
     "craftzdog/solarized-osaka.nvim",
     lazy = false,
     priority = 1000,
     opts = {},
+  },
+  {
+    "habamax/vim-habanight",
+    config = function()
+      vim.cmd("colorscheme habanight")
+      vim.cmd("hi Normal guibg=NONE ctermbg=NONE")
+    end,
   },
   {
     'numToStr/Comment.nvim',
