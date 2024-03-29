@@ -16,8 +16,8 @@ local osakaConfig = {
   styles = {
     -- Style to be applied to different syntax groups
     -- Value is any valid attr-list value for `:help nvim_set_hl`
-    comments = { fg="#000000", bg="#a8a8a8" },
-    keywords = { fg="#000000", bg="#a8a8a8" },
+    comments = { fg="#000000", bg="#5b5b5b" },
+    keywords = { fg="#000000", bg="#FFFFFF" },
     functions = {},
     variables = {},
     -- Background styles. Can be "dark", "transparent" or "normal"
