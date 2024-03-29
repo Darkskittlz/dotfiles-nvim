@@ -7,6 +7,32 @@ vim.g.lazygit = {
   },
 }
 
+vim.opt.wrap = false
+
+
+local osakaConfig = {
+  transparent = true, -- Enable this to disable setting the background color
+  terminal_colors = true, -- Configure the colors used when opening a `:terminal` in Neovim
+  styles = {
+    -- Style to be applied to different syntax groups
+    -- Value is any valid attr-list value for `:help nvim_set_hl`
+    comments = { fg="#000000", bg="#a8a8a8" },
+    keywords = { fg="#000000", bg="#a8a8a8" },
+    functions = {},
+    variables = {},
+    -- Background styles. Can be "dark", "transparent" or "normal"
+    sidebars = "dark", -- style for sidebars
+    floats = "dark", -- style for floating windows
+  },
+  sidebars = { "qf", "help" }, -- Set a darker background on sidebar-like windows
+  day_brightness = 0.3, -- Adjusts the brightness of the colors of the Day style
+  hide_inactive_statusline = false, -- Enabling this option, will hide inactive statuslines and replace them with a thin border instead
+  dim_inactive = false, -- Dims inactive windows
+  lualine_bold = false, -- When true, section headers in the lualine theme will be bold
+}
+
+require("solarized-osaka").setup(osakaConfig)
+
 local focusConfig = {}
 
 focusConfig.setup = function()
@@ -42,6 +68,7 @@ focusConfig.setup = function()
         }
     })
 end
+
 
 
 return {
@@ -141,6 +168,9 @@ return {
     lazy = false,
     priority = 1000,
     opts = {},
+    config = function()
+      vim.cmd("colorscheme solarized-osaka")
+    end
   },
   -- {
   --   "habamax/vim-habanight",
@@ -192,104 +222,22 @@ return {
   },
 
   -- bufferline
-  {
-    "akinsho/bufferline.nvim",
-    enabled = true,
-    event = "BufEnter",
-    dependencies = {
-      {
-        "tiagovla/scope.nvim",
-        opts = {},
-        init = function()
-          require("lazyvim.util").on_load(
-            "telescope",
-            function()
-              require("telescope").load_extension(
-                "scope"
-              )
-            end
-          )
-        end,
-        keys = {
-          {
-            "<leader>ba",
-            "<Cmd>Telescope scope buffers theme=dropdown<CR>",
-            desc = "Search buffers from all tabs",
-          },
-          {
-            "<leader>bm",
-            "<Cmd>ScopeMoveBuf<CR>",
-            desc = "Move buffer to another tab",
-          },
-        },
-      },
-    },
-    opts = {
-      options = {
-        diagnostics = "nvim_lsp",
-        truncate_names = true, -- whether or not tab names should be truncated
-        mode = "buffers", -- set to "tabs" to only show tabpages instead
-        -- style_preset = bufferline.style_preset.minimal, -- or bufferline.style_preset.minimal,
-        themable = true, -- allows highlight groups to be overriden i.e. sets highlights as default
-        close_command = "bdelete! %d", -- can be a string | function, | false see "Mouse actions"
-        right_mouse_command = "bdelete! %d", -- can be a string | function | false, see "Mouse actions"
-        left_mouse_command = "buffer %d", -- can be a string | function, | false see "Mouse actions"
-        middle_mouse_command = nil, -- can be a string | function, | false see "Mouse actions"
-        indicator = {
-          icon = "▎", -- this should be omitted if indicator style is not 'icon'
-          style = "icon",
-        },
-        offsets = {
-          {
-            filetype = "NvimTree",
-            text = "File Explorer",
-            text_align = "left",
-            separator = true,
-          },
-        },
-        get_element_icon = function(element)
-          -- element consists of {filetype: string, path: string, extension: string, directory: string}
-          -- This can be used to change how bufferline fetches the icon
-          -- for an element e.g. a buffer or a tab.
-          -- e.g.
-          local icon, hl = require(
-            "nvim-web-devicons"
-          ).get_icon_by_filetype(
-            element.filetype,
-            { default = false }
-          )
-          return icon, hl
-          -- -- or
-          -- local custom_map = {my_thing_ft: {icon = "my_thing_icon", hl}}
-          -- return custom_map[element.filetype]
-        end,
-        show_buffer_icons = true, -- disable filetype icons for buffers
-        show_buffer_close_icons = true,
-        show_close_icon = true,
-        show_tab_indicators = true,
-        show_duplicate_prefix = true, -- whether to show duplicate buffer prefix
-        persist_buffer_sort = true, -- whether or not custom sorted buffers should persist
-        move_wraps_at_ends = false, -- whether or not the move command "wraps" at the first or last position
-        -- can also be a table containing 2 custom separators
-        -- [focused and unfocused]. eg: { '|', '|' }
-        separator_style = "line",
-        enforce_regular_tabs = true,
-        always_show_bufferline = true,
-        buffer_close_icon = "󰅖",
-        modified_icon = "●",
-        close_icon = "",
-        left_trunc_marker = "",
-        right_trunc_marker = "",
-        color_icons = true, -- whether or not to add the filetype icon highlights
-        hover = {
-          enabled = true,
-          delay = 200,
-          reveal = { "close" },
-        },
-      },
-    },
-  },
-
+{
+		"akinsho/bufferline.nvim",
+		event = "VeryLazy",
+		keys = {
+			{ "<Tab>", "<Cmd>BufferLineCycleNext<CR>", desc = "Next tab" },
+			{ "<S-Tab>", "<Cmd>BufferLineCyclePrev<CR>", desc = "Prev tab" },
+		},
+		opts = {
+			options = {
+				mode = "tabs",
+				separator_style = "slant",
+				show_buffer_close_icons = false,
+				show_close_icon = false,
+			},
+		},
+	},
   -- { "justinmk/vim-sneak" },
 
   -- statusline
@@ -305,113 +253,227 @@ return {
     config = function()
       -- local lualine = require("lualine")
       local lazy_status = require("lazy.status") -- to configure lazy pending updates count
-      -- Bubbles config for lualine
-      -- Author: lokesh-krishna
-      -- MIT license, see LICENSE for more details.
+      -- Eviline config for lualine
+      -- Author: shadmansaleh
+      -- Credit: glepnir
+      local lualine = require('lualine')
 
+      -- Color table for highlights
       -- stylua: ignore
       local colors = {
-        blue   = '#007dff',
-        cyan   = '#79dac8',
-        black  = '##1d1d1d',
-        white  = '#c6c6c6',
-        red    = '#ff5189',
-        violet = '#d183e8',
-        darkGrey = '#0a0a0a',
-        green  = '#03e20a'
+        bg       = '#202328',
+        fg       = '#bbc2cf',
+        yellow   = '#ECBE7B',
+        cyan     = '#008080',
+        darkblue = '#081633',
+        green    = '#98be65',
+        orange   = '#FF8800',
+        violet   = '#a9a1e1',
+        magenta  = '#c678dd',
+        blue     = '#51afef',
+        red      = '#ec5f67',
       }
 
-      local bubbles_theme = {
-        normal = {
-          a = {
-            fg = colors.black,
-            bg = colors.blue,
-          },
-          b = {
-            fg = colors.white,
-            bg = colors.darkGrey,
-          },
-          c = {
-            fg = colors.black,
-            bg = colors.black,
-          },
-        },
-
-        insert = {
-          a = {
-            fg = colors.black,
-            bg = colors.green,
-          },
-        },
-        visual = {
-          a = {
-            fg = colors.black,
-            bg = colors.cyan,
-          },
-        },
-        replace = {
-          a = {
-            fg = colors.black,
-            bg = colors.red,
-          },
-        },
-
-        inactive = {
-          a = {
-            fg = colors.white,
-            bg = colors.black,
-          },
-          b = {
-            fg = colors.white,
-            bg = colors.black,
-          },
-          c = {
-            fg = colors.black,
-            bg = colors.black,
-          },
-        },
+      local conditions = {
+        buffer_not_empty = function()
+          return vim.fn.empty(vim.fn.expand('%:t')) ~= 1
+        end,
+        hide_in_width = function()
+          return vim.fn.winwidth(0) > 80
+        end,
+        check_git_workspace = function()
+          local filepath = vim.fn.expand('%:p:h')
+          local gitdir = vim.fn.finddir('.git', filepath .. ';')
+          return gitdir and #gitdir > 0 and #gitdir < #filepath
+        end,
       }
 
-      require("lualine").setup({
+      -- Config
+      local config = {
         options = {
-          theme = bubbles_theme,
-          component_separators = "|",
-          section_separators = {
-            left = "",
-            right = "",
+          -- Disable sections and component separators
+          component_separators = '',
+          section_separators = '',
+          theme = {
+            -- We are going to use lualine_c an lualine_x as left and
+            -- right section. Both are highlighted by c theme .  So we
+            -- are just setting default looks o statusline
+            normal = { c = { fg = colors.fg, bg = colors.bg } },
+            inactive = { c = { fg = colors.fg, bg = colors.bg } },
           },
         },
         sections = {
-          lualine_a = {
-            {
-              "mode",
-              separator = { left = "" },
-              right_padding = 2,
-            },
-          },
-          lualine_b = { "filename", "branch" },
-          lualine_c = { "fileformat" },
-          lualine_x = {},
-          lualine_y = { "filetype", "progress" },
-          lualine_z = {
-            {
-              "location",
-              separator = { right = "" },
-              left_padding = 2,
-            },
-          },
-        },
-        inactive_sections = {
-          lualine_a = { "filename" },
+          -- these are to remove the defaults
+          lualine_a = {},
           lualine_b = {},
+          lualine_y = {},
+          lualine_z = {},
+          -- These will be filled later
           lualine_c = {},
           lualine_x = {},
-          lualine_y = {},
-          lualine_z = { "location" },
         },
-        tabline = {},
-        extensions = {},
-      })
+        inactive_sections = {
+          -- these are to remove the defaults
+          lualine_a = {},
+          lualine_b = {},
+          lualine_y = {},
+          lualine_z = {},
+          lualine_c = {},
+          lualine_x = {},
+        },
+      }
+
+      -- Inserts a component in lualine_c at left section
+      local function ins_left(component)
+        table.insert(config.sections.lualine_c, component)
+      end
+
+      -- Inserts a component in lualine_x at right section
+      local function ins_right(component)
+        table.insert(config.sections.lualine_x, component)
+      end
+
+      ins_left {
+        function()
+          return '▊'
+        end,
+        color = { fg = colors.blue }, -- Sets highlighting of component
+        padding = { left = 0, right = 1 }, -- We don't need space before this
+      }
+
+      ins_left {
+        -- mode component
+        function()
+          return ''
+        end,
+        color = function()
+          -- auto change color according to neovims mode
+          local mode_color = {
+            n = colors.red,
+            i = colors.green,
+            v = colors.blue,
+            [''] = colors.blue,
+            V = colors.blue,
+            c = colors.magenta,
+            no = colors.red,
+            s = colors.orange,
+            S = colors.orange,
+            [''] = colors.orange,
+            ic = colors.yellow,
+            R = colors.violet,
+            Rv = colors.violet,
+            cv = colors.red,
+            ce = colors.red,
+            r = colors.cyan,
+            rm = colors.cyan,
+            ['r?'] = colors.cyan,
+            ['!'] = colors.red,
+            t = colors.red,
+          }
+          return { fg = mode_color[vim.fn.mode()] }
+        end,
+        padding = { right = 1 },
+      }
+
+      ins_left {
+        -- filesize component
+        'filesize',
+        cond = conditions.buffer_not_empty,
+      }
+
+      ins_left {
+        'filename',
+        cond = conditions.buffer_not_empty,
+        color = { fg = colors.magenta, gui = 'bold' },
+      }
+
+      ins_left { 'location' }
+
+      ins_left { 'progress', color = { fg = colors.fg, gui = 'bold' } }
+
+      ins_left {
+        'diagnostics',
+        sources = { 'nvim_diagnostic' },
+        symbols = { error = ' ', warn = ' ', info = ' ' },
+        diagnostics_color = {
+          color_error = { fg = colors.red },
+          color_warn = { fg = colors.yellow },
+          color_info = { fg = colors.cyan },
+        },
+      }
+
+      -- Insert mid section. You can make any number of sections in neovim :)
+      -- for lualine it's any number greater then 2
+      ins_left {
+        function()
+          return '%='
+        end,
+      }
+
+      ins_left {
+        -- Lsp server name .
+        function()
+          local msg = 'No Active Lsp'
+          local buf_ft = vim.api.nvim_buf_get_option(0, 'filetype')
+          local clients = vim.lsp.get_active_clients()
+          if next(clients) == nil then
+            return msg
+          end
+          for _, client in ipairs(clients) do
+            local filetypes = client.config.filetypes
+            if filetypes and vim.fn.index(filetypes, buf_ft) ~= -1 then
+              return client.name
+            end
+          end
+          return msg
+        end,
+        icon = ' LSP:',
+        color = { fg = '#ffffff', gui = 'bold' },
+      }
+
+      -- Add components to right sections
+      ins_right {
+        'o:encoding', -- option component same as &encoding in viml
+        fmt = string.upper, -- I'm not sure why it's upper case either ;)
+        cond = conditions.hide_in_width,
+        color = { fg = colors.green, gui = 'bold' },
+      }
+
+      ins_right {
+        'fileformat',
+        fmt = string.upper,
+        icons_enabled = false, -- I think icons are cool but Eviline doesn't have them. sigh
+        color = { fg = colors.green, gui = 'bold' },
+      }
+
+      ins_right {
+        'branch',
+        icon = '',
+        color = { fg = colors.violet, gui = 'bold' },
+      }
+
+      ins_right {
+        'diff',
+        -- Is it me or the symbol for modified us really weird
+        symbols = { added = ' ', modified = '󰝤 ', removed = ' ' },
+        diff_color = {
+          added = { fg = colors.green },
+          modified = { fg = colors.orange },
+          removed = { fg = colors.red },
+        },
+        cond = conditions.hide_in_width,
+      }
+
+      ins_right {
+        function()
+          return '▊'
+        end,
+        color = { fg = colors.blue },
+        padding = { left = 1 },
+      }
+
+      -- Now don't forget to initialize lualine
+      lualine.setup(config)
     end,
   },
 

@@ -15,6 +15,24 @@ return {
         "graphql",
         "http",
         "java",
+  eransparent = true, -- Enable this to disable setting the background color
+  terminal_colors = true, -- Configure the colors used when opening a `:terminal` in Neovim
+  styles = {
+    -- Style to be applied to different syntax groups
+    -- Value is any valid attr-list value for `:help nvim_set_hl`
+    comments = { fg="#a8a8a8", bg="#000000" },
+    -- keywords = { fg="#000000", bg="#000000" },
+    functions = {},
+    variables = {},
+    -- Background styles. Can be "dark", "transparent" or "normal"
+    sidebars = "dark", -- style for sidebars
+    floats = "dark", -- style for floating windows
+  },
+  sidebars = { "qf", "help" }, -- Set a darker background on sidebar-like windows
+  day_brightness = 0.3, -- Adjusts the brightness of the colors of the Day style
+  hide_inactive_statusline = false, -- Enabling this option, will hide inactive statuslines and replace them with a thin border instead
+  dim_inactive = false, -- Dims inactive windows
+  lualine_bold = false, -- When true, section headers in the lualine theme will be bold
         "php",
         "rust",
         "scss",
