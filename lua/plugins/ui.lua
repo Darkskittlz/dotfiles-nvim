@@ -9,6 +9,9 @@ vim.g.lazygit = {
 
 vim.opt.wrap = false
 
+vim.api.nvim_set_option("clipboard", "unnamedplus");
+
+
 
 local osakaConfig = {
   transparent = true, -- Enable this to disable setting the background color
@@ -16,9 +19,9 @@ local osakaConfig = {
   styles = {
     -- Style to be applied to different syntax groups
     -- Value is any valid attr-list value for `:help nvim_set_hl`
-    comments = { fg="#000000", bg="#5b5b5b" },
-    keywords = { fg="#000000", bg="#FFFFFF" },
-    functions = {},
+    comments = { fg="#a8a8a8", bg="#000000" },
+    keywords = { fg="#FFFFFF", bg="#000000" },
+    functions = { },
     variables = {},
     -- Background styles. Can be "dark", "transparent" or "normal"
     sidebars = "dark", -- style for sidebars
@@ -224,15 +227,17 @@ return {
   -- bufferline
 {
 		"akinsho/bufferline.nvim",
-		event = "VeryLazy",
+    tag = "*",
+    requires = 'nvim-tree/nvim-web-devicons',
+		event = "verylazy",
 		keys = {
-			{ "<Tab>", "<Cmd>BufferLineCycleNext<CR>", desc = "Next tab" },
-			{ "<S-Tab>", "<Cmd>BufferLineCyclePrev<CR>", desc = "Prev tab" },
+			{ "<tab>", "<cmd>bufferlinecyclenext<cr>", desc = "next tab" },
+			{ "<s-tab>", "<cmd>bufferlinecycleprev<cr>", desc = "prev tab" },
 		},
 		opts = {
 			options = {
 				mode = "tabs",
-				separator_style = "slant",
+				-- separator_style = "slant",
 				show_buffer_close_icons = false,
 				show_close_icon = false,
 			},
@@ -382,9 +387,17 @@ return {
       }
 
       ins_left {
+        function()
+          local path = vim.fn.expand('%:p:h')
+          local directories = vim.fn.split(path, '/')
+          local levels = #directories
+          local display_path = table.concat({ directories[levels - 2], directories[levels - 1], directories[levels] }, '/')
+          return display_path
+        end,
         'filename',
         cond = conditions.buffer_not_empty,
         color = { fg = colors.magenta, gui = 'bold' },
+        path = 
       }
 
       ins_left { 'location' }
