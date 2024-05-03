@@ -1,5 +1,4 @@
 return {
-  --- [INFO: Add tokyonight with transparent sidebars and floats]
   {
     "folke/tokyonight.nvim",
     lazy = true,
@@ -11,7 +10,6 @@ return {
       },
     },
   },
-  --- [INFO: Add rainbow markdown colors to solarized-osaka]
   {
     "craftzdog/solarized-osaka.nvim",
     lazy = true,
@@ -22,15 +20,33 @@ return {
           floats = "transparent",
         },
         on_highlights = function(hl, c)
-          local util = require("solarized-osaka.util")
-          local markdown_rainbow = { c.blue, c.yellow, c.green, c.red, c.magenta, c.cyan }
+          local util =
+            require("solarized-osaka.util")
+          local markdown_rainbow = {
+            c.blue,
+            c.yellow,
+            c.green,
+            c.red,
+            c.magenta,
+            c.cyan,
+          }
           for i, color in ipairs(markdown_rainbow) do
-            hl["@markup.heading." .. i .. ".markdown"] = { fg = color, bold = true }
-            hl["Headline" .. i] = { bg = util.darken(color, 0.05) }
-            hl["keyword.tsx"] = { fg = util.darken(c.green500, 0.85) }
-            hl["keyword.return.tsx"] = { fg = util.darken(c.green500, 0.85) }
-            hl["keyword.javascript"] = { fg = util.darken(c.green500, 0.85) }
-            hl["keyword.return.javascript"] = { fg = util.darken(c.green500, 0.85) }
+            hl["@markup.heading." .. i .. ".markdown"] =
+              { fg = color, bold = true }
+            hl["Headline" .. i] =
+              { bg = util.darken(color, 0.05) }
+            hl["keyword.tsx"] = {
+              fg = util.darken(c.green500, 0.85),
+            }
+            hl["keyword.return.tsx"] = {
+              fg = util.darken(c.green500, 0.85),
+            }
+            hl["keyword.javascript"] = {
+              fg = util.darken(c.green500, 0.85),
+            }
+            hl["keyword.return.javascript"] = {
+              fg = util.darken(c.green500, 0.85),
+            }
           end
         end,
       })

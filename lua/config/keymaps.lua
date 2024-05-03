@@ -10,6 +10,7 @@ local opts = { noremap = true, silent = true }
 keymap.set("n", "-", "<C-a>")
 keymap.set("n", "+", "<C-x>")
 
+-- delete line above --
 keymap.set("n", "dw", "vb_d")
 
 -- Select All
@@ -59,4 +60,3 @@ keymap.set("x", "J", ":m '>+1<CR>gv=gv")
 keymap.set("x", "K", ":m '<-2<CR>gv=gv")
 keymap.set("x", "<A-j>", ":m '>+1<CR>gv=gv")
 keymap.set("x", "<A-k>", ":m '<-2<CR>gv=gv")
-

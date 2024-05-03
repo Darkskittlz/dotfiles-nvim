@@ -9,9 +9,10 @@ vim.g.lazygit = {
 
 vim.opt.wrap = false
 
-vim.api.nvim_set_option("clipboard", "unnamedplus");
-
-
+vim.api.nvim_set_option(
+  "clipboard",
+  "unnamedplus"
+)
 
 local osakaConfig = {
   transparent = true, -- Enable this to disable setting the background color
@@ -19,16 +20,16 @@ local osakaConfig = {
   styles = {
     -- Style to be applied to different syntax groups
     -- Value is any valid attr-list value for `:help nvim_set_hl`
-    comments = { fg="#a8a8a8", bg="#000000" },
-    keywords = { fg="#FFFFFF", bg="#000000" },
-    functions = { },
+    -- comments = { fg = "#a8a8a8", bg = "#000000" },
+    -- keywords = { fg = "#FFFFFF", bg = "#000000" },
+    functions = {},
     variables = {},
     -- Background styles. Can be "dark", "transparent" or "normal"
     sidebars = "dark", -- style for sidebars
-    floats = "dark", -- style for floating windows
+    floats = "transparent", -- style for floating windows
   },
   sidebars = { "qf", "help" }, -- Set a darker background on sidebar-like windows
-  day_brightness = 0.3, -- Adjusts the brightness of the colors of the Day style
+
   hide_inactive_statusline = false, -- Enabling this option, will hide inactive statuslines and replace them with a thin border instead
   dim_inactive = false, -- Dims inactive windows
   lualine_bold = false, -- When true, section headers in the lualine theme will be bold
@@ -39,54 +40,94 @@ require("solarized-osaka").setup(osakaConfig)
 local focusConfig = {}
 
 focusConfig.setup = function()
-    require("focus").setup({
-        enable = true, -- Enable module
-        commands = true, -- Create Focus commands
-        autoresize = {
-            enable = true, -- Enable or disable auto-resizing of splits
-            width = 0, -- Force width for the focused window
-            height = 0, -- Force height for the focused window
-            minwidth = 0, -- Force minimum width for the unfocused window
-            minheight = 0, -- Force minimum height for the unfocused window
-            height_quickfix = 10, -- Set the height of quickfix panel
-        },
-        split = {
-            bufnew = false, -- Create blank buffer for new split windows
-            tmux = false, -- Create tmux splits instead of neovim splits
-        },
-        ui = {
-            number = false, -- Display line numbers in the focused window only
-            relativenumber = false, -- Display relative line numbers in the focused window only
-            hybridnumber = false, -- Display hybrid line numbers in the focused window only
-            absolutenumber_unfocussed = false, -- Preserve absolute numbers in the unfocused windows
+  require("focus").setup({
+    enable = true, -- Enable module
+    commands = true, -- Create Focus commands
+    autoresize = {
+      enable = true, -- Enable or disable auto-resizing of splits
+      width = 0, -- Force width for the focused window
+      height = 0, -- Force height for the focused window
+      minwidth = 0, -- Force minimum width for the unfocused window
+      minheight = 0, -- Force minimum height for the unfocused window
+      height_quickfix = 10, -- Set the height of quickfix panel
+    },
+    split = {
+      bufnew = false, -- Create blank buffer for new split windows
+      tmux = false, -- Create tmux splits instead of neovim splits
+    },
+    ui = {
+      number = false, -- Display line numbers in the focused window only
+      relativenumber = false, -- Display relative line numbers in the focused window only
+      hybridnumber = false, -- Display hybrid line numbers in the focused window only
+      absolutenumber_unfocussed = false, -- Preserve absolute numbers in the unfocused windows
 
-            cursorline = true, -- Display a cursorline in the focused window only
-            cursorcolumn = false, -- Display cursorcolumn in the focused window only
-            colorcolumn = {
-                enable = false, -- Display colorcolumn in the focused window only
-                list = '+1', -- Set the comma-separated list for the colorcolumn
-            },
-            signcolumn = true, -- Display signcolumn in the focused window only
-            winhighlight = false, -- Auto highlighting for focused/unfocused windows
-        }
-    })
+      cursorline = true, -- Display a cursorline in the focused window only
+      cursorcolumn = false, -- Display cursorcolumn in the focused window only
+      colorcolumn = {
+        enable = false, -- Display colorcolumn in the focused window only
+        list = "+1", -- Set the comma-separated list for the colorcolumn
+      },
+      signcolumn = true, -- Display signcolumn in the focused window only
+      winhighlight = false, -- Auto highlighting for focused/unfocused windows
+    },
+  })
 end
 
+local nvim_lsp = require("lspconfig")
 
+nvim_lsp.jsonls.setup({
+  on_attach = function(client)
+    -- Enable formatting on save
+    if
+      client.resolved_capabilities.document_formatting
+    then
+      vim.cmd(
+        "autocmd BufWritePre <buffer> lua vim.lsp.buf.formatting_sync()"
+      )
+    end
+  end,
+})
 
 return {
   { "alvan/vim-closetag" },
   { "windwp/nvim-autopairs" },
   { "nvim-lua/plenary.nvim" },
   { "tveskag/nvim-blame-line" },
-  { 'voldikss/vim-floaterm' },
-  { 'tpope/vim-surround' },
-  {'terrortylor/nvim-comment'},
-  {'JoosepAlviste/nvim-ts-context-commentstring'},
- 
-  { 'nvim-focus/focus.nvim',
-    version = '*',
-    config = focusConfig
+  { "voldikss/vim-floaterm" },
+  { "tpope/vim-surround" },
+  { "terrortylor/nvim-comment" },
+  {
+    "JoosepAlviste/nvim-ts-context-commentstring",
+  },
+  { "rhysd/vim-fixjson", cmd = "FixJson" },
+  {
+    "nvim-focus/focus.nvim",
+    config = focusConfig,
+  },
+  {
+    "robitx/gp.nvim",
+    config = function()
+      require("gp").setup({
+        openai_api_key = os.getenv(
+          "OPENAI_API_KEY"
+        ),
+      })
+    end,
+  },
+  {
+    "robitx/gp.nvim",
+    config = function()
+      require("gp").setup({
+        openai_api_key = os.getenv(
+          "OPENAI_API_KEY"
+        ),
+      })
+    end,
+  },
+  {
+    "neovim/nvim-lspconfig",
+    opt = true,
+    event = "BufReadPre",
   },
 
   {
@@ -99,7 +140,9 @@ return {
       {
         "nvim-telescope/telescope-symbols.nvim",
         config = function()
-          require("telescope").load_extension("symbols")
+          require("telescope").load_extension(
+            "symbols"
+          )
         end,
       },
       {
@@ -135,10 +178,10 @@ return {
           sorting_strategy = "ascending",
           layout_config = {
             prompt_position = "top",
-            horizontal = {
-              height=0.9,
-              width = 0.9,
-              preview_width = 0.6,
+            vertical = {
+              -- height = 0.9,
+              -- width = 0.9,
+              -- preview_width = 0.6,
             },
           },
         },
@@ -165,7 +208,7 @@ return {
     end,
   },
 
---[[   Color Schemes ]]
+  --[[   Color Schemes ]]
   {
     "craftzdog/solarized-osaka.nvim",
     lazy = false,
@@ -173,7 +216,7 @@ return {
     opts = {},
     config = function()
       vim.cmd("colorscheme solarized-osaka")
-    end
+    end,
   },
   -- {
   --   "habamax/vim-habanight",
@@ -183,10 +226,10 @@ return {
   --   end,
   -- },
   {
-    'numToStr/Comment.nvim',
+    "numToStr/Comment.nvim",
     config = function()
-        require('Comment').setup()
-    end
+      require("Comment").setup()
+    end,
   },
   {
     "folke/noice.nvim",
@@ -225,270 +268,31 @@ return {
   },
 
   -- bufferline
-{
-		"akinsho/bufferline.nvim",
-    tag = "*",
-    requires = 'nvim-tree/nvim-web-devicons',
-		event = "verylazy",
-		keys = {
-			{ "<tab>", "<cmd>bufferlinecyclenext<cr>", desc = "next tab" },
-			{ "<s-tab>", "<cmd>bufferlinecycleprev<cr>", desc = "prev tab" },
-		},
-		opts = {
-			options = {
-				mode = "tabs",
-				-- separator_style = "slant",
-				show_buffer_close_icons = false,
-				show_close_icon = false,
-			},
-		},
-	},
-  -- { "justinmk/vim-sneak" },
-
-  -- statusline
   {
-    "nvim-lualine/lualine.nvim",
-    dependencies = {
-      "nvim-tree/nvim-web-devicons",
+    "akinsho/bufferline.nvim",
+    -- tag = "*",
+    requires = "nvim-tree/nvim-web-devicons",
+    event = "verylazy",
+    keys = {
+      {
+        "<tab>",
+        "<cmd>bufferlinecyclenext<cr>",
+        desc = "next tab",
+      },
+      {
+        "<s-tab>",
+        "<cmd>bufferlinecycleprev<cr>",
+        desc = "prev tab",
+      },
     },
-    -- event = "VeryLazy",
-    -- opts = function(_, opts)
-    --   table.insert(opts.sections.lualine_x, "😄")
-    -- end,
-    config = function()
-      -- local lualine = require("lualine")
-      local lazy_status = require("lazy.status") -- to configure lazy pending updates count
-      -- Eviline config for lualine
-      -- Author: shadmansaleh
-      -- Credit: glepnir
-      local lualine = require('lualine')
-
-      -- Color table for highlights
-      -- stylua: ignore
-      local colors = {
-        bg       = '#202328',
-        fg       = '#bbc2cf',
-        yellow   = '#ECBE7B',
-        cyan     = '#008080',
-        darkblue = '#081633',
-        green    = '#98be65',
-        orange   = '#FF8800',
-        violet   = '#a9a1e1',
-        magenta  = '#c678dd',
-        blue     = '#51afef',
-        red      = '#ec5f67',
-      }
-
-      local conditions = {
-        buffer_not_empty = function()
-          return vim.fn.empty(vim.fn.expand('%:t')) ~= 1
-        end,
-        hide_in_width = function()
-          return vim.fn.winwidth(0) > 80
-        end,
-        check_git_workspace = function()
-          local filepath = vim.fn.expand('%:p:h')
-          local gitdir = vim.fn.finddir('.git', filepath .. ';')
-          return gitdir and #gitdir > 0 and #gitdir < #filepath
-        end,
-      }
-
-      -- Config
-      local config = {
-        options = {
-          -- Disable sections and component separators
-          component_separators = '',
-          section_separators = '',
-          theme = {
-            -- We are going to use lualine_c an lualine_x as left and
-            -- right section. Both are highlighted by c theme .  So we
-            -- are just setting default looks o statusline
-            normal = { c = { fg = colors.fg, bg = colors.bg } },
-            inactive = { c = { fg = colors.fg, bg = colors.bg } },
-          },
-        },
-        sections = {
-          -- these are to remove the defaults
-          lualine_a = {},
-          lualine_b = {},
-          lualine_y = {},
-          lualine_z = {},
-          -- These will be filled later
-          lualine_c = {},
-          lualine_x = {},
-        },
-        inactive_sections = {
-          -- these are to remove the defaults
-          lualine_a = {},
-          lualine_b = {},
-          lualine_y = {},
-          lualine_z = {},
-          lualine_c = {},
-          lualine_x = {},
-        },
-      }
-
-      -- Inserts a component in lualine_c at left section
-      local function ins_left(component)
-        table.insert(config.sections.lualine_c, component)
-      end
-
-      -- Inserts a component in lualine_x at right section
-      local function ins_right(component)
-        table.insert(config.sections.lualine_x, component)
-      end
-
-      ins_left {
-        function()
-          return '▊'
-        end,
-        color = { fg = colors.blue }, -- Sets highlighting of component
-        padding = { left = 0, right = 1 }, -- We don't need space before this
-      }
-
-      ins_left {
-        -- mode component
-        function()
-          return ''
-        end,
-        color = function()
-          -- auto change color according to neovims mode
-          local mode_color = {
-            n = colors.red,
-            i = colors.green,
-            v = colors.blue,
-            [''] = colors.blue,
-            V = colors.blue,
-            c = colors.magenta,
-            no = colors.red,
-            s = colors.orange,
-            S = colors.orange,
-            [''] = colors.orange,
-            ic = colors.yellow,
-            R = colors.violet,
-            Rv = colors.violet,
-            cv = colors.red,
-            ce = colors.red,
-            r = colors.cyan,
-            rm = colors.cyan,
-            ['r?'] = colors.cyan,
-            ['!'] = colors.red,
-            t = colors.red,
-          }
-          return { fg = mode_color[vim.fn.mode()] }
-        end,
-        padding = { right = 1 },
-      }
-
-      ins_left {
-        -- filesize component
-        'filesize',
-        cond = conditions.buffer_not_empty,
-      }
-
-      ins_left {
-        function()
-          local path = vim.fn.expand('%:p:h')
-          local directories = vim.fn.split(path, '/')
-          local levels = #directories
-          local display_path = table.concat({ directories[levels - 2], directories[levels - 1], directories[levels] }, '/')
-          return display_path
-        end,
-        'filename',
-        cond = conditions.buffer_not_empty,
-        color = { fg = colors.magenta, gui = 'bold' },
-        path = 
-      }
-
-      ins_left { 'location' }
-
-      ins_left { 'progress', color = { fg = colors.fg, gui = 'bold' } }
-
-      ins_left {
-        'diagnostics',
-        sources = { 'nvim_diagnostic' },
-        symbols = { error = ' ', warn = ' ', info = ' ' },
-        diagnostics_color = {
-          color_error = { fg = colors.red },
-          color_warn = { fg = colors.yellow },
-          color_info = { fg = colors.cyan },
-        },
-      }
-
-      -- Insert mid section. You can make any number of sections in neovim :)
-      -- for lualine it's any number greater then 2
-      ins_left {
-        function()
-          return '%='
-        end,
-      }
-
-      ins_left {
-        -- Lsp server name .
-        function()
-          local msg = 'No Active Lsp'
-          local buf_ft = vim.api.nvim_buf_get_option(0, 'filetype')
-          local clients = vim.lsp.get_active_clients()
-          if next(clients) == nil then
-            return msg
-          end
-          for _, client in ipairs(clients) do
-            local filetypes = client.config.filetypes
-            if filetypes and vim.fn.index(filetypes, buf_ft) ~= -1 then
-              return client.name
-            end
-          end
-          return msg
-        end,
-        icon = ' LSP:',
-        color = { fg = '#ffffff', gui = 'bold' },
-      }
-
-      -- Add components to right sections
-      ins_right {
-        'o:encoding', -- option component same as &encoding in viml
-        fmt = string.upper, -- I'm not sure why it's upper case either ;)
-        cond = conditions.hide_in_width,
-        color = { fg = colors.green, gui = 'bold' },
-      }
-
-      ins_right {
-        'fileformat',
-        fmt = string.upper,
-        icons_enabled = false, -- I think icons are cool but Eviline doesn't have them. sigh
-        color = { fg = colors.green, gui = 'bold' },
-      }
-
-      ins_right {
-        'branch',
-        icon = '',
-        color = { fg = colors.violet, gui = 'bold' },
-      }
-
-      ins_right {
-        'diff',
-        -- Is it me or the symbol for modified us really weird
-        symbols = { added = ' ', modified = '󰝤 ', removed = ' ' },
-        diff_color = {
-          added = { fg = colors.green },
-          modified = { fg = colors.orange },
-          removed = { fg = colors.red },
-        },
-        cond = conditions.hide_in_width,
-      }
-
-      ins_right {
-        function()
-          return '▊'
-        end,
-        color = { fg = colors.blue },
-        padding = { left = 1 },
-      }
-
-      -- Now don't forget to initialize lualine
-      lualine.setup(config)
-    end,
+    opts = {
+      options = {
+        show_buffer_close_icons = true,
+        show_close_icon = true,
+      },
+    },
   },
+  -- { "justinmk/vim-sneak" },
 
   -- LOGO
   {
