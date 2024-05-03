@@ -14,6 +14,7 @@ vim.api.nvim_set_option(
   "unnamedplus"
 )
 
+-- Theme Config
 local osakaConfig = {
   transparent = true, -- Enable this to disable setting the background color
   terminal_colors = true, -- Configure the colors used when opening a `:terminal` in Neovim
@@ -97,6 +98,80 @@ return {
   { "tpope/vim-surround" },
   { "terrortylor/nvim-comment" },
   {
+    "folke/which-key.nvim",
+    event = "VeryLazy",
+    init = function()
+      vim.o.timeout = true
+      vim.o.timeoutlen = 300
+    end,
+    opts = {
+      c = {
+        name = "ChatGPT",
+        c = { "<cmd>ChatGPT<CR>", "ChatGPT" },
+        e = {
+          "<cmd>ChatGPTEditWithInstruction<CR>",
+          "Edit with instruction",
+          mode = { "n", "v" },
+        },
+        g = {
+          "<cmd>ChatGPTRun grammar_correction<CR>",
+          "Grammar Correction",
+          mode = { "n", "v" },
+        },
+        t = {
+          "<cmd>ChatGPTRun translate<CR>",
+          "Translate",
+          mode = { "n", "v" },
+        },
+        k = {
+          "<cmd>ChatGPTRun keywords<CR>",
+          "Keywords",
+          mode = { "n", "v" },
+        },
+        d = {
+          "<cmd>ChatGPTRun docstring<CR>",
+          "Docstring",
+          mode = { "n", "v" },
+        },
+        a = {
+          "<cmd>ChatGPTRun add_tests<CR>",
+          "Add Tests",
+          mode = { "n", "v" },
+        },
+        o = {
+          "<cmd>ChatGPTRun optimize_code<CR>",
+          "Optimize Code",
+          mode = { "n", "v" },
+        },
+        s = {
+          "<cmd>ChatGPTRun summarize<CR>",
+          "Summarize",
+          mode = { "n", "v" },
+        },
+        f = {
+          "<cmd>ChatGPTRun fix_bugs<CR>",
+          "Fix Bugs",
+          mode = { "n", "v" },
+        },
+        x = {
+          "<cmd>ChatGPTRun explain_code<CR>",
+          "Explain Code",
+          mode = { "n", "v" },
+        },
+        r = {
+          "<cmd>ChatGPTRun roxygen_edit<CR>",
+          "Roxygen Edit",
+          mode = { "n", "v" },
+        },
+        l = {
+          "<cmd>ChatGPTRun code_readability_analysis<CR>",
+          "Code Readability Analysis",
+          mode = { "n", "v" },
+        },
+      },
+    },
+  },
+  {
     "JoosepAlviste/nvim-ts-context-commentstring",
   },
   { "rhysd/vim-fixjson", cmd = "FixJson" },
@@ -105,33 +180,49 @@ return {
     config = focusConfig,
   },
   {
-    "robitx/gp.nvim",
+    "jackMort/ChatGPT.nvim",
+    event = "VeryLazy",
     config = function()
-      require("gp").setup({
+      require("chatgpt").setup({
         openai_api_key = os.getenv(
           "OPENAI_API_KEY"
         ),
       })
     end,
-  },
-  {
-    "robitx/gp.nvim",
-    config = function()
-      require("gp").setup({
-        openai_api_key = os.getenv(
-          "OPENAI_API_KEY"
-        ),
-      })
-    end,
+    dependencies = {
+      "MunifTanjim/nui.nvim",
+      "nvim-lua/plenary.nvim",
+      "folke/trouble.nvim",
+      "nvim-telescope/telescope.nvim",
+    },
   },
   {
     "neovim/nvim-lspconfig",
     opt = true,
     event = "BufReadPre",
   },
-
+  {
+    "HampusHauffman/block.nvim",
+    config = function()
+      require("block").setup({})
+    end,
+  },
   {
     "nvim-telescope/telescope.nvim",
+    opts = {
+      defaults = {
+        layout_strategy = "vertical",
+        layout_config = {
+          height = 0.95, -- Adjust the height of the results pane to be smaller
+          prompt_position = "top",
+          vertical = {
+            mirror = true,
+            preview_cutoff = 0,
+            preview_height = 0.70, -- Adjust the width of the preview pane to be bigger
+          },
+        },
+      },
+    },
     requires = {
       {
         "nvim-telescope/telescope-fzf-native.nvim",
@@ -172,29 +263,7 @@ return {
         },
       },
     },
-    config = function()
-      require("telescope").setup({
-        defaults = {
-          sorting_strategy = "ascending",
-          layout_config = {
-            prompt_position = "top",
-            vertical = {
-              -- height = 0.9,
-              -- width = 0.9,
-              -- preview_width = 0.6,
-            },
-          },
-        },
-        extensions = {
-          fzf = {
-            override_generic_sorter = true, -- override the generic sorter
-            override_file_sorter = true, -- override the file sorter
-          },
-        },
-      })
-    end,
   },
-
   {
     "iamcco/markdown-preview.nvim",
     cmd = {
@@ -271,8 +340,8 @@ return {
   {
     "akinsho/bufferline.nvim",
     -- tag = "*",
+    -- event = "verylazy",
     requires = "nvim-tree/nvim-web-devicons",
-    event = "verylazy",
     keys = {
       {
         "<tab>",
@@ -292,7 +361,6 @@ return {
       },
     },
   },
-  -- { "justinmk/vim-sneak" },
 
   -- LOGO
   {
@@ -422,20 +490,6 @@ return {
         return buffer
       end,
     },
-  },
-
-  -- add symbols-outline
-  {
-    "simrat39/symbols-outline.nvim",
-    cmd = "SymbolsOutline",
-    keys = {
-      {
-        "<leader>cs",
-        "<cmd>SymbolsOutline<cr>",
-        desc = "Symbols Outline",
-      },
-    },
-    config = true,
   },
 
   -- add any tools you want to have installed below
