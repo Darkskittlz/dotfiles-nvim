@@ -1,5 +1,5 @@
 -- Set the virtual_column option to keep cursor column numbers the same
-vim.o.virtual_column = "all"
+-- vim.o.virtual_column = "all"
 vim.g.lazygit = {
   colors = {
     bg = "#000000", -- Set the background color to black
@@ -210,7 +210,7 @@ return {
   {
     "HampusHauffman/block.nvim",
     config = function()
-      require("block").setup({})
+      -- require("block").setup({})
     end,
   },
   {
