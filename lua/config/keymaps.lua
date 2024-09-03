@@ -60,3 +60,130 @@ keymap.set("x", "J", ":m '>+1<CR>gv=gv")
 keymap.set("x", "K", ":m '<-2<CR>gv=gv")
 keymap.set("x", "<A-j>", ":m '>+1<CR>gv=gv")
 keymap.set("x", "<A-k>", ":m '<-2<CR>gv=gv")
+
+
+
+-- Gp.NVIM Keyamps --
+keymap.set(
+  "n",
+  "<leader>gf",
+  ":GpChatFinder<CR>",
+  { noremap = true, silent = true }
+)
+
+-- GpChatRespond Mapping
+keymap.set(
+  "n",
+  "<leader>gr",
+  ":GpChatRespond<CR>",
+  { noremap = true, silent = true }
+)
+
+-- GpChatDelete Mapping
+keymap.set(
+  "n",
+  "<leader>gd",
+  ":GpChatDelete<CR>",
+  { noremap = true, silent = true }
+)
+
+-- Stop response
+keymap.set({"n", "i", "v", "x"}, "<C-g>s", "<cmd>GpStop<cr>")
+
+-- Delete chat
+keymap.set("n", "<leader>gd", ":GpChatDelete<CR>", { noremap = true, silent = true })
+
+-- Start fresh chat
+keymap.set("n", "<leader>gn", ":GpChatNew<CR>", { noremap = true, silent = true })
+
+keymap.set(
+  "n",
+  "<leader>gv",
+  ":GpChatNew vsplit<CR>",
+  { noremap = true, silent = true }
+)
+keymap.set(
+  "n",
+  "<leader>gh",
+  ":GpChatNew split<CR>",
+  { noremap = true, silent = true }
+)
+keymap.set(
+  "n",
+  "<leader>gt",
+  ":GpChatNew tabnew<CR>",
+  { noremap = true, silent = true }
+)
+keymap.set(
+  "n",
+  "<leader>gp",
+  ":GpChatNew popup<CR>",
+  { noremap = true, silent = true }
+)
+
+-- GpChatPaste Mappings
+keymap.set(
+  "v",
+  "<leader>gvp",
+  ':"<C-U>GpChatPaste<CR>',
+  { noremap = true, silent = true }
+)
+keymap.set(
+  "v",
+  "<leader>gvs",
+  ':"<C-U>GpChatPaste vsplit<CR>',
+  { noremap = true, silent = true }
+)
+keymap.set(
+  "v",
+  "<leader>gsp",
+  ':"<C-U>GpChatPaste split<CR>',
+  { noremap = true, silent = true }
+)
+keymap.set(
+  "v",
+  "<leader>gtp",
+  ':"<C-U>GpChatPaste tabnew<CR>',
+  { noremap = true, silent = true }
+)
+keymap.set(
+  "v",
+  "<leader>gpp",
+  ':"<C-U>GpChatPaste popup<CR>',
+  { noremap = true, silent = true }
+)
+
+-- GpChatToggle Mappings
+keymap.set(
+  "n",
+  "<leader>gtg",
+  ":GpChatToggle<CR>",
+  { noremap = true, silent = true }
+)
+keymap.set(
+  "n",
+  "<leader>gtv",
+  ":GpChatToggle vsplit<CR>",
+  { noremap = true, silent = true }
+)
+keymap.set(
+  "n",
+  "<leader>gth",
+  ":GpChatToggle split<CR>",
+  { noremap = true, silent = true }
+)
+keymap.set(
+  "n",
+  "<leader>gtt",
+  ":GpChatToggle tabnew<CR>",
+  { noremap = true, silent = true }
+)
+keymap.set(
+  "n",
+  "<leader>gttg",
+  ":GpChatToggle popup<CR>",
+  { noremap = true, silent = true }
+)
+
+
+

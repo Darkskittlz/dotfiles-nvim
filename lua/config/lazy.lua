@@ -2,16 +2,40 @@ local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
   -- bootstrap lazy.nvim
   -- stylua: ignore
-  vim.fn.system({ "git", "clone", "--filter=blob:none", "https://github.com/folke/lazy.nvim.git", "--branch=stable", lazypath })
+  vim.fn.system({ "git", "clone", "--filter=blob:none", "https://github.com/folke/lazy.nvim.git", "--branch=stable",
+    lazypath })
 end
 vim.opt.rtp:prepend(vim.env.LAZY or lazypath)
+
+vim.g.maplocalleader = ' '
 
 require("lazy").setup({
   spec = {
     -- add LazyVim and import its plugins
-    { "LazyVim/LazyVim", import = "lazyvim.plugins", opts = {
-      colorscheme = "solarized-osaka",
-    } },
+    {
+      "LazyVim/LazyVim",
+      import = "lazyvim.plugins",
+      opts = {
+        colorscheme = "solarized-osaka",
+      }
+    },
+    -- {
+    --   "williamboman/mason.nvim",
+    --   opts = function(_, opts)
+    --     vim.list_extend(opts.ensure_installed, {
+    --       "stylua",
+    --       "selene",
+    --       "luacheck",
+    --       "shellcheck",
+    --       "shfmt",
+    --       "tailwindcss-language-server",
+    --       "typescript-language-server",
+    --       "css-lsp",
+    --       "vue-language-server",
+    --     })
+    --   end,
+    -- },
+
     -- import any extras modules here
     -- { import = "lazyvim.extras.linting.eslint" },
     -- { import = "lazyvim.extras.formatting.prettier" },
@@ -37,7 +61,7 @@ require("lazy").setup({
   },
   install = { colorscheme = { "vim-habanight" } }, -- specify the color scheme to be installed
   -- install = { colorscheme = { "tokyonight", "habamax" } },
-  checker = { enabled = true }, -- automatically check for plugin updates
+  checker = { enabled = true },                    -- automatically check for plugin updates
   performance = {
     rtp = {
       -- disable some rtp plugins
