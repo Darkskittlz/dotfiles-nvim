@@ -9,6 +9,10 @@ local lspconfig = require("lspconfig")
 
 -- Function for common LSP settings and keybindings
 local function common_on_attach(client, bufnr)
+  -- Disable document formatting capability for any attached LSP client
+  client.resolved_capabilities.document_formatting = false
+  client.resolved_capabilities.document_range_formatting = false
+
   -- Keymaps for LSP
   local opts = { noremap = true, silent = true }
   vim.api.nvim_buf_set_keymap(bufnr, 'n', 'gD', '<Cmd>lua vim.lsp.buf.declaration()<CR>', opts)

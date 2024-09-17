@@ -1,14 +1,11 @@
--- Keymaps are automatically loaded on the VeryLazy event
--- Default keymaps that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/keymaps.lua
--- Add any additional keymaps here
--- local discipline = require("discipline")
--- discipline.cowboy()
-
 local keymap = vim.keymap
 local opts = { noremap = true, silent = true }
 
 keymap.set("n", "-", "<C-a>")
 keymap.set("n", "+", "<C-x>")
+
+-- copy --
+keymap.set("v", "y", '"+y', opts)
 
 -- delete line above --
 keymap.set("n", "dw", "vb_d")
@@ -61,41 +58,13 @@ keymap.set("x", "K", ":m '<-2<CR>gv=gv")
 keymap.set("x", "<A-j>", ":m '>+1<CR>gv=gv")
 keymap.set("x", "<A-k>", ":m '<-2<CR>gv=gv")
 
+-- ChatGPT Keymaps --
 
+-- Ensure the leader key is set
+vim.g.mapleader = " "
+vim.g.maplocalleader = " "
 
--- Gp.NVIM Keyamps --
-keymap.set(
-  "n",
-  "<leader>gf",
-  ":GpChatFinder<CR>",
-  { noremap = true, silent = true }
-)
-
--- GpChatRespond Mapping
-keymap.set(
-  "n",
-  "<leader>gr",
-  ":GpChatRespond<CR>",
-  { noremap = true, silent = true }
-)
-
--- GpChatDelete Mapping
-keymap.set(
-  "n",
-  "<leader>gd",
-  ":GpChatDelete<CR>",
-  { noremap = true, silent = true }
-)
-
--- Stop response
-keymap.set({"n", "i", "v", "x"}, "<C-g>s", "<cmd>GpStop<cr>")
-
--- Delete chat
-keymap.set("n", "<leader>gd", ":GpChatDelete<CR>", { noremap = true, silent = true })
-
--- Start fresh chat
-keymap.set("n", "<leader>gn", ":GpChatNew<CR>", { noremap = true, silent = true })
-
+-- GpChatNew Mappings
 keymap.set(
   "n",
   "<leader>gv",
@@ -185,5 +154,26 @@ keymap.set(
   { noremap = true, silent = true }
 )
 
+-- GpChatFinder Mapping
+keymap.set(
+  "n",
+  "<leader>gf",
+  ":GpChatFinder<CR>",
+  { noremap = true, silent = true }
+)
 
+-- GpChatRespond Mapping
+keymap.set(
+  "n",
+  "<leader>gr",
+  ":GpChatRespond<CR>",
+  { noremap = true, silent = true }
+)
 
+-- GpChatDelete Mapping
+keymap.set(
+  "n",
+  "<leader>gd",
+  ":GpChatDelete<CR>",
+  { noremap = true, silent = true }
+)

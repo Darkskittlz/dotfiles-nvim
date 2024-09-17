@@ -21,7 +21,7 @@ return {
         },
         on_highlights = function(hl, c)
           local util =
-            require("solarized-osaka.util")
+              require("solarized-osaka.util")
           local markdown_rainbow = {
             c.blue,
             c.yellow,
@@ -32,9 +32,9 @@ return {
           }
           for i, color in ipairs(markdown_rainbow) do
             hl["@markup.heading." .. i .. ".markdown"] =
-              { fg = color, bold = true }
+            { fg = color, bold = true }
             hl["Headline" .. i] =
-              { bg = util.darken(color, 0.05) }
+            { bg = util.darken(color, 0.05) }
             hl["keyword.tsx"] = {
               fg = util.darken(c.green500, 0.85),
             }

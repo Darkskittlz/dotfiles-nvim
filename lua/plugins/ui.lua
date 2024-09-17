@@ -14,6 +14,8 @@ vim.api.nvim_set_option(
   "unnamedplus"
 )
 
+vim.opt.termguicolors = true -- Enable 24-bit RGB color in the TUI,
+
 -- Theme Config
 local osakaConfig = {
   transparent = true,     -- Enable this to disable setting the background color
@@ -77,14 +79,10 @@ end
 local nvim_lsp = require("lspconfig")
 
 nvim_lsp.jsonls.setup({
-  on_attach = function(client)
-    -- Enable formatting on save
-    if
-        client.resolved_capabilities.document_formatting
-    then
-      vim.cmd(
-        "autocmd BufWritePre <buffer> lua vim.lsp.buf.formatting_sync()"
-      )
+  on_attach = function(client, bufnr)
+    if vim.bo[bufnr].filetype == 'sh' or vim.fn.expand("%:t") == ".env" then
+      client.resolved_capabilities.document_formatting = false
+      client.resolved_capabilities.document_range_formatting = false
     end
   end,
 })
@@ -102,14 +100,13 @@ return {
     opts = {
       require("conform").setup({
         formatters_by_ft = {
-          lua = { "stylua" },
-          -- Conform will run multiple formatters sequentially
-          python = { "isort", "black" },
-          -- You can customize some of the format options for the filetype (:help conform.format)
-          rust = { "rustfmt", lsp_format = "fallback" },
-          -- Conform will run the first available formatter
-          javascript = { "prettierd", "prettier", stop_after_first = true },
-          vue = { "prettierd" },
+          lua = {},
+          python = {},
+          rust = {},
+          javascript = {},
+          vue = {},
+          html = {},
+          css = {},
         },
       })
     },
@@ -196,10 +193,10 @@ return {
     "JoosepAlviste/nvim-ts-context-commentstring",
   },
   { "rhysd/vim-fixjson", cmd = "FixJson" },
-  {
-    "nvim-focus/focus.nvim",
-    config = focusConfig,
-  },
+  -- {
+  --   "nvim-focus/focus.nvim",
+  --   config = focusConfig,
+  -- },
   {
     "barrett-ruth/live-server.nvim",
     build = "pnpm add -g live-server",
