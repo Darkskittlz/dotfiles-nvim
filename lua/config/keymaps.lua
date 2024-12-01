@@ -4,6 +4,11 @@ local opts = { noremap = true, silent = true }
 keymap.set("n", "-", "<C-a>")
 keymap.set("n", "+", "<C-x>")
 
+-- Mason --
+vim.api.nvim_set_keymap('n', '<leader>M', ':lua require("mason.ui").open()<CR>', { noremap = true, silent = true })
+
+
+
 -- copy --
 keymap.set("v", "y", '"+y', opts)
 

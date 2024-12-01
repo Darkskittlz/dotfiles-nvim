@@ -112,6 +112,17 @@ return {
     },
   },
   {
+    "JoosepAlviste/nvim-ts-context-commentstring",
+    config = function()
+      require('nvim-treesitter.configs').setup {
+        context_commentstring = {
+          enable = true,
+          enable_autocmd = false,
+        }
+      }
+    end
+  },
+  {
     "folke/which-key.nvim",
     event = "VeryLazy",
     init = function()
@@ -335,10 +346,14 @@ return {
   --     vim.cmd("hi Normal guibg=NONE ctermbg=NONE")
   --   end,
   -- },
+
   {
     "numToStr/Comment.nvim",
+    dependencies = { "JoosepAlviste/nvim-ts-context-commentstring" },
     config = function()
-      require("Comment").setup()
+      require('Comment').setup {
+        pre_hook = require('ts_context_commentstring.integrations.comment_nvim').create_pre_hook(),
+      }
     end,
   },
   {
@@ -533,9 +548,12 @@ return {
     },
   },
 
-  -- add any tools you want to have installed below
+
   {
     "williamboman/mason.nvim",
+    config = function()
+      require("mason").setup()
+    end,
     opts = {
       ensure_installed = {
         "stylua",
@@ -543,7 +561,6 @@ return {
         "shfmt",
         "flake8",
         "typescript-language-server",
-        "lua-language-server",
         "html-lsp",
         "lua-language-server",
       },
