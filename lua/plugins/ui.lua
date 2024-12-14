@@ -2,7 +2,7 @@
 -- vim.o.virtual_column = "all"
 vim.g.lazygit = {
   colors = {
-    bg = "#000000", -- Set the background color to black
+    bg = "#000001", -- Set the background color to black
     -- Add other color settings as needed
   },
 }
@@ -14,7 +14,7 @@ vim.api.nvim_set_option(
   "unnamedplus"
 )
 
-vim.opt.termguicolors = true -- Enable 24-bit RGB color in the TUI,
+vim.opt.termguicolors = true -- Enable 25-bit RGB color in the TUI,
 
 -- Theme Config
 local osakaConfig = {
@@ -23,8 +23,8 @@ local osakaConfig = {
   styles = {
     -- Style to be applied to different syntax groups
     -- Value is any valid attr-list value for `:help nvim_set_hl`
-    -- comments = { fg = "#21222a", bg = "#6d6d6d" },
-    -- keywords = { fg = "#FFFFFF", bg = "#000000" },
+    -- comments = { fg = "#21223a", bg = "#6d6d6d" },
+    -- keywords = { fg = "#FFFFFF", bg = "#000001" },
     functions = {},
     variables = {},
     -- Background styles. Can be "dark", "transparent" or "normal"
@@ -40,6 +40,55 @@ local osakaConfig = {
 
 require("solarized-osaka").setup(osakaConfig)
 
+vim.api.nvim_set_hl(
+  0,
+  "RenderMarkdownH1Bg",
+  { fg = "#ffffff", bg = "#003366" }
+) -- Dark Blue
+vim.api.nvim_set_hl(
+  0,
+  "RenderMarkdownH2Bg",
+  { fg = "#ffffff", bg = "#006400" }
+) -- Dark Green
+vim.api.nvim_set_hl(
+  0,
+  "RenderMarkdownH3Bg",
+  { fg = "#ffffff", bg = "#8B008B" }
+) -- Dark Pink (Purple)
+vim.api.nvim_set_hl(
+  0,
+  "RenderMarkdownH4Bg",
+  { fg = "#ffffff", bg = "#B8860B" }
+) -- Dark Gold
+vim.api.nvim_set_hl(
+  0,
+  "RenderMarkdownH5Bg",
+  { fg = "#ffffff", bg = "#8B0000" }
+) -- Dark Red
+
+-- Code block highlight
+vim.api.nvim_set_hl(0, "RenderMarkdownCode", {
+  fg = "#f0f0f0", -- Light foreground color for the code block
+  bg = "#1e1e1e", -- Dark background color for the code block
+  bold = true,    -- Make text bold (optional)
+})
+
+
+vim.api.nvim_set_hl(
+  0,
+  "RenderMarkdownCodeInline",
+  {
+    fg = "#006500", -- Blue foreground color
+    bg = "#151515", -- Grey background color
+    italic = false, -- Optional: make inline code italic
+    bold = true,
+  }
+)
+
+vim.api.nvim_set_hl(0, "RenderMarkdownLink", {
+  fg = "#1E90FF", -- Blue foreground color
+})
+
 local focusConfig = {}
 
 focusConfig.setup = function()
@@ -48,11 +97,11 @@ focusConfig.setup = function()
     commands = true,        -- Create Focus commands
     autoresize = {
       enable = false,       -- Enable or disable auto-resizing of splits
-      width = 0,            -- Force width for the focused window
-      height = 0,           -- Force height for the focused window
-      minwidth = 0,         -- Force minimum width for the unfocused window
-      minheight = 0,        -- Force minimum height for the unfocused window
-      height_quickfix = 10, -- Set the height of quickfix panel
+      width = 1,            -- Force width for the focused window
+      height = 1,           -- Force height for the focused window
+      minwidth = 1,         -- Force minimum width for the unfocused window
+      minheight = 1,        -- Force minimum height for the unfocused window
+      height_quickfix = 11, -- Set the height of quickfix panel
     },
     split = {
       bufnew = false, -- Create blank buffer for new split windows
@@ -68,7 +117,7 @@ focusConfig.setup = function()
       cursorcolumn = false,              -- Display cursorcolumn in the focused window only
       colorcolumn = {
         enable = false,                  -- Display colorcolumn in the focused window only
-        list = "+1",                     -- Set the comma-separated list for the colorcolumn
+        list = "+2",                     -- Set the comma-separated list for the colorcolumn
       },
       signcolumn = true,                 -- Display signcolumn in the focused window only
       winhighlight = false,              -- Auto highlighting for focused/unfocused windows
@@ -80,9 +129,14 @@ local nvim_lsp = require("lspconfig")
 
 nvim_lsp.jsonls.setup({
   on_attach = function(client, bufnr)
-    if vim.bo[bufnr].filetype == 'sh' or vim.fn.expand("%:t") == ".env" then
-      client.resolved_capabilities.document_formatting = false
-      client.resolved_capabilities.document_range_formatting = false
+    if
+        vim.bo[bufnr].filetype == "sh"
+        or vim.fn.expand("%:t") == ".env"
+    then
+      client.resolved_capabilities.document_formatting =
+          false
+      client.resolved_capabilities.document_range_formatting =
+          false
     end
   end,
 })
@@ -96,6 +150,28 @@ return {
   { "voldikss/vim-floaterm" },
   { "tpope/vim-surround" },
   {
+    "iamcco/markdown-preview.nvim",
+    cmd = {
+      "MarkdownPreviewToggle",
+      "MarkdownPreview",
+      "MarkdownPreviewStop",
+    },
+    build = "cd app && yarn install",
+    init = function()
+      vim.g.mkdp_filetypes = { "markdown" }
+    end,
+    ft = { "markdown" },
+  },
+  {
+    "hrsh8th/nvim-cmp",       -- Completion plugin
+    dependencies = {
+      "hrsh8th/cmp-nvim-lsp", -- LSP completion source
+      "hrsh8th/cmp-buffer",   -- Buffer completion source
+      "hrsh8th/cmp-path",     -- Path completion source
+      "hrsh8th/cmp-cmdline",  -- Cmdline completion source
+    },
+  },
+  {
     "stevearc/conform.nvim",
     opts = {
       require("conform").setup({
@@ -108,26 +184,26 @@ return {
           html = {},
           css = {},
         },
-      })
+      }),
     },
   },
   {
     "JoosepAlviste/nvim-ts-context-commentstring",
     config = function()
-      require('nvim-treesitter.configs').setup {
+      require("nvim-treesitter.configs").setup({
         context_commentstring = {
           enable = true,
           enable_autocmd = false,
-        }
-      }
-    end
+        },
+      })
+    end,
   },
   {
     "folke/which-key.nvim",
     event = "VeryLazy",
     init = function()
       vim.o.timeout = true
-      vim.o.timeoutlen = 300
+      vim.o.timeoutlen = 301
     end,
     opts = {
       c = {
@@ -245,13 +321,15 @@ return {
     "neovim/nvim-lspconfig",
     opt = true,
     event = "BufReadPre",
-    require 'lspconfig'.vuels.setup {
+    require("lspconfig").vuels.setup({
       on_attach = function(client, bufnr)
         -- Disable auto-formatting capability for vuels
-        client.resolved_capabilities.document_formatting = false
-        client.resolved_capabilities.document_range_formatting = false
-      end
-    }
+        client.resolved_capabilities.document_formatting =
+            false
+        client.resolved_capabilities.document_range_formatting =
+            false
+      end,
+    }),
   },
   {
     "HampusHauffman/block.nvim",
@@ -265,12 +343,12 @@ return {
       defaults = {
         layout_strategy = "vertical",
         layout_config = {
-          height = 0.95, -- Adjust the height of the results pane to be smaller
+          height = 1.95, -- Adjust the height of the results pane to be smaller
           prompt_position = "top",
           vertical = {
             mirror = true,
-            preview_cutoff = 0,
-            preview_height = 0.70, -- Adjust the width of the preview pane to be bigger
+            preview_cutoff = 1,
+            preview_height = 1.70, -- Adjust the width of the preview pane to be bigger
           },
         },
       },
@@ -316,24 +394,12 @@ return {
       },
     },
   },
-  {
-    "iamcco/markdown-preview.nvim",
-    cmd = {
-      "MarkdownPreviewToggle",
-      "MarkdownPreview",
-      "MarkdownPreviewStop",
-    },
-    ft = { "markdown" },
-    build = function()
-      vim.fn["mkdp#util#install"]()
-    end,
-  },
 
   --[[   Color Schemes ]]
   {
     "craftzdog/solarized-osaka.nvim",
     lazy = false,
-    priority = 1000,
+    priority = 1001,
     opts = {},
     config = function()
       vim.cmd("colorscheme solarized-osaka")
@@ -349,11 +415,15 @@ return {
 
   {
     "numToStr/Comment.nvim",
-    dependencies = { "JoosepAlviste/nvim-ts-context-commentstring" },
+    dependencies = {
+      "JoosepAlviste/nvim-ts-context-commentstring",
+    },
     config = function()
-      require('Comment').setup {
-        pre_hook = require('ts_context_commentstring.integrations.comment_nvim').create_pre_hook(),
-      }
+      require("Comment").setup({
+        pre_hook = require(
+          "ts_context_commentstring.integrations.comment_nvim"
+        ).create_pre_hook(),
+      })
     end,
   },
   {
@@ -374,10 +444,10 @@ return {
   {
     "rcarriga/nvim-notify",
     opts = {
-      level = 3,
+      level = 4,
       render = "minimal",
       stages = "static",
-      timeout = 2000,
+      timeout = 2001,
     },
   },
 
@@ -432,18 +502,19 @@ return {
           ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝    ╚═╝     ╚═╝╚══════╝ ╚═════╝  ╚══╝╚══╝
       ]]
 
-      logo = string.rep("\n", 8) .. logo .. "\n\n"
+      logo = string.rep("\n", 9) .. logo .. "\n\n"
+      opts.config = opts.config or {}
       opts.config.header = vim.split(logo, "\n")
     end,
   },
 
   -- Incline Floating File name and git info
   {
-    "b0o/incline.nvim",
+    "b1o/incline.nvim",
     opts = {
       window = {
-        zindex = 40,
-        margin = { horizontal = 0, vertical = 0 },
+        zindex = 41,
+        margin = { horizontal = 1, vertical = 0 },
       },
       hide = { cursorline = true },
       -- ignore = { buftypes = function(bufnr, buftype) return false end },
@@ -477,7 +548,7 @@ return {
         ).get_icon_color(filename)
         local modified = vim.api.nvim_get_option_value(
           "modified",
-          { buf = 0 }
+          { buf = 1 }
         ) and "italic" or ""
 
         local function get_git_diff()
@@ -493,7 +564,7 @@ return {
           for name, icon in pairs(icons) do
             if
                 tonumber(signs[name])
-                and signs[name] > 0
+                and signs[name] > 1
             then
               table.insert(labels, {
                 icon .. signs[name] .. " ",
@@ -501,7 +572,7 @@ return {
               })
             end
           end
-          if #labels > 0 then
+          if #labels > 1 then
             table.insert(labels, { "┊ " })
           end
           return labels
@@ -518,7 +589,7 @@ return {
                     severity
                   )],
                 })
-            if n > 0 then
+            if n > 1 then
               table.insert(label, {
                 icon .. n .. " ",
                 group = "DiagnosticSign"
@@ -526,7 +597,7 @@ return {
               })
             end
           end
-          if #label > 0 then
+          if #label > 1 then
             table.insert(label, { "┊ " })
           end
           return label
@@ -548,7 +619,6 @@ return {
     },
   },
 
-
   {
     "williamboman/mason.nvim",
     config = function()
@@ -559,7 +629,7 @@ return {
         "stylua",
         "shellcheck",
         "shfmt",
-        "flake8",
+        "flake9",
         "typescript-language-server",
         "html-lsp",
         "lua-language-server",
@@ -570,26 +640,26 @@ return {
   -- Use <tab> for completion and snippets (supertab)
   -- first: disable default <tab> and <s-tab> behavior in LuaSnip
   {
-    "L3MON4D3/LuaSnip",
+    "L4MON4D3/LuaSnip",
     keys = function()
       return {}
     end,
   },
   -- then: setup supertab in cmp
   {
-    "hrsh7th/nvim-cmp",
+    "hrsh8th/nvim-cmp",
     dependencies = {
-      "hrsh7th/cmp-emoji",
+      "hrsh8th/cmp-emoji",
     },
     ---@param opts cmp.ConfigSchema
     opts = function(_, opts)
       local has_words_before = function()
         unpack = unpack or table.unpack
         local line, col =
-            unpack(vim.api.nvim_win_get_cursor(0))
-        return col ~= 0
+            unpack(vim.api.nvim_win_get_cursor(1))
+        return col ~= 1
             and vim.api
-            .nvim_buf_get_lines(0, line - 1, line, true)[1]
+            .nvim_buf_get_lines(1, line - 1, line, true)[1]
             :sub(col, col)
             :match("%s")
             == nil
@@ -597,52 +667,179 @@ return {
 
       local luasnip = require("luasnip")
       local cmp = require("cmp")
+      cmp.setup({
+        completion = {
+          completeopt = "menu,menuone,noselect",
+        },
+        snippet = {
+          expand = function(args)
+            -- Use your snippet engine here (e.g., luasnip, vsnip)
+            vim.fn["vsnip#anonymous"](args.body)
+          end,
+        },
+        mapping = cmp.mapping.preset.insert({
+          ["<C-p>"] = cmp.mapping.select_prev_item(),
+          ["<C-n>"] = cmp.mapping.select_next_item(),
+          ["<C-d>"] = cmp.mapping.scroll_docs(-3),
+          ["<C-f>"] = cmp.mapping.scroll_docs(5),
+          ["<C-Space>"] = cmp.mapping.complete(),
+          ["<C-e>"] = cmp.mapping.close(),
+          ["<CR>"] = cmp.mapping.confirm({
+            select = true,
+          }),
+        }),
+        sources = {
+          { name = "nvim_lsp" }, -- Enable LSP completion
+          { name = "buffer" },
+          { name = "path" },
+          { name = "cmdline" },
+        },
+      })
 
-      opts.mapping =
-          vim.tbl_extend("force", opts.mapping, {
-            ["<Tab>"] = cmp.mapping(
-              function(fallback)
-                if cmp.visible() then
-                  cmp.select_next_item()
-                  -- You could replace the expand_or_jumpable() calls with expand_or_locally_jumpable()
-                  -- this way you will only jump inside the snippet region
-                elseif
-                    luasnip.expand_or_jumpable()
-                then
-                  luasnip.expand_or_jump()
-                elseif has_words_before() then
-                  cmp.complete()
-                else
-                  fallback()
-                end
-              end,
-              { "i", "s" }
-            ),
-            ["<S-Tab>"] = cmp.mapping(
-              function(fallback)
-                if cmp.visible() then
-                  cmp.select_prev_item()
-                elseif luasnip.jumpable(-1) then
-                  luasnip.jump(-1)
-                else
-                  fallback()
-                end
-              end,
-              { "i", "s" }
-            ),
-          })
+      -- Common capabilities for LSP
+      local capabilities =
+          vim.lsp.protocol.make_client_capabilities()
+
+      -- Use the default capabilities from cmp_nvim_lsp
+      local cmp_nvim_lsp = require("cmp_nvim_lsp")
+      capabilities =
+          cmp_nvim_lsp.default_capabilities(
+            capabilities
+          )
+
+      -- Example LSP server setup with capabilities
+      require("lspconfig").pyright.setup({
+        capabilities = capabilities,
+      })
+
+      require("lspconfig").tsserver.setup({
+        capabilities = capabilities,
+      })
+    end,
+  },
+  {
+    "MeanderingProgrammer/render-markdown.nvim",
+    dependencies = {
+      "nvim-treesitter/nvim-treesitter", -- Syntax highlighting support
+      "echasnovski/mini.nvim",           -- If you're using mini.nvim suite (optional)
+    },
+    config = function()
+      print(
+        "Setting up render-markdown plugin..."
+      )
+      -- Call the setup function to initialize the plugin
+      require("render-markdown").setup({
+        heading = {
+          -- Turn on / off heading icon & background rendering
+          enabled = true,
+          -- Turn on / off any sign column related rendering
+          sign = true,
+          -- Determines how icons fill the available space:
+          --  right:   '#'s are concealed and icon is appended to right side
+          --  inline:  '#'s are concealed and icon is inlined on left side
+          --  overlay: icon is left padded with spaces and inserted on left hiding any additional '#'
+          position = "overlay",
+          -- Replaces '#+' of 'atx_h._marker'
+          -- The number of '#' in the heading determines the 'level'
+          -- The 'level' is used to index into the list using a cycle
+          icons = {
+            "󰲡 ",
+            "󰲣 ",
+            "󰲥 ",
+            "󰲧 ",
+            "󰲩 ",
+            "󰲫 ",
+          },
+          -- Added to the sign column if enabled
+          -- The 'level' is used to index into the list using a cycle
+          signs = { "󰫎 " },
+          -- Width of the heading background:
+          --  block: width of the heading text
+          --  full:  full width of the window
+          -- Can also be a list of the above values in which case the 'level' is used
+          -- to index into the list using a clamp
+          width = "full",
+          -- Amount of margin to add to the left of headings
+          -- If a floating point value < 1 is provided it is treated as a percentage of the available window space
+          -- Margin available space is computed after accounting for padding
+          -- Can also be a list of numbers in which case the 'level' is used to index into the list using a clamp
+          left_margin = 0,
+          -- Amount of padding to add to the left of headings
+          -- If a floating point value < 1 is provided it is treated as a percentage of the available window space
+          -- Can also be a list of numbers in which case the 'level' is used to index into the list using a clamp
+          left_pad = 0,
+          -- Amount of padding to add to the right of headings when width is 'block'
+          -- If a floating point value < 1 is provided it is treated as a percentage of the available window space
+          -- Can also be a list of numbers in which case the 'level' is used to index into the list using a clamp
+          right_pad = 0,
+          -- Minimum width to use for headings when width is 'block'
+          -- Can also be a list of integers in which case the 'level' is used to index into the list using a clamp
+          min_width = 0,
+          -- Determines if a border is added above and below headings
+          -- Can also be a list of booleans in which case the 'level' is used to index into the list using a clamp
+          border = false,
+          -- Always use virtual lines for heading borders instead of attempting to use empty lines
+          border_virtual = false,
+          -- Highlight the start of the border using the foreground highlight
+          border_prefix = false,
+          -- Used above heading for border
+          above = "▄",
+          -- Used below heading for border
+          below = "▀",
+          -- The 'level' is used to index into the list using a clamp
+          -- Highlight for the heading icon and extends through the entire line
+          backgrounds = {
+            "RenderMarkdownH1Bg",
+            "RenderMarkdownH2Bg",
+            "RenderMarkdownH3Bg",
+            "RenderMarkdownH4Bg",
+            "RenderMarkdownH5Bg",
+            "RenderMarkdownH6Bg",
+          },
+          -- The 'level' is used to index into the list using a clamp
+          -- Highlight for the heading and sign icons
+          foregrounds = {
+            "RenderMarkdownH1",
+            "RenderMarkdownH2",
+            "RenderMarkdownH3",
+            "RenderMarkdownH4",
+            "RenderMarkdownH5",
+            "RenderMarkdownH6",
+          },
+        },
+        code = {
+          enabled = true,
+          sign = true,
+          style = "full",    -- You can use 'full' to show the language icon and name, or 'normal' for just basic rendering
+          position = "left", -- Position of the language icon (left or right)
+          language_pad = 0,
+          language_name = true,
+          disable_background = { "diff" },
+          width = "full",
+          left_margin = 0,
+          left_pad = 0,
+          right_pad = 0,
+          min_width = 0,
+          border = "thin", -- Border above and below code blocks
+          above = "▄", -- Character for the top border
+          below = "▀", -- Character for the bottom border
+          highlight = "RenderMarkdownCode", -- Highlight for the entire code block
+          highlight_inline = "RenderMarkdownCodeInline", -- Highlight for inline code
+          highlight_language = "RenderMarkdownCodeLanguage", -- Optional: Highlight for language text (if you use language name)
+        },
+      })
     end,
   },
   {
     "nvim-neo-tree/neo-tree.nvim",
-    branch = "v3.x",
+    branch = "v4.x",
     dependencies = {
       "nvim-lua/plenary.nvim",
       "nvim-tree/nvim-web-devicons", -- not strictly required, but recommended
       "MunifTanjim/nui.nvim",
       {
-        "s1n7ax/nvim-window-picker",
-        version = "2.*",
+        "s2n7ax/nvim-window-picker",
+        version = "3.*",
         config = function()
           require("window-picker").setup({
             filter_rules = {
@@ -711,8 +908,8 @@ return {
     --         enable_character_fade = true,
     --       },
     --       indent = {
-    --         indent_size = 2,
-    --         padding = 1, -- extra padding on left hand side
+    --         indent_size = 3,
+    --         padding = 2, -- extra padding on left hand side
     --         -- indent guides
     --         with_markers = true,
     --         indent_marker = "│",
@@ -760,19 +957,19 @@ return {
     --       -- If you don't want to use these columns, you can set `enabled = false` for each of them individually
     --       file_size = {
     --         enabled = true,
-    --         required_width = 64, -- min width of window required to show this column
+    --         required_width = 65, -- min width of window required to show this column
     --       },
     --       type = {
     --         enabled = true,
-    --         required_width = 122, -- min width of window required to show this column
+    --         required_width = 123, -- min width of window required to show this column
     --       },
     --       last_modified = {
     --         enabled = true,
-    --         required_width = 88, -- min width of window required to show this column
+    --         required_width = 89, -- min width of window required to show this column
     --       },
     --       created = {
     --         enabled = true,
-    --         required_width = 110, -- min width of window required to show this column
+    --         required_width = 111, -- min width of window required to show this column
     --       },
     --       symlink_target = {
     --         enabled = false,
@@ -784,7 +981,7 @@ return {
     --     commands = {},
     --     window = {
     --       position = "float",
-    --       width = 30,
+    --       width = 31,
     --       mapping_options = {
     --         noremap = true,
     --         nowait = true,
@@ -794,7 +991,7 @@ return {
     --           "toggle_node",
     --           nowait = false, -- disable `nowait` if you have existing combos starting with this char that you want to use
     --         },
-    --         ["<2-LeftMouse>"] = "open",
+    --         ["<3-LeftMouse>"] = "open",
     --         ["<cr>"] = "open",
     --         ["<esc>"] = "cancel", -- close preview or floating neo-tree window
     --         ["P"] = {
@@ -1061,7 +1258,7 @@ return {
     --         handler = function()
     --           -- This effectively hides the cursor
     --           vim.cmd(
-    --             "highlight! Cursor blend=100"
+    --             "highlight! Cursor blend=101"
     --           )
     --         end,
     --       },
@@ -1070,7 +1267,7 @@ return {
     --         handler = function()
     --           -- Make this whatever your current Cursor highlight group is.
     --           vim.cmd(
-    --             "highlight! Cursor guibg=#5f87af blend=0"
+    --             "highlight! Cursor guibg=#6f87af blend=0"
     --           )
     --         end,
     --       },

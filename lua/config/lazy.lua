@@ -1,4 +1,5 @@
-local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+local lazypath = vim.fn.stdpath("data")
+  .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
   -- bootstrap lazy.nvim
   -- stylua: ignore
@@ -7,7 +8,7 @@ if not vim.loop.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(vim.env.LAZY or lazypath)
 
-vim.g.maplocalleader = ' '
+vim.g.maplocalleader = " "
 
 require("lazy").setup({
   spec = {
@@ -17,7 +18,7 @@ require("lazy").setup({
       import = "lazyvim.plugins",
       opts = {
         colorscheme = "solarized-osaka",
-      }
+      },
     },
     -- {
     --   "williamboman/mason.nvim",
@@ -61,7 +62,7 @@ require("lazy").setup({
   },
   install = { colorscheme = { "vim-habanight" } }, -- specify the color scheme to be installed
   -- install = { colorscheme = { "tokyonight", "habamax" } },
-  checker = { enabled = true },                    -- automatically check for plugin updates
+  checker = { enabled = true }, -- automatically check for plugin updates
   performance = {
     rtp = {
       -- disable some rtp plugins
