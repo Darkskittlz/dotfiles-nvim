@@ -18,7 +18,7 @@ vim.opt.termguicolors = true -- Enable 25-bit RGB color in the TUI,
 
 -- Theme Config
 local osakaConfig = {
-  transparent = true,     -- Enable this to disable setting the background color
+  transparent = false,    -- Disable transparency to set a background color
   terminal_colors = true, -- Configure the colors used when opening a `:terminal` in Neovim
   styles = {
     -- Style to be applied to different syntax groups
@@ -28,15 +28,19 @@ local osakaConfig = {
     functions = {},
     variables = {},
     -- Background styles. Can be "dark", "transparent" or "normal"
-    sidebars = "dark",              -- style for sidebars
-    floats = "transparent",         -- style for floating windows
+    sidebars = "dark",              -- Keep sidebars dark if you want to preserve this
+    floats = "transparent",         -- Floating windows can stay transparent if you like
   },
-  sidebars = { "qf", "help" },      -- Set a darker background on sidebar-like windows
+  sidebars = { "qf", "help" },      -- Set a darker background for sidebar-like windows
 
-  hide_inactive_statusline = false, -- Enabling this option, will hide inactive statuslines and replace them with a thin border instead
+  hide_inactive_statusline = false, -- Enabling this option will hide inactive statuslines and replace them with a thin border instead
   dim_inactive = false,             -- Dims inactive windows
   lualine_bold = false,             -- When true, section headers in the lualine theme will be bold
 }
+
+-- Apply a white background
+-- vim.cmd([[highlight Normal guibg=#00000]]) -- Set background color for normal text
+vim.cmd([[highlight NormalNC guibg=#000000]]) -- Set background color for non-current windows
 
 require("solarized-osaka").setup(osakaConfig)
 
@@ -72,7 +76,6 @@ vim.api.nvim_set_hl(0, "RenderMarkdownCode", {
   bg = "#1e1e1e", -- Dark background color for the code block
   bold = true,    -- Make text bold (optional)
 })
-
 
 vim.api.nvim_set_hl(
   0,
@@ -149,6 +152,7 @@ return {
   { "terrortylor/nvim-comment" },
   { "voldikss/vim-floaterm" },
   { "tpope/vim-surround" },
+  { "NLKNguyen/papercolor-theme" },
   {
     "iamcco/markdown-preview.nvim",
     cmd = {
@@ -510,7 +514,7 @@ return {
 
   -- Incline Floating File name and git info
   {
-    "b1o/incline.nvim",
+    "b0o/incline.nvim",
     opts = {
       window = {
         zindex = 41,
@@ -640,7 +644,7 @@ return {
   -- Use <tab> for completion and snippets (supertab)
   -- first: disable default <tab> and <s-tab> behavior in LuaSnip
   {
-    "L4MON4D3/LuaSnip",
+    "L3MON4D3/LuaSnip",
     keys = function()
       return {}
     end,
@@ -838,7 +842,7 @@ return {
       "nvim-tree/nvim-web-devicons", -- not strictly required, but recommended
       "MunifTanjim/nui.nvim",
       {
-        "s2n7ax/nvim-window-picker",
+        "s1n7ax/nvim-window-picker",
         version = "3.*",
         config = function()
           require("window-picker").setup({
