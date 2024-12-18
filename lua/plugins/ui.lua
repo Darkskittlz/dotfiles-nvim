@@ -18,7 +18,7 @@ vim.opt.termguicolors = true -- Enable 25-bit RGB color in the TUI,
 
 -- Theme Config
 local osakaConfig = {
-  transparent = false,    -- Disable transparency to set a background color
+  transparent = true, -- Disable transparency to set a background color
   terminal_colors = true, -- Configure the colors used when opening a `:terminal` in Neovim
   styles = {
     -- Style to be applied to different syntax groups
@@ -28,15 +28,340 @@ local osakaConfig = {
     functions = {},
     variables = {},
     -- Background styles. Can be "dark", "transparent" or "normal"
-    sidebars = "dark",              -- Keep sidebars dark if you want to preserve this
-    floats = "transparent",         -- Floating windows can stay transparent if you like
+    sidebars = "dark", -- Keep sidebars dark if you want to preserve this
+    floats = "transparent", -- Floating windows can stay transparent if you like
   },
-  sidebars = { "qf", "help" },      -- Set a darker background for sidebar-like windows
+  sidebars = { "qf", "help" }, -- Set a darker background for sidebar-like windows
 
   hide_inactive_statusline = false, -- Enabling this option will hide inactive statuslines and replace them with a thin border instead
-  dim_inactive = false,             -- Dims inactive windows
-  lualine_bold = false,             -- When true, section headers in the lualine theme will be bold
+  dim_inactive = false, -- Dims inactive windows
+  lualine_bold = false, -- When true, section headers in the lualine theme will be bold
 }
+
+
+-- Bubbles config for lualine
+-- Author: lokesh-krishna
+-- MIT license, see LICENSE for more details.
+
+-- stylua: ignore
+local colors = {
+  blue        = '#80a0ff',
+  cyan        = '#79dac8',
+  black       = '#080808',
+  white       = '#c6c6c6',
+  red         = '#ff5189',
+  violet      = '#8C4F92',
+  grey        = '#303030',
+  green       = '#50C878',
+  orange      = "#CC5500",
+  purple      = "#9370DB",
+  hackerGreen = "#005200"
+}
+
+local bubbles_theme = {
+  normal = {
+    a = { fg = colors.black, bg = colors.violet },
+    b = { fg = colors.white, bg = colors.black },
+    c = { fg = colors.white },
+  },
+
+  insert = {
+    a = { fg = colors.black, bg = colors.blue },
+  },
+  visual = {
+    a = { fg = colors.black, bg = colors.orange },
+  },
+  replace = {
+    a = { fg = colors.black, bg = colors.red },
+  },
+
+  inactive = {
+    a = { fg = colors.white, bg = colors.black },
+    b = { fg = colors.white, bg = colors.black },
+    c = { fg = colors.white },
+  },
+}
+
+require("lualine").setup({
+  options = {
+    theme = bubbles_theme,
+    component_separators = "",
+    section_separators = {
+      left = "",
+      right = "",
+    },
+  },
+  sections = {
+    lualine_a = {
+      {
+        "mode",
+        separator = { left = "" },
+        right_padding = 2,
+      },
+    },
+    lualine_b = { "branch" },
+    lualine_c = {
+      "%=", --[[ add your center compoentnts here in place of this comment ]]
+    },
+    lualine_x = {},
+    lualine_y = { "filetype", "progress" },
+    lualine_z = {
+      {
+        "location",
+        separator = { right = "" },
+        left_padding = 2,
+      },
+    },
+  },
+  inactive_sections = {
+    lualine_a = { "filename" },
+    lualine_b = {},
+    lualine_c = {},
+    lualine_x = {},
+    lualine_y = {},
+    lualine_z = { "location" },
+  },
+  tabline = {},
+  extensions = {},
+})
+--
+-- Eviline config for lualine
+-- Author: shadmansaleh
+-- Credit: glepnir
+-- local lualine = require('lualine')
+--
+-- -- Color table for highlights
+-- -- stylua: ignore
+-- local colors = {
+--   bg       = '#202328',
+--   fg       = '#bbc2cf',
+--   yellow   = '#ECBE7B',
+--   cyan     = '#008080',
+--   darkblue = '#081633',
+--   green    = '#98be65',
+--   orange   = '#FF8800',
+--   violet   = '#a9a1e1',
+--   magenta  = '#c678dd',
+--   blue     = '#51afef',
+--   red      = '#ec5f67',
+-- }
+--
+-- local conditions = {
+--   buffer_not_empty = function()
+--     return vim.fn.empty(vim.fn.expand("%:t")) ~= 1
+--   end,
+--   hide_in_width = function()
+--     return vim.fn.winwidth(0) > 80
+--   end,
+--   check_git_workspace = function()
+--     local filepath = vim.fn.expand("%:p:h")
+--     local gitdir =
+--         vim.fn.finddir(".git", filepath .. ";")
+--     return gitdir
+--         and #gitdir > 0
+--         and #gitdir < #filepath
+--   end,
+-- }
+--
+-- -- Config
+-- local config = {
+--   options = {
+--     -- Disable sections and component separators
+--     component_separators = "",
+--     section_separators = "",
+--     theme = {
+--       -- We are going to use lualine_c an lualine_x as left and
+--       -- right section. Both are highlighted by c theme .  So we
+--       -- are just setting default looks o statusline
+--       normal = {
+--         c = { fg = colors.fg, bg = colors.bg },
+--       },
+--       inactive = {
+--         c = { fg = colors.fg, bg = colors.bg },
+--       },
+--     },
+--   },
+--   sections = {
+--     -- these are to remove the defaults
+--     lualine_a = {},
+--     lualine_b = {},
+--     lualine_y = {},
+--     lualine_z = {},
+--     -- These will be filled later
+--     lualine_c = {},
+--     lualine_x = {},
+--   },
+--   inactive_sections = {
+--     -- these are to remove the defaults
+--     lualine_a = {},
+--     lualine_b = {},
+--     lualine_y = {},
+--     lualine_z = {},
+--     lualine_c = {},
+--     lualine_x = {},
+--   },
+-- }
+--
+-- -- Inserts a component in lualine_c at left section
+-- local function ins_left(component)
+--   table.insert(
+--     config.sections.lualine_c,
+--     component
+--   )
+-- end
+--
+-- -- Inserts a component in lualine_x at right section
+-- local function ins_right(component)
+--   table.insert(
+--     config.sections.lualine_x,
+--     component
+--   )
+-- end
+--
+-- ins_left({
+--   function()
+--     return "▊"
+--   end,
+--   color = { fg = colors.blue },      -- Sets highlighting of component
+--   padding = { left = 0, right = 1 }, -- We don't need space before this
+-- })
+--
+-- ins_left({
+--   -- mode component
+--   function()
+--     return ""
+--   end,
+--   color = function()
+--     -- auto change color according to neovims mode
+--     local mode_color = {
+--       n = colors.red,
+--       i = colors.green,
+--       v = colors.blue,
+--       [""] = colors.blue,
+--       V = colors.blue,
+--       c = colors.magenta,
+--       no = colors.red,
+--       s = colors.orange,
+--       S = colors.orange,
+--       [""] = colors.orange,
+--       ic = colors.yellow,
+--       R = colors.violet,
+--       Rv = colors.violet,
+--       cv = colors.red,
+--       ce = colors.red,
+--       r = colors.cyan,
+--       rm = colors.cyan,
+--       ["r?"] = colors.cyan,
+--       ["!"] = colors.red,
+--       t = colors.red,
+--     }
+--     return { fg = mode_color[vim.fn.mode()] }
+--   end,
+--   padding = { right = 1 },
+-- })
+--
+-- ins_left({
+--   -- filesize component
+--   "filesize",
+--   cond = conditions.buffer_not_empty,
+-- })
+--
+-- ins_left({
+--   "filename",
+--   cond = conditions.buffer_not_empty,
+--   color = { fg = colors.magenta, gui = "bold" },
+-- })
+--
+-- ins_left({ "location" })
+--
+-- ins_left({
+--   "progress",
+--   color = { fg = colors.fg, gui = "bold" },
+-- })
+--
+-- ins_left({
+--   "diagnostics",
+--   sources = { "nvim_diagnostic" },
+--   symbols = {
+--     error = " ",
+--     warn = " ",
+--     info = " ",
+--   },
+--   diagnostics_color = {
+--     error = { fg = colors.red },
+--     warn = { fg = colors.yellow },
+--     info = { fg = colors.cyan },
+--   },
+-- })
+--
+-- -- Insert mid section. You can make any number of sections in neovim :)
+-- -- for lualine it's any number greater then 2
+-- ins_left({
+--   function()
+--     return "%="
+--   end,
+-- })
+--
+-- ins_left({
+--   -- Lsp server name .
+--   function()
+--     local msg = "No Active Lsp"
+--     local buf_ft = vim.api.nvim_get_option_value(
+--       "filetype",
+--       { buf = 0 }
+--     )
+--     local clients = vim.lsp.get_clients()
+--     if next(clients) == nil then
+--       return msg
+--     end
+--     for _, client in ipairs(clients) do
+--       local filetypes = client.config.filetypes
+--       if
+--           filetypes
+--           and vim.fn.index(filetypes, buf_ft)
+--           ~= -1
+--       then
+--         return client.name
+--       end
+--     end
+--     return msg
+--   end,
+--   icon = " LSP:",
+--   color = { fg = "#ffffff", gui = "bold" },
+-- })
+--
+-- -- Add components to right sections
+-- ins_right({
+--   "o:encoding",       -- option component same as &encoding in viml
+--   fmt = string.upper, -- I'm not sure why it's upper case either ;)
+--   cond = conditions.hide_in_width,
+--   color = { fg = colors.green, gui = "bold" },
+-- })
+--
+-- ins_right({
+--   "fileformat",
+--   fmt = string.upper,
+--   icons_enabled = false, -- I think icons are cool but Eviline doesn't have them. sigh
+--   color = { fg = colors.green, gui = "bold" },
+-- })
+--
+-- ins_right({
+--   "branch",
+--   icon = "",
+--   color = { fg = colors.violet, gui = "bold" },
+-- })
+--
+--
+-- ins_right({
+--   function()
+--     return "▊"
+--   end,
+--   color = { fg = colors.blue },
+--   padding = { left = 1 },
+-- })
+--
+-- -- Now don't forget to initialize lualine
+-- lualine.setup(config)
 
 -- Apply a white background
 -- vim.cmd([[highlight Normal guibg=#00000]]) -- Set background color for normal text
@@ -72,16 +397,16 @@ vim.api.nvim_set_hl(
 
 -- Code block highlight
 vim.api.nvim_set_hl(0, "RenderMarkdownCode", {
-  fg = "#f0f0f0", -- Light foreground color for the code block
+  fg = "#006500", -- Dark Green - Hacker green foreground color
   bg = "#1e1e1e", -- Dark background color for the code block
-  bold = true,    -- Make text bold (optional)
+  bold = true, -- Make text bold (optional)
 })
 
 vim.api.nvim_set_hl(
   0,
   "RenderMarkdownCodeInline",
   {
-    fg = "#006500", -- Blue foreground color
+    fg = "#006500", -- Dark Green - Hacker green foreground color
     bg = "#151515", -- Grey background color
     italic = false, -- Optional: make inline code italic
     bold = true,
@@ -96,34 +421,34 @@ local focusConfig = {}
 
 focusConfig.setup = function()
   require("focus").setup({
-    enable = true,          -- Enable module
-    commands = true,        -- Create Focus commands
+    enable = true, -- Enable module
+    commands = true, -- Create Focus commands
     autoresize = {
-      enable = false,       -- Enable or disable auto-resizing of splits
-      width = 1,            -- Force width for the focused window
-      height = 1,           -- Force height for the focused window
-      minwidth = 1,         -- Force minimum width for the unfocused window
-      minheight = 1,        -- Force minimum height for the unfocused window
+      enable = false, -- Enable or disable auto-resizing of splits
+      width = 1, -- Force width for the focused window
+      height = 1, -- Force height for the focused window
+      minwidth = 1, -- Force minimum width for the unfocused window
+      minheight = 1, -- Force minimum height for the unfocused window
       height_quickfix = 11, -- Set the height of quickfix panel
     },
     split = {
       bufnew = false, -- Create blank buffer for new split windows
-      tmux = false,   -- Create tmux splits instead of neovim splits
+      tmux = false, -- Create tmux splits instead of neovim splits
     },
     ui = {
-      number = false,                    -- Display line numbers in the focused window only
-      relativenumber = false,            -- Display relative line numbers in the focused window only
-      hybridnumber = false,              -- Display hybrid line numbers in the focused window only
+      number = false, -- Display line numbers in the focused window only
+      relativenumber = false, -- Display relative line numbers in the focused window only
+      hybridnumber = false, -- Display hybrid line numbers in the focused window only
       absolutenumber_unfocussed = false, -- Preserve absolute numbers in the unfocused windows
 
-      cursorline = true,                 -- Display a cursorline in the focused window only
-      cursorcolumn = false,              -- Display cursorcolumn in the focused window only
+      cursorline = true, -- Display a cursorline in the focused window only
+      cursorcolumn = false, -- Display cursorcolumn in the focused window only
       colorcolumn = {
-        enable = false,                  -- Display colorcolumn in the focused window only
-        list = "+2",                     -- Set the comma-separated list for the colorcolumn
+        enable = false, -- Display colorcolumn in the focused window only
+        list = "+2", -- Set the comma-separated list for the colorcolumn
       },
-      signcolumn = true,                 -- Display signcolumn in the focused window only
-      winhighlight = false,              -- Auto highlighting for focused/unfocused windows
+      signcolumn = true, -- Display signcolumn in the focused window only
+      winhighlight = false, -- Auto highlighting for focused/unfocused windows
     },
   })
 end
@@ -133,13 +458,13 @@ local nvim_lsp = require("lspconfig")
 nvim_lsp.jsonls.setup({
   on_attach = function(client, bufnr)
     if
-        vim.bo[bufnr].filetype == "sh"
-        or vim.fn.expand("%:t") == ".env"
+      vim.bo[bufnr].filetype == "sh"
+      or vim.fn.expand("%:t") == ".env"
     then
       client.resolved_capabilities.document_formatting =
-          false
+        false
       client.resolved_capabilities.document_range_formatting =
-          false
+        false
     end
   end,
 })
@@ -154,6 +479,13 @@ return {
   { "tpope/vim-surround" },
   { "NLKNguyen/papercolor-theme" },
   {
+    "nvim-lualine/lualine.nvim",
+    dependencies = {
+      "nvim-tree/nvim-web-devicons",
+    },
+    options = {},
+  },
+  {
     "iamcco/markdown-preview.nvim",
     cmd = {
       "MarkdownPreviewToggle",
@@ -167,12 +499,12 @@ return {
     ft = { "markdown" },
   },
   {
-    "hrsh8th/nvim-cmp",       -- Completion plugin
+    "hrsh8th/nvim-cmp", -- Completion plugin
     dependencies = {
       "hrsh8th/cmp-nvim-lsp", -- LSP completion source
-      "hrsh8th/cmp-buffer",   -- Buffer completion source
-      "hrsh8th/cmp-path",     -- Path completion source
-      "hrsh8th/cmp-cmdline",  -- Cmdline completion source
+      "hrsh8th/cmp-buffer", -- Buffer completion source
+      "hrsh8th/cmp-path", -- Path completion source
+      "hrsh8th/cmp-cmdline", -- Cmdline completion source
     },
   },
   {
@@ -329,9 +661,9 @@ return {
       on_attach = function(client, bufnr)
         -- Disable auto-formatting capability for vuels
         client.resolved_capabilities.document_formatting =
-            false
+          false
         client.resolved_capabilities.document_range_formatting =
-            false
+          false
       end,
     }),
   },
@@ -524,20 +856,26 @@ return {
       -- ignore = { buftypes = function(bufnr, buftype) return false end },
       render = function(props)
         if
-            vim.bo[props.buf].buftype == "terminal"
+          not vim.api.nvim_buf_is_valid(props.buf)
+        then
+          return {}
+        end
+
+        if
+          vim.bo[props.buf].buftype == "terminal"
         then
           return {
             {
               " "
-              .. vim.bo[props.buf].channel
-              .. " ",
+                .. vim.bo[props.buf].channel
+                .. " ",
               group = "DevIconTerminal",
             },
             {
               " "
-              .. vim.api.nvim_win_get_number(
-                props.win
-              ),
+                .. vim.api.nvim_win_get_number(
+                  props.win
+                ),
               group = "Special",
             },
           }
@@ -552,23 +890,23 @@ return {
         ).get_icon_color(filename)
         local modified = vim.api.nvim_get_option_value(
           "modified",
-          { buf = 1 }
+          { buf = props.buf }
         ) and "italic" or ""
 
         local function get_git_diff()
           local icons =
-              require("lazyvim.config").icons.git
+            require("lazyvim.config").icons.git
           icons["changed"] = icons.modified
           local signs =
-              vim.b[props.buf].gitsigns_status_dict
+            vim.b[props.buf].gitsigns_status_dict
           local labels = {}
           if signs == nil then
             return labels
           end
           for name, icon in pairs(icons) do
             if
-                tonumber(signs[name])
-                and signs[name] > 1
+              tonumber(signs[name])
+              and signs[name] > 1
             then
               table.insert(labels, {
                 icon .. signs[name] .. " ",
@@ -583,21 +921,21 @@ return {
         end
         local function get_diagnostic_label()
           local icons =
-              require("lazyvim.config").icons.diagnostics
+            require("lazyvim.config").icons.diagnostics
           local label = {}
 
           for severity, icon in pairs(icons) do
             local n =
-                #vim.diagnostic.get(props.buf, {
-                  severity = vim.diagnostic.severity[string.upper(
-                    severity
-                  )],
-                })
+              #vim.diagnostic.get(props.buf, {
+                severity = vim.diagnostic.severity[string.upper(
+                  severity
+                )],
+              })
             if n > 1 then
               table.insert(label, {
                 icon .. n .. " ",
                 group = "DiagnosticSign"
-                    .. severity,
+                  .. severity,
               })
             end
           end
@@ -660,12 +998,12 @@ return {
       local has_words_before = function()
         unpack = unpack or table.unpack
         local line, col =
-            unpack(vim.api.nvim_win_get_cursor(1))
+          unpack(vim.api.nvim_win_get_cursor(1))
         return col ~= 1
-            and vim.api
-            .nvim_buf_get_lines(1, line - 1, line, true)[1]
-            :sub(col, col)
-            :match("%s")
+          and vim.api
+              .nvim_buf_get_lines(1, line - 1, line, true)[1]
+              :sub(col, col)
+              :match("%s")
             == nil
       end
 
@@ -702,14 +1040,14 @@ return {
 
       -- Common capabilities for LSP
       local capabilities =
-          vim.lsp.protocol.make_client_capabilities()
+        vim.lsp.protocol.make_client_capabilities()
 
       -- Use the default capabilities from cmp_nvim_lsp
       local cmp_nvim_lsp = require("cmp_nvim_lsp")
       capabilities =
-          cmp_nvim_lsp.default_capabilities(
-            capabilities
-          )
+        cmp_nvim_lsp.default_capabilities(
+          capabilities
+        )
 
       -- Example LSP server setup with capabilities
       require("lspconfig").pyright.setup({
@@ -725,7 +1063,7 @@ return {
     "MeanderingProgrammer/render-markdown.nvim",
     dependencies = {
       "nvim-treesitter/nvim-treesitter", -- Syntax highlighting support
-      "echasnovski/mini.nvim",           -- If you're using mini.nvim suite (optional)
+      "echasnovski/mini.nvim", -- If you're using mini.nvim suite (optional)
     },
     config = function()
       print(
@@ -814,7 +1152,7 @@ return {
         code = {
           enabled = true,
           sign = true,
-          style = "full",    -- You can use 'full' to show the language icon and name, or 'normal' for just basic rendering
+          style = "full", -- You can use 'full' to show the language icon and name, or 'normal' for just basic rendering
           position = "left", -- Position of the language icon (left or right)
           language_pad = 0,
           language_name = true,

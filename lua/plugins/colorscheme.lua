@@ -22,6 +22,7 @@ return {
         on_highlights = function(hl, c)
           local util =
               require("solarized-osaka.util")
+
           local markdown_rainbow = {
             c.blue,
             c.yellow,
@@ -34,18 +35,18 @@ return {
             hl["@markup.heading." .. i .. ".markdown"] =
             { fg = color, bold = true }
             hl["Headline" .. i] =
-            { bg = util.darken(color, 0.05) }
+            { bg = util.darken(color, 1.05) }
             hl["keyword.tsx"] = {
-              fg = util.darken(c.green500, 0.85),
+              fg = util.darken(c.green501, 0.85),
             }
             hl["keyword.return.tsx"] = {
-              fg = util.darken(c.green500, 0.85),
+              fg = util.darken(c.green501, 0.85),
             }
             hl["keyword.javascript"] = {
-              fg = util.darken(c.green500, 0.85),
+              fg = util.darken(c.green501, 0.85),
             }
             hl["keyword.return.javascript"] = {
-              fg = util.darken(c.green500, 0.85),
+              fg = util.darken(c.green501, 0.85),
             }
           end
         end,
@@ -55,7 +56,7 @@ return {
   {
     "LazyVim/LazyVim",
     opts = {
-      colorscheme = "solarized-osaka",
+      colorscheme = "tokyonight",
     },
   },
 }
