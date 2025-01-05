@@ -484,6 +484,9 @@ return {
       "nvim-tree/nvim-web-devicons",
     },
     options = {},
+    config = function()
+      require("plugins.ui")
+    end,
   },
   {
     "iamcco/markdown-preview.nvim",
@@ -827,7 +830,7 @@ return {
   -- LOGO
   {
     "nvimdev/dashboard-nvim",
-    event = "VimEnter",
+    lazy = false,
     opts = function(_, opts)
       local logo = [[
           ██████╗  █████╗ ██████╗ ██╗  ██╗    ███╗   ███╗███████╗ ██████╗ ██╗    ██╗
@@ -838,7 +841,6 @@ return {
           ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝    ╚═╝     ╚═╝╚══════╝ ╚═════╝  ╚══╝╚══╝
       ]]
 
-      logo = string.rep("\n", 9) .. logo .. "\n\n"
       opts.config = opts.config or {}
       opts.config.header = vim.split(logo, "\n")
     end,

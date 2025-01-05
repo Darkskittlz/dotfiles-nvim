@@ -13,6 +13,11 @@ vim.api.nvim_buf_set_keymap(
 -- Other LSP key mappings...
 
 -- LSP Formatting Command
-vim.cmd(
-  [[ command! Format execute 'lua vim.lsp.buf.format()' ]]
-)
+return {
+  {
+    "neovim/nvim-lspconfig",
+    config = function()
+      require("lspconfig").tsserver.setup({})
+    end,
+  },
+}
