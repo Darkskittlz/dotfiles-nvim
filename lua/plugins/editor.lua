@@ -4,15 +4,15 @@ return {
     "nvim-telescope/telescope-file-browser.nvim",
   },
   keys = {
-    {
-      "<leader>fP",
-      function()
-        require("telescope.builtin").find_files({
-          cwd = require("lazy.core.config").options.root,
-        })
-      end,
-      desc = "Find Plugin File",
-    },
+    -- {
+    --   "<leader>fP",
+    --   function()
+    --     require("telescope.builtin").find_files({
+    --       cwd = require("lazy.core.config").options.root,
+    --     })
+    --   end,
+    --   desc = "Find Plugin File",
+    -- },
     {
       ";f",
       function()

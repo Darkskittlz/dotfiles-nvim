@@ -23,6 +23,7 @@ return {
           local util =
               require("solarized-osaka.util")
 
+          print(vim.inspect(c))
           local markdown_rainbow = {
             c.blue,
             c.yellow,
@@ -56,7 +57,7 @@ return {
   {
     "LazyVim/LazyVim",
     opts = {
-      colorscheme = "tokyonight",
+      colorscheme = "solarized-osaka",
     },
   },
 }
