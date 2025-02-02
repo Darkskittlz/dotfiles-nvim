@@ -1,4 +1,4 @@
--- Set the virtual_column option to keep cursor column numbers the same
+-- set the virtual_column option to keep cursor column numbers the same
 -- vim.o.virtual_column = "all"
 vim.g.lazygit = {
   colors = {
@@ -665,7 +665,7 @@ return {
       -- Configure TypeScript LSP (`ts_ls`) for JavaScript and TypeScript files
       require("lspconfig").ts_ls.setup({
         capabilities = capabilities,
-        on_attach = function(client, bufnr)
+        on_attach = function(client)
           -- Enable formatting for TypeScript and JavaScript
           client.server_capabilities.documentFormattingProvider =
               true
@@ -708,7 +708,7 @@ return {
       -- Configure Lua LSP (`lua_ls`) for Lua files
       require("lspconfig").lua_ls.setup({
         capabilities = capabilities,
-        on_attach = function(client, bufnr)
+        on_attach = function(client)
           -- Make sure that the server supports formatting
           if
               client.server_capabilities.documentFormattingProvider
@@ -746,79 +746,50 @@ return {
     dependencies = {
       {
         "nvim-telescope/telescope-fzf-native.nvim",
-        build = "make",
-      },
-      config = function(_, opts)
-        local telescope = require("telescope")
+        build = function()
+          vim.fn.system("make")
+        end,
+        config = function(_, opts)
+          local telescope = require("telescope").load_extension('fzf')
 
-        -- Ensure opts is a valid table before calling setup
-        if type(opts) == "table" then
-          telescope.setup(opts)
+          -- Ensure opts is a valid table before calling setup
+          if type(opts) == "table" then
+            telescope.setup(opts)
 
-          -- Load the FZF extension
-          pcall(telescope.load_extension, "fzf")
-        else
-          -- Log an error or fallback if opts is not a table
-          print(
-            "Error: Telescope opts is nil or not a table!"
-          )
-        end
-      end,
-      opts = {
-        defaults = {
-          layout_strategy = "horizontal",
-          layout_config = {
-            height = 1.95,
-            prompt_position = "top",
-            vertical = {
-              mirror = true,
-              preview_cutoff = 1,
-              preview_height = 1.70,
-            },
-          },
-        },
-      },
-      requires = {
-        {
-          "nvim-telescope/telescope-fzf-native.nvim",
-          run = "make",
-        },
-        {
-          "nvim-telescope/telescope-symbols.nvim",
-          config = function()
-            require("telescope").load_extension(
-              "symbols"
+            -- Load the FZF extension after Telescope is set up
+            local status_ok, _ = pcall(
+              telescope.load_extension,
+              "fzf"
             )
-          end,
-        },
-        {
-          "tiagovla/scope.nvim",
-          opts = {},
-          init = function()
-            require("lazyvim.util").on_load(
-              "telescope",
-              function()
-                require("telescope").load_extension(
-                  "scope"
-                )
-              end
+            if not status_ok then
+              print(
+                "Error: fzf extension not loaded!"
+              )
+            end
+          else
+            -- Log an error or fallback if opts is not a table
+            print(
+              "Error: Telescope opts is nil or not a table!"
             )
-          end,
-          keys = {
-            {
-              "<leader>ba",
-              "<Cmd>Telescope scope buffers theme=dropdown<CR>",
-              desc = "Search buffers from all tabs",
-            },
-            {
-              "<leader>bm",
-              "<Cmd>ScopeMoveBuf<CR>",
-              desc = "Move buffer to another tab",
+          end
+        end,
+        opts = {
+          defaults = {
+            layout_strategy = "horizontal",
+            layout_config = {
+              height = 1.95,
+              prompt_position = "top",
+              vertical = {
+                mirror = true,
+                preview_cutoff = 1,
+                preview_height = 1.70,
+              },
             },
           },
         },
       },
     },
+
     --[[   Color Schemes ]]
     {
       "craftzdog/solarized-osaka.nvim",
@@ -1146,14 +1117,12 @@ return {
         return {}
       end,
     },
-    -- then: setup supertab in cmp
     {
       "hrsh8th/nvim-cmp",
       dependencies = {
         "hrsh8th/cmp-emoji",
       },
-      ---@param opts cmp.ConfigSchema
-      opts = function(_, opts)
+      opts = function()
         local has_words_before = function()
           unpack = unpack or table.unpack
           local line, col =
@@ -1166,7 +1135,6 @@ return {
               == nil
         end
 
-        local luasnip = require("luasnip")
         local cmp = require("cmp")
         cmp.setup({
           completion = {
@@ -1174,7 +1142,6 @@ return {
           },
           snippet = {
             expand = function(args)
-              -- Use your snippet engine here (e.g., luasnip, vsnip)
               vim.fn["vsnip#anonymous"](args.body)
             end,
           },
@@ -1194,7 +1161,7 @@ return {
             }),
           }),
           sources = {
-            { name = "nvim_lsp" }, -- Enable LSP completion
+            { name = "nvim_lsp" },
             { name = "buffer" },
             { name = "path" },
             { name = "cmdline" },

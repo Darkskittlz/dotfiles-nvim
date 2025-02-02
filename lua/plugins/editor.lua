@@ -2,24 +2,18 @@ return {
   "telescope.nvim",
   dependencies = {
     "nvim-telescope/telescope-file-browser.nvim",
+    "nvim-telescope/telescope-fzf-native.nvim",
   },
   keys = {
-    -- {
-    --   "<leader>fP",
-    --   function()
-    --     require("telescope.builtin").find_files({
-    --       cwd = require("lazy.core.config").options.root,
-    --     })
-    --   end,
-    --   desc = "Find Plugin File",
-    -- },
     {
       ";f",
       function()
-        local builtin = require("telescope.builtin")
+        local builtin =
+            require("telescope.builtin")
         builtin.find_files({
           no_ignore = false,
           hidden = true,
+          -- layout_config = { height = 0.3 }, -- Results window: 30% height
         })
       end,
     },
@@ -27,42 +21,76 @@ return {
       ";r",
       function()
         local builtin = require("telescope.builtin")
-        builtin.live_grep()
+        builtin.oldfiles({
+          -- You can add layout or other options here if needed
+        })
+      end,
+    },
+    {
+      ";g",
+      function()
+        local builtin = require("telescope.builtin")
+        builtin.live_grep({
+          -- You can add layout or other options here if needed
+        })
       end,
     },
     {
       "\\\\",
       function()
-        local builtin = require("telescope.builtin")
-        builtin.buffers()
+        local builtin =
+            require("telescope.builtin")
+        builtin.buffers({
+          -- layout_config = { height = 0.3 }, -- Results window: 30% height
+        })
       end,
     },
     {
       ";t",
       function()
-        local builtin = require("telescope.builtin")
-        builtin.help_tags()
+        local builtin =
+            require("telescope.builtin")
+        builtin.help_tags({
+          -- layout_config = { height = 0.3 }, -- Results window: 30% height
+        })
       end,
     },
     {
       ";;",
       function()
-        local builtin = require("telescope.builtin")
-        builtin.resume()
+        local builtin =
+            require("telescope.builtin")
+        builtin.resume({
+          -- layout_config = { height = 0.3 }, -- Results window: 30% height
+        })
       end,
     },
     {
       ";e",
       function()
-        local builtin = require("telescope.builtin")
-        builtin.diagnostics()
+        local builtin =
+            require("telescope.builtin")
+        builtin.diagnostics({
+          wrap_results = true,
+          layout_strategy = "vertical",
+          layout_config = {
+            prompt_position = "bottom",
+            height = 0.99,
+            preview_height = 0.75,
+          },
+          sorting_strategy = "ascending",
+          winblend = 0,
+        })
       end,
     },
     {
       ";s",
       function()
-        local builtin = require("telescope.builtin")
-        builtin.treesitter()
+        local builtin =
+            require("telescope.builtin")
+        builtin.treesitter({
+          -- layout_config = { height = 0.3 }, -- Results window: 30% height
+        })
       end,
     },
     {
@@ -86,26 +114,38 @@ return {
       end,
     },
   },
+
   config = function(_, opts)
+    opts = opts or {} -- Ensure opts is not nil
     local telescope = require("telescope")
     local actions = require("telescope")
-    local fb_actions = require("telescope").extensions.file_browser.actions
+    local fb_actions =
+        require("telescope").extensions.file_browser.actions
 
-    opts.defaults = vim.tbl_deep_extend("force", opts.defaults, {
-      wrap_results = true,
-      layout_strategy = "vertical",
-      layout_config = { prompt_position = "top" },
-      sorting_strategy = "ascending",
-      winblend = 0,
-      mappings = {
-        n = {},
-      },
-    })
+    opts.defaults = vim.tbl_deep_extend(
+      "force",
+      opts.defaults or {},
+      {
+        wrap_results = true,
+        layout_strategy = "vertical",
+        layout_config = {
+          prompt_position = "bottom",
+          height = 0.99,
+          preview_height = 0.75,
+        },
+        sorting_strategy = "ascending",
+        winblend = 0,
+        mappings = {
+          n = {},
+        },
+      }
+    )
     opts.pickers = {
       diagnostics = {
         theme = "ivy",
         initial_mode = "normal",
         layout_config = {
+          height = 0.2,
           preview_cutoff = 9999,
         },
       },
@@ -113,11 +153,9 @@ return {
     opts.extensions = {
       file_browser = {
         theme = "dropdown",
-        -- disables netw and use telescope-file-browser in its place
         hijack_netrw = true,
         mappings = {
           ["n"] = {
-            -- your custom normal mode mappings
             ["N"] = fb_actions.create,
             ["h"] = fb_actions.goto_parent_dir,
             ["/"] = function()
@@ -125,12 +163,16 @@ return {
             end,
             ["<C-u>"] = function(prompt_bufnr)
               for i = 1, 10 do
-                actions.move_selection_previous(prompt_bufnr)
+                actions.move_selection_previous(
+                  prompt_bufnr
+                )
               end
             end,
             ["<C-d>"] = function(prompt_bufnr)
               for i = 1, 10 do
-                actions.move_selection_next(prompt_bufnr)
+                actions.move_selection_next(
+                  prompt_bufnr
+                )
               end
             end,
             ["<PageUp>"] = actions.preview_scrolling_up,
@@ -139,8 +181,39 @@ return {
         },
       },
     }
+
+    -- Set up highlights to remove the dark blue background and padding
+    opts.on_highlights = function(hl, c)
+      -- Ensure floating windows are transparent
+      hl.NormalFloat = { bg = "NONE" }
+      hl.FloatBorder =
+      { bg = c.blue, fg = c.blue } -- Adjust this fg color if needed
+
+      -- Telescope prompt and border customization
+      local prompt = "#2d3149" -- Change this if you want a different color for the prompt
+      hl.TelescopeNormal =
+      { bg = c.transparent, fg = c.fg_dark }
+      hl.TelescopeBorder =
+      { bg = c.transparent, fg = c.transparent }
+      hl.TelescopePromptNormal =
+      { bg = c.transparent, fg = c.fg_dark }
+      hl.TelescopePromptBorder =
+      { bg = c.transparent, fg = c.transparent }
+      hl.TelescopePromptTitle =
+      { bg = c.transparent, fg = c.fg_dark }
+      hl.TelescopePreviewTitle =
+      { bg = c.transparent, fg = c.transparent }
+      hl.TelescopeResultsTitle =
+      { bg = c.transparent, fg = c.transparent }
+
+      -- Optional: Adjust padding for Telescope prompt (if it's still visible)
+      hl.TelescopePrompt = { padding = 0 }
+    end
+
     telescope.setup(opts)
     require("telescope").load_extension("fzf")
-    require("telescope").load_extension("file_browser")
+    require("telescope").load_extension(
+      "file_browser"
+    )
   end,
 }
