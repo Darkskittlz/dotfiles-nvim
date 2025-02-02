@@ -15,15 +15,24 @@ vim.api.nvim_set_option(
 )
 
 -- Highlight to the next parenthesis
-vim.api.nvim_set_keymap('n', '<leader>hp', ':normal! v/<CR>(<CR>', { noremap = true, silent = true })
+vim.api.nvim_set_keymap(
+  "n",
+  "<leader>hp",
+  ":normal! v/<CR>(<CR>",
+  { noremap = true, silent = true }
+)
 
 -- Highlight to the next curly brace
-vim.api.nvim_set_keymap('n', '<leader>hc', ':normal! v/<CR>{<CR>', { noremap = true, silent = true })
+vim.api.nvim_set_keymap(
+  "n",
+  "<leader>hc",
+  ":normal! v/<CR>{<CR>",
+  { noremap = true, silent = true }
+)
 
 vim.opt.termguicolors = true -- Enable 25-bit RGB color in the TUI,
-local capabilities = vim.lsp.protocol.make_client_capabilities()
-
-
+local capabilities =
+    vim.lsp.protocol.make_client_capabilities()
 
 -- Bubbles config for lualine
 -- Author: lokesh-krishna
@@ -353,7 +362,6 @@ require("lualine").setup({
 -- vim.cmd([[highlight Normal guibg=#00000]]) -- Set background color for normal text
 vim.cmd([[highlight NormalNC guibg=#000000]]) -- Set background color for non-current windows
 
-
 vim.api.nvim_set_hl(
   0,
   "RenderMarkdownH1Bg",
@@ -475,7 +483,9 @@ return {
 
       -- If ui_config contains a lualine config, use it
       if ui_config.lualine then
-        require("lualine").setup(ui_config.lualine)
+        require("lualine").setup(
+          ui_config.lualine
+        )
       end
     end,
   },
@@ -657,16 +667,28 @@ return {
         capabilities = capabilities,
         on_attach = function(client, bufnr)
           -- Enable formatting for TypeScript and JavaScript
-          client.server_capabilities.documentFormattingProvider = true
-          client.server_capabilities.documentRangeFormattingProvider = true
+          client.server_capabilities.documentFormattingProvider =
+              true
+          client.server_capabilities.documentRangeFormattingProvider =
+              true
         end,
-        filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact", "vue" }, -- Explicitly specify supported filetypes
+        filetypes = {
+          "javascript",
+          "javascriptreact",
+          "typescript",
+          "typescriptreact",
+          "vue",
+        }, -- Explicitly specify supported filetypes
         init_options = {
           plugins = {
             {
               name = "@vue/typescript-plugin",
               location = "/usr/local/lib/node_modules/@vue/typescript-plugin", -- Adjust location if necessary
-              languages = { "javascript", "typescript", "vue" },
+              languages = {
+                "javascript",
+                "typescript",
+                "vue",
+              },
             },
           },
         },
@@ -676,8 +698,10 @@ return {
       require("lspconfig").vuels.setup({
         on_attach = function(client, bufnr)
           -- Enable auto-formatting capability for vuels
-          client.resolved_capabilities.document_formatting = true
-          client.resolved_capabilities.document_range_formatting = true
+          client.resolved_capabilities.document_formatting =
+              true
+          client.resolved_capabilities.document_range_formatting =
+              true
         end,
       })
 
@@ -686,11 +710,17 @@ return {
         capabilities = capabilities,
         on_attach = function(client, bufnr)
           -- Make sure that the server supports formatting
-          if client.server_capabilities.documentFormattingProvider then
-            client.server_capabilities.documentFormattingProvider = true
+          if
+              client.server_capabilities.documentFormattingProvider
+          then
+            client.server_capabilities.documentFormattingProvider =
+                true
           end
-          if client.server_capabilities.documentRangeFormattingProvider then
-            client.server_capabilities.documentRangeFormattingProvider = true
+          if
+              client.server_capabilities.documentRangeFormattingProvider
+          then
+            client.server_capabilities.documentRangeFormattingProvider =
+                true
           end
         end,
         filetypes = { "lua" },
@@ -703,7 +733,7 @@ return {
           vim.lsp.buf.format({ async = true })
         end,
       })
-    end
+    end,
   },
   {
     "HampusHauffman/block.nvim",
@@ -714,7 +744,10 @@ return {
   {
     "nvim-telescope/telescope.nvim",
     dependencies = {
-      { "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
+      {
+        "nvim-telescope/telescope-fzf-native.nvim",
+        build = "make",
+      },
       config = function(_, opts)
         local telescope = require("telescope")
 
@@ -726,7 +759,9 @@ return {
           pcall(telescope.load_extension, "fzf")
         else
           -- Log an error or fallback if opts is not a table
-          print("Error: Telescope opts is nil or not a table!")
+          print(
+            "Error: Telescope opts is nil or not a table!"
+          )
         end
       end,
       opts = {
@@ -784,7 +819,6 @@ return {
         },
       },
     },
-
     --[[   Color Schemes ]]
     {
       "craftzdog/solarized-osaka.nvim",
@@ -792,61 +826,72 @@ return {
       priority = 1001,
       opts = {},
       config = function()
-        -- Theme Config
         local osakaConfig = {
-          transparent = true,     -- Disable transparency to set a background color
-          terminal_colors = true, -- Configure the colors used when opening a `:terminal` in Neovim
+          transparent = true,
+          terminal_colors = true,
           styles = {
-            -- Style to be applied to different syntax groups
-            -- Value is any valid attr-list value for `:help nvim_set_hl`
-            -- comments = { fg = "#21223a", bg = "#6d6d6d" },
-            -- keywords = { fg = "#FFFFFF", bg = "#000001" },
             comments = { italic = true },
             functions = {},
             variables = {},
-            -- Background styles. Can be "dark", "transparent" or "normal"
-            sidebars = "transparent",       -- Keep sidebars dark if you want to preserve this
-            floats = "transparent",         -- Floating windows can stay transparent if you like
+            sidebars = "transparent",
+            floats = "transparent",
           },
-          sidebars = { "qf", "help" },      -- Set a darker background for sidebar-like windows
+          sidebars = { "qf", "help" },
+          hide_inactive_statusline = false,
+          dim_inactive = false,
+          lualine_bold = false,
 
-          hide_inactive_statusline = false, -- Enabling this option will hide inactive statuslines and replace them with a thin border instead
-          dim_inactive = false,             -- Dims inactive windows
-          lualine_bold = false,             -- When true, section headers in the lualine theme will be bold
+          on_highlights = function(hl, c)
+            local util =
+                require("solarized-osaka.util")
 
-          --   -- Borderless Telescope example
-          on_highlights = function(hl, color)
+            -- Ensure floating windows are transparent
+            hl.NormalFloat = { bg = "NONE" }
+            hl.FloatBorder =
+            { bg = "NONE", fg = c.blue } -- Adjust `fg` as needed
+
+            -- Syntax Highlighting for Keywords
+            local keyword_color =
+                util.darken("#00ff00", 0.85) -- Replace #00ff00 with your preferred color
+            hl["keyword.tsx"] =
+            { fg = keyword_color }
+            hl["keyword.return.tsx"] =
+            { fg = keyword_color }
+            hl["keyword.javascript"] =
+            { fg = keyword_color }
+            hl["keyword.return.javascript"] =
+            { fg = keyword_color }
+
+            -- Telescope UI Customization
             local prompt = "#2d3149"
             hl.TelescopeNormal = {
-              bg = color.transparent,
-              fg = color.fg_dark,
+              bg = c.transparent,
+              fg = c.fg_dark,
             }
             hl.TelescopeBorder = {
-              bg = color.transparent,
-              fg = color.transparent,
+              bg = c.transparent,
+              fg = c.transparent,
             }
-            hl.TelescopePromptNormal = {
-              bg = prompt,
-            }
-            hl.TelescopePromptBorder = {
-              bg = prompt,
-              fg = prompt,
-            }
-            hl.TelescopePromptTitle = {
-              bg = prompt,
-              fg = prompt,
-            }
+            hl.TelescopePromptNormal =
+            { bg = prompt }
+            hl.TelescopePromptBorder =
+            { bg = prompt, fg = prompt }
+            hl.TelescopePromptTitle =
+            { bg = prompt, fg = prompt }
             hl.TelescopePreviewTitle = {
-              bg = color.transparent,
-              fg = color.transparent,
+              bg = c.transparent,
+              fg = c.transparent,
             }
             hl.TelescopeResultsTitle = {
-              bg = color.transparent,
-              fg = color.transparent,
+              bg = c.transparent,
+              fg = c.transparent,
             }
           end,
         }
-        require("solarized-osaka").setup(osakaConfig)
+
+        require("solarized-osaka").setup(
+          osakaConfig
+        )
       end,
     },
     -- {
@@ -957,19 +1002,25 @@ return {
       opts = {
         window = {
           zindex = 41,
-          margin = { horizontal = 1, vertical = 0 },
+          margin = {
+            horizontal = 1,
+            vertical = 0,
+          },
         },
         hide = { cursorline = true },
         -- ignore = { buftypes = function(bufnr, buftype) return false end },
         render = function(props)
           if
-              not vim.api.nvim_buf_is_valid(props.buf)
+              not vim.api.nvim_buf_is_valid(
+                props.buf
+              )
           then
             return {}
           end
 
           if
-              vim.bo[props.buf].buftype == "terminal"
+              vim.bo[props.buf].buftype
+              == "terminal"
           then
             return {
               {
@@ -1027,8 +1078,9 @@ return {
             return labels
           end
           local function get_diagnostic_label()
-            local icons =
-                require("lazyvim.config").icons.diagnostics
+            local icons = require(
+              "lazyvim.config"
+            ).icons.diagnostics
             local label = {}
 
             for severity, icon in pairs(icons) do
@@ -1129,8 +1181,12 @@ return {
           mapping = cmp.mapping.preset.insert({
             ["<C-p>"] = cmp.mapping.select_prev_item(),
             ["<C-n>"] = cmp.mapping.select_next_item(),
-            ["<C-d>"] = cmp.mapping.scroll_docs(-3),
-            ["<C-f>"] = cmp.mapping.scroll_docs(5),
+            ["<C-d>"] = cmp.mapping.scroll_docs(
+              -3
+            ),
+            ["<C-f>"] = cmp.mapping.scroll_docs(
+              5
+            ),
             ["<C-Space>"] = cmp.mapping.complete(),
             ["<C-e>"] = cmp.mapping.close(),
             ["<CR>"] = cmp.mapping.confirm({
@@ -1150,7 +1206,8 @@ return {
             vim.lsp.protocol.make_client_capabilities()
 
         -- Use the default capabilities from cmp_nvim_lsp
-        local cmp_nvim_lsp = require("cmp_nvim_lsp")
+        local cmp_nvim_lsp =
+            require("cmp_nvim_lsp")
         capabilities =
             cmp_nvim_lsp.default_capabilities(
               capabilities
@@ -1315,10 +1372,13 @@ return {
       },
       config = function()
         -- If you want icons for diagnostic errors, you'll need to define them somewhere:
-        vim.fn.sign_define("DiagnosticSignError", {
-          text = " ",
-          texthl = "DiagnosticSignError",
-        })
+        vim.fn.sign_define(
+          "DiagnosticSignError",
+          {
+            text = " ",
+            texthl = "DiagnosticSignError",
+          }
+        )
         vim.fn.sign_define("DiagnosticSignWarn", {
           text = " ",
           texthl = "DiagnosticSignWarn",
