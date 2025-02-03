@@ -132,6 +132,7 @@ return {
           prompt_position = "bottom",
           height = 0.99,
           preview_height = 0.75,
+          preview_cutoff = 0.25,
         },
         sorting_strategy = "ascending",
         winblend = 0,
@@ -146,7 +147,7 @@ return {
         initial_mode = "normal",
         layout_config = {
           height = 0.2,
-          preview_cutoff = 9999,
+          preview_cutoff = 999,
         },
       },
     }
