@@ -774,20 +774,6 @@ return {
             )
           end
         end,
-        opts = {
-          defaults = {
-            layout_strategy = "horizontal",
-            layout_config = {
-              height = 1.95,
-              prompt_position = "top",
-              vertical = {
-                mirror = true,
-                preview_cutoff = 1,
-                preview_height = 1.70,
-              },
-            },
-          },
-        },
       },
     },
 
@@ -835,29 +821,15 @@ return {
             { fg = keyword_color }
 
             -- Telescope UI Customization
-            local prompt = "#2d3149"
-            hl.TelescopeNormal = {
-              bg = c.transparent,
-              fg = c.fg_dark,
-            }
-            hl.TelescopeBorder = {
-              bg = c.transparent,
-              fg = c.transparent,
-            }
-            hl.TelescopePromptNormal =
-            { bg = prompt }
-            hl.TelescopePromptBorder =
-            { bg = prompt, fg = prompt }
-            hl.TelescopePromptTitle =
-            { bg = prompt, fg = prompt }
-            hl.TelescopePreviewTitle = {
-              bg = c.transparent,
-              fg = c.transparent,
-            }
-            hl.TelescopeResultsTitle = {
-              bg = c.transparent,
-              fg = c.transparent,
-            }
+            hl.TelescopeNormal = { bg = "NONE", fg = "NONE" } -- Transparent background for the normal UI
+            hl.TelescopeBorder = { bg = "NONE", fg = "NONE" } -- Transparent borders
+            hl.TelescopePromptNormal = { bg = "NONE" }        -- Prompt background color
+            hl.TelescopePromptBorder = { bg = "NONE", fg = c.blue }
+            hl.TelescopePromptTitle = { bg = "NONE", fg = c.blue }
+            hl.TelescopePreviewTitle = { bg = "NONE", fg = c.blue }  -- Transparent preview title
+            hl.TelescopePreviewBorder = { bg = "NONE", fg = c.blue } -- Transparent preview title
+            hl.TelescopeResultsTitle = { bg = "NONE", fg = c.blue }  -- Transparent results title
+            hl.TelescopeResultsBorder = { bg = "NONE", fg = c.blue } -- Transparent results title
           end,
         }
 

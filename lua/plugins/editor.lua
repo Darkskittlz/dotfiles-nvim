@@ -71,15 +71,28 @@ return {
         local builtin =
             require("telescope.builtin")
         builtin.diagnostics({
-          wrap_results = true,
-          layout_strategy = "vertical",
+          wrap_results = false,
+          layout_strategy = "horizontal",
           layout_config = {
-            prompt_position = "bottom",
+            prompt_position = "top",
             height = 0.99,
-            preview_height = 0.75,
+            preview_width = 0.6,
+            preview_cutoff = 0.4,
           },
           sorting_strategy = "ascending",
           winblend = 0,
+          mappings = {
+            n = {},
+          },
+          path_display = function(opts, path)
+            local tail = vim.fn.fnamemodify(path, ":t")   -- Get the filename
+            local parent = vim.fn.fnamemodify(path, ":h:t") -- Get the parent directory
+            return parent .. "/" .. tail                  -- Show "parent/filename"
+          end,
+          entry_display = function(entry)
+            -- This will remove the line and character positions from the result display
+            return entry.value -- Only return the formatted path without additional data
+          end,
         })
       end,
     },
@@ -126,19 +139,28 @@ return {
       "force",
       opts.defaults or {},
       {
-        wrap_results = true,
-        layout_strategy = "vertical",
+        wrap_results = false,
+        layout_strategy = "horizontal",
         layout_config = {
-          prompt_position = "bottom",
+          prompt_position = "top",
           height = 0.99,
-          preview_height = 0.75,
-          preview_cutoff = 0.25,
+          preview_width = 0.6,
+          preview_cutoff = 0.4,
         },
         sorting_strategy = "ascending",
         winblend = 0,
         mappings = {
           n = {},
         },
+        path_display = function(opts, path)
+          local tail = vim.fn.fnamemodify(path, ":t")     -- Get the filename
+          local parent = vim.fn.fnamemodify(path, ":h:t") -- Get the parent directory
+          return parent .. "/" .. tail                    -- Show "parent/filename"
+        end,
+        entry_display = function(entry)
+          -- This will remove the line and character positions from the result display
+          return entry.value -- Only return the formatted path without additional data
+        end,
       }
     )
     opts.pickers = {
