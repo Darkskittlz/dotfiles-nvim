@@ -370,7 +370,7 @@ vim.api.nvim_set_hl(
 vim.api.nvim_set_hl(
   0,
   "RenderMarkdownH2Bg",
-  { fg = "#ffffff", bg = "#008080" }
+  { fg = "#ffffff", bg = "#4a1bdf" }
 ) -- Dark Green
 vim.api.nvim_set_hl(
   0,
@@ -380,7 +380,7 @@ vim.api.nvim_set_hl(
 vim.api.nvim_set_hl(
   0,
   "RenderMarkdownH4Bg",
-  { fg = "#ffffff", bg = "#8B0000" }
+  { fg = "#ffffff", bg = "#008080" }
 ) -- Dark Gold
 vim.api.nvim_set_hl(
   0,
