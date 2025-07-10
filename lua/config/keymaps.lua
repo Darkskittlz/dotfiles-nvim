@@ -1,14 +1,18 @@
 local keymap = vim.keymap
 local opts = { noremap = true, silent = true }
+vim.g.maplocalleader = " "
 
 keymap.set("n", "-", "<C-a>")
 keymap.set("n", "+", "<C-x>")
 
 -- Mason --
-vim.api.nvim_set_keymap('n', '<leader>M', ':lua require("mason.ui").open()<CR>', { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<leader>M', ':e("mason.ui").open()<CR>', { noremap = true, silent = true })
 
-
-
+keymap.set('n', '<leader>gb', function()
+  -- require('gitsigns').blame_line({ full = true })
+  require('gitsigns').blame_line()
+end, { desc = "Git blameline" }
+)
 -- copy --
 keymap.set("v", "y", '"+y', opts)
 
@@ -23,13 +27,6 @@ keymap.set("n", "<C-m>", "<C-i>", opts)
 
 -- New tab
 keymap.set("n", "te", "tabedit", opts)
-keymap.set("n", "<tab>", ":tabnext<Return>", opts)
-keymap.set(
-  "n",
-  "<s-tab>",
-  "tabprev<Return>",
-  opts
-)
 
 -- Split Window
 keymap.set("n", "ss", ":split<Return>", opts)
@@ -52,6 +49,7 @@ keymap.set("n", "<C-j>", function()
   vim.diagnostic.goto_next()
 end, opts)
 
+
 -- Press jk fast to exit insert mode
 keymap.set("i", "jk", "<ESC>", opts)
 keymap.set("i", "kj", "<ESC>", opts)
@@ -64,10 +62,6 @@ keymap.set("x", "<A-j>", ":m '>+1<CR>gv=gv")
 keymap.set("x", "<A-k>", ":m '<-2<CR>gv=gv")
 
 -- ChatGPT Keymaps --
-
--- Ensure the leader key is set
-vim.g.mapleader = " "
-vim.g.maplocalleader = " "
 
 -- GpChatNew Mappings
 keymap.set(

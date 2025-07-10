@@ -27,7 +27,25 @@ return {
       end,
     },
     {
+      "<space>fr",
+      function()
+        local builtin = require("telescope.builtin")
+        builtin.oldfiles({
+          -- You can add layout or other options here if needed
+        })
+      end,
+    },
+    {
       ";g",
+      function()
+        local builtin = require("telescope.builtin")
+        builtin.live_grep({
+          -- You can add layout or other options here if needed
+        })
+      end,
+    },
+    {
+      "<space>sG",
       function()
         local builtin = require("telescope.builtin")
         builtin.live_grep({
@@ -85,9 +103,9 @@ return {
             n = {},
           },
           path_display = function(opts, path)
-            local tail = vim.fn.fnamemodify(path, ":t")   -- Get the filename
+            local tail = vim.fn.fnamemodify(path, ":t")     -- Get the filename
             local parent = vim.fn.fnamemodify(path, ":h:t") -- Get the parent directory
-            return parent .. "/" .. tail                  -- Show "parent/filename"
+            return parent .. "/" .. tail                    -- Show "parent/filename"
           end,
           entry_display = function(entry)
             -- This will remove the line and character positions from the result display
@@ -97,7 +115,7 @@ return {
       end,
     },
     {
-      ";s",
+      ";q",
       function()
         local builtin =
             require("telescope.builtin")

@@ -7,6 +7,8 @@ vim.g.lazygit = {
   },
 }
 
+vim.g.python3_host_prog = '/home/darkskittlz/.neovim-python/bin/python'
+
 vim.opt.wrap = false
 
 vim.api.nvim_set_option(
@@ -29,6 +31,7 @@ vim.api.nvim_set_keymap(
   ":normal! v/<CR>{<CR>",
   { noremap = true, silent = true }
 )
+
 
 vim.opt.termguicolors = true -- Enable 25-bit RGB color in the TUI,
 local capabilities =
@@ -418,9 +421,9 @@ focusConfig.setup = function()
     commands = true,        -- Create Focus commands
     autoresize = {
       enable = true,        -- Enable or disable auto-resizing of splits
-      width = 1,            -- Force width for the focused window
+      width = 6,            -- Force width for the focused window
       height = 1,           -- Force height for the focused window
-      minwidth = 1,         -- Force minimum width for the unfocused window
+      minwidth = 12,        -- Force minimum width for the unfocused window
       minheight = 1,        -- Force minimum height for the unfocused window
       height_quickfix = 11, -- Set the height of quickfix panel
     },
@@ -462,6 +465,7 @@ nvim_lsp.jsonls.setup({
   end,
 })
 
+
 return {
   { "alvan/vim-closetag" },
   { "windwp/nvim-autopairs" },
@@ -471,6 +475,17 @@ return {
   { "voldikss/vim-floaterm" },
   { "tpope/vim-surround" },
   { "NLKNguyen/papercolor-theme" },
+  {
+    'lewis6991/gitsigns.nvim',
+    event = { 'BufReadPre', 'BufNewFile' },
+    config = function()
+      require('gitsigns').setup()
+
+      vim.keymap.set('n', '<leader>gb', function()
+        require('gitsigns').blame_line({ full = true })
+      end, { desc = 'Git blame line' })
+    end,
+  },
   {
     "nvim-lualine/lualine.nvim",
     dependencies = {
@@ -927,13 +942,13 @@ return {
       lazy = false,
       opts = function(_, opts)
         local logo = [[
-          ██████╗  █████╗ ██████╗ ██╗  ██╗    ███╗   ███╗███████╗ ██████╗ ██╗    ██╗
-          ██╔══██╗██╔══██╗██╔══██╗██║ ██╔╝    ████╗ ████║██╔════╝██╔═══██╗██║    ██║
-          ██║  ██║███████║██████╔╝█████╔╝     ██╔████╔██║█████╗  ██║   ██║██║ █╗ ██║
-          ██║  ██║██╔══██║██╔══██╗██╔═██╗     ██║╚██╔╝██║██╔══╝  ██║   ██║██║███╗██║
-          ██████╔╝██║  ██║██║  ██║██║  ██╗    ██║ ╚═╝ ██║███████╗╚██████╔╝╚███╔███╔╝
-          ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝    ╚═╝     ╚═╝╚══════╝ ╚═════╝  ╚══╝╚══╝
-      ]]
+              ██████╗  █████╗ ██████╗ ██╗  ██╗    ███╗   ███╗███████╗ ██████╗ ██╗    ██╗
+              ██╔══██╗██╔══██╗██╔══██╗██║ ██╔╝    ████╗ ████║██╔════╝██╔═══██╗██║    ██║
+              ██║  ██║███████║██████╔╝█████╔╝     ██╔████╔██║█████╗  ██║   ██║██║ █╗ ██║
+              ██║  ██║██╔══██║██╔══██╗██╔═██╗     ██║╚██╔╝██║██╔══╝  ██║   ██║██║███╗██║
+              ██████╔╝██║  ██║██║  ██║██║  ██╗    ██║ ╚═╝ ██║███████╗╚██████╔╝╚███╔███╔╝
+              ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝    ╚═╝     ╚═╝╚══════╝ ╚═════╝  ╚══╝╚══╝
+          ]]
 
         opts.config = opts.config or {}
         opts.config.header = vim.split(logo, "\n")
@@ -1082,13 +1097,91 @@ return {
       },
     },
 
-    -- Use <tab> for completion and snippets (supertab)
-    -- first: disable default <tab> and <s-tab> behavior in LuaSnip
+    {
+      "benfowler/telescope-luasnip.nvim",
+      module = "telescope._extensions.luasnip", -- lazy-load when necessary
+      keys = {
+        -- Your other keybindings go here...
+
+        -- Keybinding for launching LuaSnip picker in Telescope
+        {
+          ";s",
+          function()
+            -- Launch the LuaSnip picker from telescope-luasnip
+            local telescope = require("telescope")
+            telescope.extensions.luasnip.luasnip({})
+          end,
+        },
+      },
+
+      config = function(_, opts)
+        opts = opts or {} -- Ensure opts is not nil
+        local telescope = require("telescope")
+
+        -- Other Telescope setup options go here...
+        telescope.setup(opts)
+
+        -- Load the luasnip extension
+        telescope.load_extension('luasnip')
+
+        -- Optionally load other extensions like fzf or file_browser
+        telescope.load_extension('fzf')
+        telescope.load_extension('file_browser')
+      end,
+    },
+    -- {
+    --   'SirVer/ultisnips',
+    --   event = { 'InsertEnter', 'CmdlineEnter' },
+    --   config = function()
+    --     -- Set custom snippets directory
+    --     vim.g.UltiSnipsSnippetDirectories = { vim.fn.expand('~/.config/nvim/lua/plugins/snippets') }
+    --
+    --
+    --     -- Enable debugging for UltiSnips
+    --     vim.g.UltiSnipsDebug = 1
+    --
+    --
+    --     -- Error detected while processing FileType Autocommands for "*"..function UltiSnips#CheckFiletype:
+    --     vim.g.UltiSnipsFiletypes = {
+    --       javascript = "javascript",
+    --       lua = "lua",
+    --       jsx = "javascriptreact", -- JSX/React files (Use `javascriptreact` filetype)
+    --     }
+    --   end
+    -- },
     {
       "L3MON4D3/LuaSnip",
-      keys = function()
-        return {}
-      end,
+      config = function()
+        local ls = require("luasnip")
+
+        -- Set up the snippet engine for completion (you can customize this)
+        ls.config.set_config({
+          history = true,
+          updateevents = "TextChanged,TextChangedI",
+        })
+
+
+        -- Create a simple snippet manually
+        ls.snippets = {
+          javascript = {
+            ls.parser.parse_snippet("jl", "console.log('${1:message}');")
+          },
+          jsx = {
+            ls.parser.parse_snippet("jl", "console.log('${1:message}');") -- This is for JSX files
+          },
+          lua = {
+            ls.parser.parse_snippet("jl", "print('${1:message}')") -- This is for Lua files
+          },
+        }
+
+        require("luasnip.loaders.from_vscode").lazy_load() -- If you want to use VSCode snippets
+      end
+    },
+    {
+      'honza/vim-snippets', -- Optional snippets collection
+      config = function()
+        -- You can configure additional snippets here
+      end
     },
     {
       "hrsh8th/nvim-cmp",
@@ -1096,62 +1189,52 @@ return {
         "hrsh8th/cmp-emoji",
       },
       opts = function()
-        local has_words_before = function()
-          unpack = unpack or table.unpack
-          local line, col =
-              unpack(vim.api.nvim_win_get_cursor(1))
-          return col ~= 1
-              and vim.api
-              .nvim_buf_get_lines(1, line - 1, line, true)[1]
-              :sub(col, col)
-              :match("%s")
-              == nil
-        end
-
         local cmp = require("cmp")
+        local luasnip = require("luasnip")
         cmp.setup({
           completion = {
             completeopt = "menu,menuone,noselect",
           },
           snippet = {
             expand = function(args)
-              vim.fn["vsnip#anonymous"](args.body)
+              luasnip.lsp_expand(args.body) -- Use LuaSnip for expansion
             end,
           },
           mapping = cmp.mapping.preset.insert({
             ["<C-p>"] = cmp.mapping.select_prev_item(),
             ["<C-n>"] = cmp.mapping.select_next_item(),
-            ["<C-d>"] = cmp.mapping.scroll_docs(
-              -3
-            ),
-            ["<C-f>"] = cmp.mapping.scroll_docs(
-              5
-            ),
+            ["<C-d>"] = cmp.mapping.scroll_docs(-3),
+            ["<C-f>"] = cmp.mapping.scroll_docs(5),
             ["<C-Space>"] = cmp.mapping.complete(),
             ["<C-e>"] = cmp.mapping.close(),
-            ["<CR>"] = cmp.mapping.confirm({
-              select = true,
-            }),
+            ["<Tab>"] = cmp.mapping(function(fallback)
+              if luasnip.expand_or_jumpable() then
+                luasnip.expand_or_jump()
+              elseif cmp.visible() then
+                cmp.select_next_item()
+              else
+                fallback()
+              end
+            end, { "i", "s" }), -- insert and select mode
+            -- Expand or jump through snippet placeholders
+            ['<CR>'] = cmp.mapping.confirm({ select = true }),
           }),
           sources = {
             { name = "nvim_lsp" },
             { name = "buffer" },
             { name = "path" },
+            { name = "luasnip" }, -- Ensure LuaSnip is in your sources
+            -- { name = 'ultisnips' }, -- or 'ultisnips' if you're using UltiSnips
             { name = "cmdline" },
           },
         })
 
         -- Common capabilities for LSP
-        local capabilities =
-            vim.lsp.protocol.make_client_capabilities()
+        local capabilities = vim.lsp.protocol.make_client_capabilities()
 
         -- Use the default capabilities from cmp_nvim_lsp
-        local cmp_nvim_lsp =
-            require("cmp_nvim_lsp")
-        capabilities =
-            cmp_nvim_lsp.default_capabilities(
-              capabilities
-            )
+        local cmp_nvim_lsp = require("cmp_nvim_lsp")
+        capabilities = cmp_nvim_lsp.default_capabilities(capabilities)
 
         -- Example LSP server setup with capabilities
         require("lspconfig").pyright.setup({
@@ -1163,6 +1246,7 @@ return {
         })
       end,
     },
+
     {
       "MeanderingProgrammer/render-markdown.nvim",
       dependencies = {
