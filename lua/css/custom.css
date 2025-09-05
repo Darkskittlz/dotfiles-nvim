@@ -1,0 +1,28 @@
+.markdown-body {
+  background-color: #121212 !important;
+  color: #ffffff !important;
+}
+
+#page-header {
+  background-color: #070707 !important;
+  color: #ffffff !important;
+}
+
+.anchor .octicon .octicon-link {
+  background-color: #070707 !important;
+  color: black !important;
+}
+
+#page-ctn {
+  background-color: #121212 !important;
+  color: #ffffff !important;
+}
+
+main {
+  background-color: #121212 !important;
+}
+
+pre, code {
+  background-color: black !important;  /* Black background for code blocks */
+  color: green !important;  /* Green text color for code */
+}

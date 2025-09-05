@@ -373,17 +373,17 @@ vim.api.nvim_set_hl(
 vim.api.nvim_set_hl(
   0,
   "RenderMarkdownH2Bg",
-  { fg = "#ffffff", bg = "#4a1bdf" }
+  { fg = "#ffffff", bg = "#8B0000" }
 ) -- Dark Green
 vim.api.nvim_set_hl(
   0,
   "RenderMarkdownH3Bg",
-  { fg = "#ffffff", bg = "#8B008B" }
+  { fg = "#ffffff", bg = "#4a1bdf" }
 ) -- Dark Pink (Purple)
 vim.api.nvim_set_hl(
   0,
   "RenderMarkdownH4Bg",
-  { fg = "#ffffff", bg = "#008080" }
+  { fg = "#ffffff", bg = "#4a1bdf" }
 ) -- Dark Gold
 vim.api.nvim_set_hl(
   0,
@@ -470,20 +470,28 @@ return {
   { "alvan/vim-closetag" },
   { "windwp/nvim-autopairs" },
   { "nvim-lua/plenary.nvim" },
-  { "tveskag/nvim-blame-line" },
   { "terrortylor/nvim-comment" },
   { "voldikss/vim-floaterm" },
   { "tpope/vim-surround" },
   { "NLKNguyen/papercolor-theme" },
   {
-    'lewis6991/gitsigns.nvim',
-    event = { 'BufReadPre', 'BufNewFile' },
+    "lewis6991/gitsigns.nvim",
+    event = { "BufReadPre", "BufNewFile" },
     config = function()
-      require('gitsigns').setup()
+      require("gitsigns").setup({
+        current_line_blame = false, -- we won't toggle globally
+        current_line_blame_opts = {
+          delay = 0,
+          virt_text_pos = "eol", -- show at end of line
+        },
+      })
 
-      vim.keymap.set('n', '<leader>gb', function()
-        require('gitsigns').blame_line({ full = true })
-      end, { desc = 'Git blame line' })
+      -- Keymap: show blame for current line via Lua
+      vim.keymap.set("n", "<leader>gb", function()
+        require("gitsigns").blame_line({
+          full = true,
+        })
+      end, { desc = "Blame current line" })
     end,
   },
   {
@@ -514,6 +522,7 @@ return {
     build = "cd app && yarn install",
     init = function()
       vim.g.mkdp_filetypes = { "markdown" }
+      -- vim.g.mkdp_markdown_css = vim.fn.expand('~/.config/nvim/lua/css/custom.css')
     end,
     ft = { "markdown" },
   },
@@ -538,6 +547,11 @@ return {
           vue = {},
           html = {},
           css = {},
+          -- javascript = { "prettier" },
+          -- json = { "prettier" },
+          -- html = { "prettier" },
+          -- css = { "prettier" },
+          -- markdown = { "prettier" },
         },
       }),
     },
@@ -707,6 +721,36 @@ return {
             },
           },
         },
+        root_dir = require("lspconfig.util").root_pattern(
+          "tsconfig.json",
+          "package.json",
+          ".git"
+        ),
+
+        handlers = {
+          ["window/showMessage"] = function(
+              _,
+              result,
+              ctx,
+              config
+          )
+            if
+                result
+                and type(result.message) == "string"
+                and result.message:match(
+                  "No Project"
+                )
+            then
+              return
+            end
+            return vim.lsp.handlers["window/showMessage"](
+              _,
+              result,
+              ctx,
+              config
+            )
+          end,
+        },
       })
 
       -- Configure Vue LSP (`vuels`) for `.vue` files and ensure it's also handling formatting
@@ -757,6 +801,49 @@ return {
     end,
   },
   {
+    "romgrk/barbar.nvim",
+    dependencies = {
+      "lewis6991/gitsigns.nvim",     -- optional
+      "nvim-tree/nvim-web-devicons", -- optional (for icons)
+    },
+    config = function()
+      -- Example keymaps (from your earlier setup)
+
+      -- Highlight overrides
+      vim.api.nvim_set_hl(
+        0,
+        "BufferInactive",
+        { fg = "#555555", bg = "#1e1e1e" }
+      )
+      vim.api.nvim_set_hl(
+        0,
+        "BufferInactiveSign",
+        { fg = "#555555", bg = "#1e1e1e" }
+      )
+      vim.api.nvim_set_hl(
+        0,
+        "BufferInactiveMod",
+        { fg = "#aaaa55", bg = "#1e1e1e" }
+      )
+
+      vim.api.nvim_set_hl(0, "BufferCurrent", {
+        fg = "#ffffff",
+        bg = "#2e2e2e",
+        bold = true,
+      })
+      vim.api.nvim_set_hl(
+        0,
+        "BufferCurrentSign",
+        { fg = "#ffffff", bg = "#2e2e2e" }
+      )
+      vim.api.nvim_set_hl(
+        0,
+        "BufferCurrentMod",
+        { fg = "#d87f00", bg = "#2e2e2e" }
+      )
+    end,
+  },
+  {
     "nvim-telescope/telescope.nvim",
     dependencies = {
       {
@@ -766,7 +853,10 @@ return {
           vim.fn.system("make")
         end,
         config = function(_, opts)
-          local telescope = require("telescope").load_extension('fzf')
+          local telescope =
+              require("telescope").load_extension(
+                "fzf"
+              )
 
           -- Ensure opts is a valid table before calling setup
           if type(opts) == "table" then
@@ -836,15 +926,24 @@ return {
             { fg = keyword_color }
 
             -- Telescope UI Customization
-            hl.TelescopeNormal = { bg = "NONE", fg = "NONE" } -- Transparent background for the normal UI
-            hl.TelescopeBorder = { bg = "NONE", fg = "NONE" } -- Transparent borders
-            hl.TelescopePromptNormal = { bg = "NONE" }        -- Prompt background color
-            hl.TelescopePromptBorder = { bg = "NONE", fg = c.blue }
-            hl.TelescopePromptTitle = { bg = "NONE", fg = c.blue }
-            hl.TelescopePreviewTitle = { bg = "NONE", fg = c.blue }  -- Transparent preview title
-            hl.TelescopePreviewBorder = { bg = "NONE", fg = c.blue } -- Transparent preview title
-            hl.TelescopeResultsTitle = { bg = "NONE", fg = c.blue }  -- Transparent results title
-            hl.TelescopeResultsBorder = { bg = "NONE", fg = c.blue } -- Transparent results title
+            hl.TelescopeNormal =
+            { bg = "NONE", fg = "NONE" } -- Transparent background for the normal UI
+            hl.TelescopeBorder =
+            { bg = "NONE", fg = "NONE" } -- Transparent borders
+            hl.TelescopePromptNormal =
+            { bg = "NONE" }              -- Prompt background color
+            hl.TelescopePromptBorder =
+            { bg = "NONE", fg = c.blue }
+            hl.TelescopePromptTitle =
+            { bg = "NONE", fg = c.blue }
+            hl.TelescopePreviewTitle =
+            { bg = "NONE", fg = c.blue } -- Transparent preview title
+            hl.TelescopePreviewBorder =
+            { bg = "NONE", fg = c.blue } -- Transparent preview title
+            hl.TelescopeResultsTitle =
+            { bg = "NONE", fg = c.blue } -- Transparent results title
+            hl.TelescopeResultsBorder =
+            { bg = "NONE", fg = c.blue } -- Transparent results title
           end,
         }
 
@@ -1241,7 +1340,7 @@ return {
           capabilities = capabilities,
         })
 
-        require("lspconfig").ts_ls.setup({
+        require("lspconfig").tsserver.setup({
           capabilities = capabilities,
         })
       end,

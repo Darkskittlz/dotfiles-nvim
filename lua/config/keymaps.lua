@@ -6,7 +6,12 @@ keymap.set("n", "-", "<C-a>")
 keymap.set("n", "+", "<C-x>")
 
 -- Mason --
-vim.api.nvim_set_keymap('n', '<leader>M', ':e("mason.ui").open()<CR>', { noremap = true, silent = true })
+vim.api.nvim_set_keymap(
+  "n",
+  "<leader>M",
+  ':lua require("mason.ui").open()<CR>',
+  { noremap = true, silent = true }
+)
 
 keymap.set('n', '<leader>gb', function()
   -- require('gitsigns').blame_line({ full = true })
@@ -176,3 +181,32 @@ keymap.set(
   ":GpChatDelete<CR>",
   { noremap = true, silent = true }
 )
+
+-- Switch (cycle) between buffers with uppercase H/L
+keymap.set(
+  "n",
+  "H",
+  "<Cmd>BufferPrevious<CR>",
+  { silent = true }
+)
+keymap.set(
+  "n",
+  "L",
+  "<Cmd>BufferNext<CR>",
+  { silent = true }
+)
+
+-- Reorder buffers with Alt+h / Alt+l
+keymap.set(
+  "n",
+  "<A-h>",
+  "<Cmd>BufferMovePrevious<CR>",
+  { silent = true }
+)
+keymap.set(
+  "n",
+  "<A-l>",
+  "<Cmd>BufferMoveNext<CR>",
+  { silent = true }
+)
+keymap.set("n", "<A-p>", "<Cmd>BufferPin<CR>", { silent = true })
