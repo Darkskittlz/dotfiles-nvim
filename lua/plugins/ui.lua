@@ -807,40 +807,19 @@ return {
       "nvim-tree/nvim-web-devicons", -- optional (for icons)
     },
     config = function()
-      -- Example keymaps (from your earlier setup)
-
-      -- Highlight overrides
-      vim.api.nvim_set_hl(
-        0,
-        "BufferInactive",
-        { fg = "#555555", bg = "#1e1e1e" }
-      )
-      vim.api.nvim_set_hl(
-        0,
-        "BufferInactiveSign",
-        { fg = "#555555", bg = "#1e1e1e" }
-      )
-      vim.api.nvim_set_hl(
-        0,
-        "BufferInactiveMod",
-        { fg = "#aaaa55", bg = "#1e1e1e" }
-      )
-
+      -- Active buffer highlights
       vim.api.nvim_set_hl(0, "BufferCurrent", {
         fg = "#ffffff",
-        bg = "#2e2e2e",
         bold = true,
       })
-      vim.api.nvim_set_hl(
-        0,
-        "BufferCurrentSign",
-        { fg = "#ffffff", bg = "#2e2e2e" }
-      )
-      vim.api.nvim_set_hl(
-        0,
-        "BufferCurrentMod",
-        { fg = "#d87f00", bg = "#2e2e2e" }
-      )
+      vim.api.nvim_set_hl(0, "BufferCurrentSign", { fg = "#ffffff" })
+
+      -- Inactive buffer highlights
+      vim.api.nvim_set_hl(0, "BufferInactive", { fg = "#555555", bg = "#1e1e1e" })
+      vim.api.nvim_set_hl(0, "BufferInactiveSign", { fg = "#555555", bg = "#1e1e1e" })
+      vim.api.nvim_set_hl(0, "BufferInactiveMod", { fg = "#aaaa55", bg = "#1e1e1e" })
+      vim.api.nvim_set_hl(0, "BufferInactiveIcon", { fg = "#555555", bg = "NONE" })
+
     end,
   },
   {
