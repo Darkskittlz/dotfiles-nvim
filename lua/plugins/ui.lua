@@ -810,16 +810,30 @@ return {
       -- Active buffer highlights
       vim.api.nvim_set_hl(0, "BufferCurrent", {
         fg = "#ffffff",
+        bg = "none",
         bold = true,
       })
       vim.api.nvim_set_hl(0, "BufferCurrentSign", { fg = "#ffffff" })
 
       -- Inactive buffer highlights
-      vim.api.nvim_set_hl(0, "BufferInactive", { fg = "#555555", bg = "#1e1e1e" })
-      vim.api.nvim_set_hl(0, "BufferInactiveSign", { fg = "#555555", bg = "#1e1e1e" })
-      vim.api.nvim_set_hl(0, "BufferInactiveMod", { fg = "#aaaa55", bg = "#1e1e1e" })
+      vim.api.nvim_set_hl(0, "BufferInactive", { fg = "#555555", bg = "none" })
+      vim.api.nvim_set_hl(0, "BufferInactiveSign", { fg = "#555555", bg = "none" })
+      vim.api.nvim_set_hl(0, "BufferInactiveMod", { fg = "#aaaa55", bg = "none" })
       vim.api.nvim_set_hl(0, "BufferInactiveIcon", { fg = "#555555", bg = "NONE" })
 
+      vim.api.nvim_set_hl(0, "BufferTabpageFill", { bg = "NONE" })
+
+      vim.api.nvim_create_autocmd("ColorScheme", {
+        callback = function()
+          vim.api.nvim_set_hl(0, "BufferCurrent", { fg = "#ffffff", bg = "NONE", bold = true })
+          vim.api.nvim_set_hl(0, "BufferCurrentSign", { fg = "#ffffff", bg = "NONE" })
+          vim.api.nvim_set_hl(0, "BufferInactive", { fg = "#555555", bg = "NONE" })
+          vim.api.nvim_set_hl(0, "BufferInactiveSign", { fg = "#555555", bg = "NONE" })
+          vim.api.nvim_set_hl(0, "BufferInactiveMod", { fg = "#aaaa55", bg = "NONE" })
+          vim.api.nvim_set_hl(0, "BufferInactiveIcon", { fg = "#555555", bg = "NONE" })
+          vim.api.nvim_set_hl(0, "BufferTabpageFill", { bg = "NONE" })
+        end,
+      })
     end,
   },
   {
