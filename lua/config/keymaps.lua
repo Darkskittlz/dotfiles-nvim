@@ -18,6 +18,16 @@ keymap.set('n', '<leader>gb', function()
   require('gitsigns').blame_line()
 end, { desc = "Git blameline" }
 )
+
+vim.keymap.set("n", "<C-g>", function()
+  require("plugins.git_picker").git_branch_picker()
+end, { desc = "Git branch picker" })
+
+-- Neogit Keymap
+-- keymap.set('n', '<leader>gg', function()
+--   require('neogit').open({ kind = "floating" })
+-- end, { desc = "Open Neogit (floating window)" })
+
 -- copy --
 keymap.set("v", "y", '"+y', opts)
 

@@ -475,6 +475,20 @@ return {
   { "tpope/vim-surround" },
   { "NLKNguyen/papercolor-theme" },
   {
+    "NeogitOrg/neogit",
+    dependencies = {
+      "nvim-lua/plenary.nvim",  -- required
+      "sindrets/diffview.nvim", -- optional, for enhanced diffs
+    },
+    config = function()
+      require("neogit").setup({
+        integrations = {
+          diffview = true, -- enable if you installed diffview.nvim
+        },
+      })
+    end
+  },
+  {
     "lewis6991/gitsigns.nvim",
     event = { "BufReadPre", "BufNewFile" },
     config = function()
