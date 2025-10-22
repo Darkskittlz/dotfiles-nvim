@@ -329,7 +329,7 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
       end)
 
       -- Push branch with spinner
-      map({ "i", "n" }, "p", function()
+      map({ "i", "n" }, "P", function()
         local selection = action_state.get_selected_entry()
         if not selection or not selection.value then return end
         local branch = selection.value
