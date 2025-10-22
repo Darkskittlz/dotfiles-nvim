@@ -30,9 +30,9 @@ local displayer = entry_display.create {
 
 -- Preview modes
 local preview_modes = {
+  { name = "Diff",   cmd_fn = function(branch) return { "git", "diff", branch } end },
   { name = "Log",    cmd_fn = function(branch) return { "git", "log", "--oneline", branch } end },
   { name = "Reflog", cmd_fn = function(branch) return { "git", "reflog", "--oneline", branch } end },
-  { name = "Diff",   cmd_fn = function(branch) return { "git", "diff", branch } end },
 }
 
 local function get_branch_info(branch)
@@ -155,7 +155,7 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
   branches = sort_branches(branches)
 
   pickers.new({}, {
-    prompt_title = "Git Branches",
+    prompt_title = "Darkskittlz Modified Git Branch",
     finder = finders.new_table {
       results = branches,
       entry_maker = branch_entry_maker,
@@ -336,7 +336,8 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
 
         -- Create a floating window to show spinner
         local buf = vim.api.nvim_create_buf(false, true)
-        local width, height = 10, 3
+        local width = 20
+        local height = 1 -- keep window 1 line tall
         local row = math.floor((vim.o.lines - height) / 2)
         local col = math.floor((vim.o.columns - width) / 2)
         local win = vim.api.nvim_open_win(buf, true, {
@@ -356,7 +357,9 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
 
         local function update_spinner()
           if vim.api.nvim_buf_is_valid(buf) then
-            vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "Pushing " .. branch .. " " .. spinner_frames[frame] })
+            -- Add empty padding lines before/after the text
+            vim.api.nvim_buf_set_lines(buf, 0, -1, false,
+              { "", " Pushing " .. branch .. " " .. spinner_frames[frame], "" })
             frame = (frame % #spinner_frames) + 1
           end
         end
@@ -372,7 +375,9 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
 
             if exit_code == 0 then
               vim.notify("Branch pushed: " .. branch, vim.log.levels.INFO)
-              -- TODO: refresh picker so up-arrow disappears
+              vim.schedule(function()
+                require("utils.git_picker").git_branch_picker()
+              end)
             else
               vim.notify("Push failed for branch: " .. branch, vim.log.levels.ERROR)
             end
