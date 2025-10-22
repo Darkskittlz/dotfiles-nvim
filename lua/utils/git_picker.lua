@@ -202,59 +202,119 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
         if not selection or not selection.value then return end
         local branch = selection.value
 
-        -- Create a scratch buffer
-        local buf = vim.api.nvim_create_buf(false, true)
-        vim.api.nvim_buf_set_option(buf, "buftype", "acwrite")
-        vim.api.nvim_buf_set_option(buf, "filetype", "gitcommit")
-        vim.api.nvim_buf_set_option(buf, "bufhidden", "wipe")
+        -- Save the Telescope picker window so we can restore it later
+        local picker_win = vim.api.nvim_get_current_win()
 
-        -- Initial lines: title and body separated by a blank line
-        vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
-          "# Title: first line is the commit summary",
-          "",
-          "# Body: remaining lines are the commit message",
-          "",
-        })
-
-        -- Floating window dimensions
         local width = math.floor(vim.o.columns * 0.6)
-        local height = math.floor(vim.o.lines * 0.4)
-        local row = math.floor((vim.o.lines - height) / 2)
+        local spacing_between = 2
+        local total_height = 1 + spacing_between + 4
+        local row = math.floor((vim.o.lines - total_height) / 2)
         local col = math.floor((vim.o.columns - width) / 2)
 
-        local win = vim.api.nvim_open_win(buf, true, {
+        -- Title window
+        local buf_title = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_option(buf_title, "buftype", "acwrite")
+        vim.api.nvim_buf_set_option(buf_title, "bufhidden", "wipe")
+        vim.api.nvim_buf_set_lines(buf_title, 0, 1, false, { "" })
+        local win_title = vim.api.nvim_open_win(buf_title, true, {
           relative = "editor",
           width = width,
-          height = height,
+          height = 1,
           row = row,
           col = col,
           style = "minimal",
           border = "rounded",
         })
 
-        -- Map <Esc> to close without committing
-        vim.api.nvim_buf_set_keymap(buf, "n", "<Esc>", "<cmd>bd!<CR>", { noremap = true, silent = true })
+        -- Body window
+        local buf_body = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_option(buf_body, "buftype", "acwrite")
+        vim.api.nvim_buf_set_option(buf_body, "bufhidden", "wipe")
+        vim.api.nvim_buf_set_lines(buf_body, 0, -1, false, { "", "", "", "" })
+        local win_body = vim.api.nvim_open_win(buf_body, false, {
+          relative = "editor",
+          width = width,
+          height = 4,
+          row = row + 1 + spacing_between,
+          col = col,
+          style = "minimal",
+          border = "rounded",
+        })
 
-        -- Map <leader>w to save and commit
-        vim.api.nvim_buf_set_keymap(buf, "n", "<leader>w", "", {
+        vim.api.nvim_set_current_win(win_title)
+
+        -- -- Helper: close commit windows only
+        local function close_windows()
+          -- Close the commit floating windows
+          for _, w in ipairs({ win_title, win_body }) do
+            if vim.api.nvim_win_is_valid(w) then
+              vim.api.nvim_win_close(w, true)
+            end
+          end
+
+          -- Reopen the Git branch picker
+          vim.schedule(function()
+            require("utils.git_picker").git_branch_picker()
+          end)
+
+          vim.notify("Commit Cancelled", vim.log.levels.INFO)
+        end
+
+
+        -- Commit logic
+        local function commit_changes()
+          local title = vim.api.nvim_buf_get_lines(buf_title, 0, -1, false)[1] or ""
+          local body = table.concat(vim.api.nvim_buf_get_lines(buf_body, 0, -1, false), "\n")
+
+          vim.fn.system("git add -A")
+          local cmd = 'git commit -m ' .. vim.fn.shellescape(title)
+          if body:match("%S") then
+            cmd = cmd .. ' -m ' .. vim.fn.shellescape(body)
+          end
+          vim.fn.system(cmd)
+          vim.notify("Committed changes on branch: " .. branch, vim.log.levels.INFO)
+          close_windows()
+        end
+
+        -- Keymaps
+        for _, buf in ipairs({ buf_title, buf_body }) do
+          -- Close with q or Esc
+          for _, key in ipairs({ "q", "<Esc>" }) do
+            vim.api.nvim_buf_set_keymap(buf, "n", key, "", {
+              noremap = true,
+              silent = true,
+              callback = close_windows,
+            })
+          end
+
+          -- Commit with <leader>w
+          vim.api.nvim_buf_set_keymap(buf, "n", "<leader>w", "", {
+            noremap = true,
+            silent = true,
+            callback = commit_changes,
+          })
+        end
+
+        -- Tab switching
+        vim.api.nvim_buf_set_keymap(buf_title, "n", "<Tab>", "", {
           noremap = true,
           silent = true,
-          callback = function()
-            local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-            local title = lines[1] or ""
-            local body = table.concat(lines, "\n", 2)
-
-            -- Stage all changes and commit
-            vim.fn.system("git add -A")
-            local cmd = 'git commit -m ' .. vim.fn.shellescape(title)
-            if body ~= "" then
-              cmd = cmd .. ' -m ' .. vim.fn.shellescape(body)
-            end
-            vim.fn.system(cmd)
-            vim.notify("Committed changes on branch: " .. branch, vim.log.levels.INFO)
-            vim.api.nvim_win_close(win, true)
-            vim.api.nvim_buf_delete(buf, { force = true })
-          end
+          callback = function() vim.api.nvim_set_current_win(win_body) end,
+        })
+        vim.api.nvim_buf_set_keymap(buf_body, "n", "<Tab>", "", {
+          noremap = true,
+          silent = true,
+          callback = function() vim.api.nvim_set_current_win(win_title) end,
+        })
+        vim.api.nvim_buf_set_keymap(buf_title, "n", "<S-Tab>", "", {
+          noremap = true,
+          silent = true,
+          callback = function() vim.api.nvim_set_current_win(win_body) end,
+        })
+        vim.api.nvim_buf_set_keymap(buf_body, "n", "<S-Tab>", "", {
+          noremap = true,
+          silent = true,
+          callback = function() vim.api.nvim_set_current_win(win_title) end,
         })
       end)
 
@@ -268,14 +328,58 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
         vim.notify("Pulled latest changes for branch: " .. branch, vim.log.levels.INFO)
       end)
 
-      -- Push to remote
-      map({ "i", "n" }, "P", function()
+      -- Push branch with spinner
+      map({ "i", "n" }, "p", function()
         local selection = action_state.get_selected_entry()
         if not selection or not selection.value then return end
         local branch = selection.value
-        vim.fn.system("git push origin " .. branch)
-        vim.notify("Pushed branch: " .. branch .. " to remote", vim.log.levels.INFO)
+
+        -- Create a floating window to show spinner
+        local buf = vim.api.nvim_create_buf(false, true)
+        local width, height = 20, 3
+        local row = math.floor((vim.o.lines - height) / 2)
+        local col = math.floor((vim.o.columns - width) / 2)
+        local win = vim.api.nvim_open_win(buf, true, {
+          relative = "editor",
+          width = width,
+          height = height,
+          row = row,
+          col = col,
+          style = "minimal",
+          border = "rounded",
+        })
+
+        -- Spinner animation
+        local spinner_frames = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠏" }
+        local frame = 1
+        local timer = vim.loop.new_timer()
+
+        local function update_spinner()
+          if vim.api.nvim_buf_is_valid(buf) then
+            vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "Pushing " .. branch .. " " .. spinner_frames[frame] })
+            frame = (frame % #spinner_frames) + 1
+          end
+        end
+
+        timer:start(0, 100, vim.schedule_wrap(update_spinner))
+
+        -- Run push asynchronously
+        vim.fn.jobstart({ "git", "push", "origin", branch }, {
+          on_exit = vim.schedule_wrap(function(_, exit_code)
+            timer:stop()
+            vim.api.nvim_win_close(win, true)
+            vim.api.nvim_buf_delete(buf, { force = true })
+
+            if exit_code == 0 then
+              vim.notify("Branch pushed: " .. branch, vim.log.levels.INFO)
+              -- TODO: refresh picker so up-arrow disappears
+            else
+              vim.notify("Push failed for branch: " .. branch, vim.log.levels.ERROR)
+            end
+          end),
+        })
       end)
+
 
       -- Close picker
       map("n", "q", actions.close)
