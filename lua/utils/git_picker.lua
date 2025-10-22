@@ -336,7 +336,7 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
 
         -- Create a floating window to show spinner
         local buf = vim.api.nvim_create_buf(false, true)
-        local width, height = 20, 3
+        local width, height = 10, 3
         local row = math.floor((vim.o.lines - height) / 2)
         local col = math.floor((vim.o.columns - width) / 2)
         local win = vim.api.nvim_open_win(buf, true, {
