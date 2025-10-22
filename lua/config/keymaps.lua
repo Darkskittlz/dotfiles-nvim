@@ -19,8 +19,8 @@ keymap.set('n', '<leader>gb', function()
 end, { desc = "Git blameline" }
 )
 
-vim.keymap.set("n", "<C-g>", function()
-  require("plugins.git_picker").git_branch_picker()
+vim.keymap.set("n", "<leader>gh", function()
+  require("utils.git_picker").git_branch_picker()
 end, { desc = "Git branch picker" })
 
 -- Neogit Keymap
@@ -87,7 +87,7 @@ keymap.set(
 )
 keymap.set(
   "n",
-  "<leader>gh",
+  "<leader>gs",
   ":GpChatNew split<CR>",
   { noremap = true, silent = true }
 )

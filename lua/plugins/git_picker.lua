@@ -25,26 +25,31 @@ function M.git_branch_picker()
     sorter = conf.generic_sorter({}),
     layout_strategy = "vertical", -- vertical layout (optional)
     layout_config = {
-      height = 0.5,               -- half the height of the screen
-      width = 0.5,                -- optional, adjust width
-      prompt_position = "top"
+      vertical = {
+        width = 0.9,
+        height = 0.9,
+        preview_cutoff = 0.3,
+        preview_height = 0.6, -- ✅ use this instead of preview_width
+        prompt_position = "top",
+      },
     },
+    sorting_strategy = "ascending",
     attach_mappings = function(prompt_bufnr, map)
       actions.select_default:replace(function()
         local selection = action_state.get_selected_entry()
         actions.close(prompt_bufnr)
-        vim.cmd("Git checkout " .. selection[1])
+        vim.cmd("Git checkout " .. selection[2])
       end)
 
       map("i", "y", function()
         local selection = action_state.get_selected_entry()
-        vim.fn.setreg("+", selection[1])
-        vim.notify("Copied branch: " .. selection[1], vim.log.levels.INFO)
+        vim.fn.setreg("+", selection[2])
+        vim.notify("Copied branch: " .. selection[2], vim.log.levels.INFO)
       end)
       map("n", "y", function()
         local selection = action_state.get_selected_entry()
-        vim.fn.setreg("+", selection[1])
-        vim.notify("Copied branch: " .. selection[1], vim.log.levels.INFO)
+        vim.fn.setreg("+", selection[2])
+        vim.notify("Copied branch: " .. selection[2], vim.log.levels.INFO)
       end)
 
       return true

@@ -90,11 +90,11 @@ return {
             require("telescope.builtin")
         builtin.diagnostics({
           wrap_results = false,
-          layout_strategy = "horizontal",
+          layout_strategy = "vertical",
           layout_config = {
             prompt_position = "top",
             height = 0.99,
-            preview_width = 0.6,
+            preview_height = 0.6,
             preview_cutoff = 0.4,
           },
           sorting_strategy = "ascending",
@@ -158,11 +158,11 @@ return {
       opts.defaults or {},
       {
         wrap_results = false,
-        layout_strategy = "horizontal",
+        layout_strategy = "vertical",
         layout_config = {
           prompt_position = "top",
           height = 0.99,
-          preview_width = 0.6,
+          preview_height = 0.6,
           preview_cutoff = 0.4,
         },
         sorting_strategy = "ascending",
