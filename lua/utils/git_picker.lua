@@ -35,14 +35,13 @@ local preview_modes = {
   { name = "Diff",   cmd_fn = function(branch) return { "git", "diff", branch } end },
 }
 
--- Get branch info: staged/unstaged, ahead/behind, files changed
 local function get_branch_info(branch)
   local info = { staged = 0, unstaged = 0, ahead = 0, behind = 0, files_changed = 0 }
   local current_branch = vim.fn.systemlist("git rev-parse --abbrev-ref HEAD")[1] or ""
 
   if not branch or branch == "" then return info end
 
-  -- Staged/unstaged changes
+  -- Only current branch can have local changes
   if branch == current_branch then
     local changes = vim.fn.systemlist("git status --porcelain") or {}
     for _, line in ipairs(changes) do
@@ -55,14 +54,14 @@ local function get_branch_info(branch)
     info.files_changed = #files
   end
 
-  -- Ahead/behind remote
+  -- Always check ahead/behind for any branch
   local ok, upstream = pcall(vim.fn.systemlist, "git rev-parse --abbrev-ref " .. branch .. "@{upstream}")
   if ok and upstream[1] and upstream[1] ~= "" then
-    local ahead_behind = vim.fn.systemlist(
+    local counts = vim.fn.systemlist(
       "git rev-list --left-right --count " .. branch .. "...@{upstream}"
     )[1]
-    if ahead_behind then
-      local ahead, behind = ahead_behind:match("(%d+)%s+(%d+)")
+    if counts then
+      local ahead, behind = counts:match("(%d+)%s+(%d+)")
       info.ahead = tonumber(ahead) or 0
       info.behind = tonumber(behind) or 0
     end
@@ -71,43 +70,38 @@ local function get_branch_info(branch)
   return info
 end
 
--- Branch entry maker for Telescope
 local function branch_entry_maker(branch)
   local current_branch = vim.fn.systemlist("git rev-parse --abbrev-ref HEAD")[1] or ""
-  local info = get_branch_info(branch)
 
   local display_fn = function(entry)
+    local info = get_branch_info(entry.value) -- recalc for this branch
     local parts = {}
-
     local is_current = entry.value == current_branch
-    -- Add '*' before current branch
+
+    -- Branch name with * for current, always blue
     table.insert(parts, {
       (is_current and "* " or "") .. entry.value,
       is_current and "GitBranchCurrent" or "Normal",
     })
 
-    -- Staged
+    -- Staged/unstaged changes (only current branch)
     if info.staged > 0 then
       table.insert(parts, { " ● " .. info.staged, "DiffAdd" })
     end
-
-    -- Unstaged
     if info.unstaged > 0 then
       table.insert(parts, { " ✚ " .. info.unstaged, "DiffChange" })
     end
 
-    -- Files changed (current branch)
+    -- Files changed (only current branch)
     if is_current and info.files_changed > 0 then
       table.insert(parts, { string.format(" (%d file%s changed)", info.files_changed,
         info.files_changed > 1 and "s" or ""), "WarningMsg" })
     end
 
-    -- Commits ahead
+    -- Commits ahead/behind
     if info.ahead > 0 then
       table.insert(parts, { " ↑" .. info.ahead, "DiffAdd" })
     end
-
-    -- Commits behind
     if info.behind > 0 then
       table.insert(parts, { " ↓" .. info.behind, "WarningMsg" })
     end
@@ -200,6 +194,87 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
           vim.fn.setreg("+", selection.value)
           vim.notify("Copied branch: " .. selection.value, vim.log.levels.INFO)
         end
+      end)
+
+      -- Commit changes in a floating window
+      map({ "i", "n" }, "c", function()
+        local selection = action_state.get_selected_entry()
+        if not selection or not selection.value then return end
+        local branch = selection.value
+
+        -- Create a scratch buffer
+        local buf = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_option(buf, "buftype", "acwrite")
+        vim.api.nvim_buf_set_option(buf, "filetype", "gitcommit")
+        vim.api.nvim_buf_set_option(buf, "bufhidden", "wipe")
+
+        -- Initial lines: title and body separated by a blank line
+        vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+          "# Title: first line is the commit summary",
+          "",
+          "# Body: remaining lines are the commit message",
+          "",
+        })
+
+        -- Floating window dimensions
+        local width = math.floor(vim.o.columns * 0.6)
+        local height = math.floor(vim.o.lines * 0.4)
+        local row = math.floor((vim.o.lines - height) / 2)
+        local col = math.floor((vim.o.columns - width) / 2)
+
+        local win = vim.api.nvim_open_win(buf, true, {
+          relative = "editor",
+          width = width,
+          height = height,
+          row = row,
+          col = col,
+          style = "minimal",
+          border = "rounded",
+        })
+
+        -- Map <Esc> to close without committing
+        vim.api.nvim_buf_set_keymap(buf, "n", "<Esc>", "<cmd>bd!<CR>", { noremap = true, silent = true })
+
+        -- Map <leader>w to save and commit
+        vim.api.nvim_buf_set_keymap(buf, "n", "<leader>w", "", {
+          noremap = true,
+          silent = true,
+          callback = function()
+            local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+            local title = lines[1] or ""
+            local body = table.concat(lines, "\n", 2)
+
+            -- Stage all changes and commit
+            vim.fn.system("git add -A")
+            local cmd = 'git commit -m ' .. vim.fn.shellescape(title)
+            if body ~= "" then
+              cmd = cmd .. ' -m ' .. vim.fn.shellescape(body)
+            end
+            vim.fn.system(cmd)
+            vim.notify("Committed changes on branch: " .. branch, vim.log.levels.INFO)
+            vim.api.nvim_win_close(win, true)
+            vim.api.nvim_buf_delete(buf, { force = true })
+          end
+        })
+      end)
+
+
+      -- Pull from remote
+      map({ "i", "n" }, "p", function()
+        local selection = action_state.get_selected_entry()
+        if not selection or not selection.value then return end
+        local branch = selection.value
+        vim.fn.system("git pull origin " .. branch)
+        vim.notify("Pulled latest changes for branch: " .. branch, vim.log.levels.INFO)
+      end)
+
+      -- Push to remote
+      map({ "i", "n" }, "P", function()
+        local selection = action_state.get_selected_entry()
+        if not selection or not selection.value then return end
+        local branch = selection.value
+        vim.fn.system("git push origin " .. branch)
+        vim.notify("Pushed branch: " .. branch .. " to remote", vim.log.levels.INFO)
       end)
 
       -- Close picker
