@@ -5,6 +5,7 @@ vim.g.maplocalleader = " "
 keymap.set("n", "-", "<C-a>")
 keymap.set("n", "+", "<C-x>")
 
+
 -- Mason --
 vim.api.nvim_set_keymap(
   "n",

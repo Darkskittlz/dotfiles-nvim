@@ -7,6 +7,8 @@ vim.g.lazygit = {
   },
 }
 
+vim.g.transparent_enabled = true
+
 vim.g.python3_host_prog = '/home/darkskittlz/.neovim-python/bin/python'
 
 vim.opt.wrap = false
@@ -912,46 +914,36 @@ return {
           lualine_bold = false,
 
           on_highlights = function(hl, c)
-            local util =
-                require("solarized-osaka.util")
+            local util = require("solarized-osaka.util")
 
             -- Ensure floating windows are transparent
             hl.NormalFloat = { bg = "NONE" }
-            hl.FloatBorder =
-            { bg = "NONE", fg = c.blue } -- Adjust `fg` as needed
+            hl.FloatBorder = { bg = "NONE", fg = c.blue }
 
             -- Syntax Highlighting for Keywords
-            local keyword_color =
-                util.darken("#00ff00", 0.85) -- Replace #00ff00 with your preferred color
-            hl["keyword.tsx"] =
-            { fg = keyword_color }
-            hl["keyword.return.tsx"] =
-            { fg = keyword_color }
-            hl["keyword.javascript"] =
-            { fg = keyword_color }
-            hl["keyword.return.javascript"] =
-            { fg = keyword_color }
+            local keyword_color = util.darken("#00ff00", 0.85)
+            hl["keyword.tsx"] = { fg = keyword_color }
+            hl["keyword.return.tsx"] = { fg = keyword_color }
+            hl["keyword.javascript"] = { fg = keyword_color }
+            hl["keyword.return.javascript"] = { fg = keyword_color }
 
             -- Telescope UI Customization
-            hl.TelescopeNormal =
-            { bg = "NONE", fg = "NONE" } -- Transparent background for the normal UI
-            hl.TelescopeBorder =
-            { bg = "NONE", fg = "NONE" } -- Transparent borders
-            hl.TelescopePromptNormal =
-            { bg = "NONE" }              -- Prompt background color
-            hl.TelescopePromptBorder =
-            { bg = "NONE", fg = c.blue }
-            hl.TelescopePromptTitle =
-            { bg = "NONE", fg = c.blue }
-            hl.TelescopePreviewTitle =
-            { bg = "NONE", fg = c.blue } -- Transparent preview title
-            hl.TelescopePreviewBorder =
-            { bg = "NONE", fg = c.blue } -- Transparent preview title
-            hl.TelescopeResultsTitle =
-            { bg = "NONE", fg = c.blue } -- Transparent results title
-            hl.TelescopeResultsBorder =
-            { bg = "NONE", fg = c.blue } -- Transparent results title
-          end,
+            local telescope_groups = {
+              "TelescopeNormal",
+              "TelescopeBorder",
+              "TelescopePromptNormal",
+              "TelescopePromptBorder",
+              "TelescopePromptTitle",
+              "TelescopePreviewTitle",
+              "TelescopePreviewBorder",
+              "TelescopeResultsTitle",
+              "TelescopeResultsBorder",
+            }
+
+            for _, g in ipairs(telescope_groups) do
+              hl[g] = { bg = "NONE", fg = hl[g] and hl[g].fg or c.blue }
+            end
+          end
         }
 
         require("solarized-osaka").setup(
