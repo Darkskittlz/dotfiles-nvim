@@ -397,8 +397,8 @@ local function open_branch_file_picker(branch)
               vim.api.nvim_win_close(w, true)
             end
           end
-          -- ✅ Pass real branch name, not file path
-          open_branch_file_picker(branch)
+
+          reopen_git_picker()
         end
 
         -- 💾 Commit logic
@@ -460,6 +460,10 @@ local function open_branch_file_picker(branch)
         vim.api.nvim_set_current_win(win_title)
         vim.cmd("startinsert")
       end)
+
+
+
+
 
 
       map({ "n", "i" }, "q", function()
