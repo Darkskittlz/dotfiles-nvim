@@ -390,7 +390,7 @@ local function open_branch_file_picker(branch)
             end
           end
 
-          M.open_branch_file_picker(branch, true)
+          open_branch_file_picker(branch)
         end
 
         -- 💾 Commit logic
