@@ -390,6 +390,7 @@ local function open_branch_file_picker(branch)
             end
           end
 
+          local picker_module = require("utils.git_picker")
           picker_module.open_branch_file_picker(branch, true)
         end
 
