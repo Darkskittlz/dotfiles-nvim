@@ -660,6 +660,7 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
       map({ "i", "n" }, "+", function() cycle_preview("next") end)
       map({ "i", "n" }, "_", function() cycle_preview("prev") end)
 
+
       -- Scroll preview
       map({ "i", "n" }, "<C-d>", actions.preview_scrolling_down)
       map({ "i", "n" }, "<C-b>", actions.preview_scrolling_up)
