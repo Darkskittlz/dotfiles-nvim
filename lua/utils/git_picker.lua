@@ -271,6 +271,7 @@ local function open_branch_file_picker(branch)
 
 
 
+
       -- 🔴 D = discard local changes
       map({ "n", "i" }, "D", function()
         local selection = action_state.get_selected_entry()
@@ -575,12 +576,12 @@ local function branch_entry_maker(branch)
     end
 
     -- Commits ahead/behind
-    if info.ahead > 0 then
-      table.insert(parts, { " ↑" .. info.ahead, "DiffAdd" })
-    end
-    if info.behind > 0 then
-      table.insert(parts, { " ↓" .. info.behind, "WarningMsg" })
-    end
+    -- if info.ahead > 0 then
+    --   table.insert(parts, { " ↑" .. info.ahead, "DiffAdd" })
+    -- end
+    -- if info.behind > 0 then
+    --   table.insert(parts, { " ↓" .. info.behind, "WarningMsg" })
+    -- end
 
     return displayer(parts)
   end
