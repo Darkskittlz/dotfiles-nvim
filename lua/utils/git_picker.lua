@@ -843,7 +843,7 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
 
         -- Create a floating window to show spinner
         local buf = vim.api.nvim_create_buf(false, true)
-        local width = 28
+        local width = 24
         local height = 1
         local row = math.floor((vim.o.lines - height) / 3)
         local col = math.floor((vim.o.columns - width) / 3)
@@ -865,7 +865,7 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
         local function update_spinner()
           if vim.api.nvim_buf_is_valid(buf) then
             vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
-              " " .. spinner_frames[frame] .. " Pushing to " .. branch,
+              "   " .. spinner_frames[frame] .. " Pushing to " .. branch,
             })
             frame = (frame % #spinner_frames) + 1
           end
