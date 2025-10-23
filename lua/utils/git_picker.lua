@@ -219,10 +219,6 @@ local preview_modes = {
     cmd_fn_preview = function(branch) return create_file_diff_previewer() end,
   },
   {
-    name = "Files",
-    cmd_fn_preview = function(branch) return create_files_previewer(branch) end,
-  },
-  {
     name = "Log",
     cmd_fn = function(branch) return { "git", "log", "--oneline", branch } end,
   },
