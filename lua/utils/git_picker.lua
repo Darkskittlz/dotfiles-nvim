@@ -5,6 +5,7 @@ local M = {}
 local overlay_win = nil
 local overlay_buf = nil
 
+
 local function create_picker_overlay()
   overlay_buf = vim.api.nvim_create_buf(false, true)
   overlay_win = vim.api.nvim_open_win(overlay_buf, false, {
@@ -269,7 +270,7 @@ local function open_branch_file_picker(branch)
       end)
 
       -- 🔴 D = discard local changes
-      map({ "n", "i" }, "d", function()
+      map({ "n", "i" }, "D", function()
         local selection = action_state.get_selected_entry()
         if not selection then return end
         local confirm = vim.fn.confirm("Discard all changes to " .. selection.value .. "?", "&Yes\n&No", 2)
@@ -464,6 +465,10 @@ local function open_branch_file_picker(branch)
 
 
 
+      map({ "n", "i" }, "fd", function()
+        actions.close(prompt_bufnr)
+        reopen_git_picker()
+      end)
 
 
       map({ "n", "i" }, "q", function()
