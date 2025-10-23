@@ -282,13 +282,23 @@ local function open_branch_file_picker(branch)
 
 
       -- Diff previewer commit logic
-      map({ "i", "n" }, "c", function()
+      map({ "i", "n" }, "c", function(prompt_bufnr)
         local selection = action_state.get_selected_entry()
-        if not selection or not selection.value then return end
-        local branch = selection.value
+        if not selection then
+          vim.notify("No branch selected — using current branch", vim.log.levels.WARN)
+        end
 
-        actions.close(prompt_bufnr) -- close the branch picker temporarily
+        -- ✅ Get real branch name
+        local branch = selection and selection.value
+        if not branch or branch == "" then
+          branch = vim.fn.systemlist("git rev-parse --abbrev-ref HEAD")[1] or "HEAD"
+        end
+        branch = vim.trim(branch)
 
+        -- Close the branch picker temporarily
+        actions.close(prompt_bufnr)
+
+        -- Window dimensions
         local width = math.floor(vim.o.columns * 0.6)
         local height_title_win = 1
         local height_desc_win = 3
@@ -316,9 +326,7 @@ local function open_branch_file_picker(branch)
         local buf_label = vim.api.nvim_create_buf(false, true)
         vim.api.nvim_buf_set_option(buf_label, "buftype", "nofile")
         vim.api.nvim_buf_set_option(buf_label, "bufhidden", "wipe")
-        vim.api.nvim_buf_set_option(buf_label, "modifiable", true)  -- allow writing first
         vim.api.nvim_buf_set_lines(buf_label, 0, -1, false, { centered_label })
-        vim.api.nvim_buf_set_option(buf_label, "modifiable", false) -- lock after
 
         -- 🟦 Diff buffer
         local buf_diff = vim.api.nvim_create_buf(false, true)
@@ -326,11 +334,11 @@ local function open_branch_file_picker(branch)
         vim.api.nvim_buf_set_option(buf_diff, "bufhidden", "wipe")
         vim.api.nvim_buf_set_option(buf_diff, "filetype", "diff")
 
-        -- Temporarily make modifiable to fill content
+        -- Fill diff
         vim.api.nvim_buf_set_option(buf_diff, "modifiable", true)
-        local diff_cmd = "git diff --cached " .. (branch or "")
+        local diff_cmd = "git diff --cached " .. vim.fn.shellescape(branch)
         local diff_lines = vim.fn.systemlist(diff_cmd)
-        if vim.v.shell_error ~= 0 then
+        if vim.v.shell_error ~= 0 or #diff_lines == 0 then
           diff_lines = { "[No staged changes or unable to read diff]" }
         end
         vim.api.nvim_buf_set_lines(buf_diff, 0, -1, false, diff_lines)
@@ -383,13 +391,13 @@ local function open_branch_file_picker(branch)
         })
 
         -- 🧹 Close + reopen picker
-        local function close_commit_popup(branch)
+        local function close_commit_popup()
           for _, w in ipairs({ win_label, win_title, win_desc, win_diff }) do
             if vim.api.nvim_win_is_valid(w) then
               vim.api.nvim_win_close(w, true)
             end
           end
-
+          -- ✅ Pass real branch name, not file path
           open_branch_file_picker(branch)
         end
 
@@ -404,22 +412,19 @@ local function open_branch_file_picker(branch)
           end
           vim.fn.system(cmd)
           vim.notify("Committed changes on branch: " .. branch, vim.log.levels.INFO)
-          close_commit_popup(branch)
+          close_commit_popup()
         end
 
         -- 🗝️ Keymaps
         for _, buf in ipairs({ buf_title, buf_desc, buf_diff }) do
-          vim.keymap.set("n", "q", function() close_commit_popup(branch) end,
-            { buffer = buf, noremap = true, silent = true })
-          vim.keymap.set("n", "<Esc>", function() close_commit_popup(branch) end,
-            { buffer = buf, noremap = true, silent = true })
+          vim.keymap.set("n", "q", close_commit_popup, { buffer = buf, noremap = true, silent = true })
+          vim.keymap.set("n", "<Esc>", close_commit_popup, { buffer = buf, noremap = true, silent = true })
         end
 
-        -- Save
         vim.keymap.set("n", "<leader>w", commit_changes, { buffer = buf_title, noremap = true, silent = true })
         vim.keymap.set("n", "<leader>w", commit_changes, { buffer = buf_desc, noremap = true, silent = true })
 
-        -- 🔁 Tab navigation (cycle windows)
+        -- 🔁 Tab navigation
         local windows = { win_title, win_desc, win_diff }
         local function cycle_window(forward)
           local current = vim.api.nvim_get_current_win()
@@ -450,7 +455,6 @@ local function open_branch_file_picker(branch)
         vim.keymap.set("n", "<C-k>", function()
           vim.api.nvim_win_call(win_diff, function() vim.cmd("normal! <C-y>") end)
         end, { buffer = buf_diff, noremap = true, silent = true })
-
 
         -- Start editing
         vim.api.nvim_set_current_win(win_title)
