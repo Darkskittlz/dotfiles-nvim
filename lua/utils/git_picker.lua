@@ -269,6 +269,8 @@ local function open_branch_file_picker(branch)
         refresh_list()
       end)
 
+
+
       -- 🔴 D = discard local changes
       map({ "n", "i" }, "D", function()
         local selection = action_state.get_selected_entry()
@@ -979,7 +981,7 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
           -- Reopen picker with refreshed file list
           vim.defer_fn(function()
             M.git_branch_picker_with_mode(branch_name, 1) -- 1 = Diff mode
-          end, 50)                                  -- small delay to ensure git switch completed
+          end, 50)                                        -- small delay to ensure git switch completed
         else
           vim.notify("Failed to switch branch:\n" .. result, vim.log.levels.ERROR)
 
