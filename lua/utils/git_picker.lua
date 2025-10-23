@@ -394,9 +394,11 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
 
         local function update_spinner()
           if vim.api.nvim_buf_is_valid(buf) then
-            -- Add empty padding lines before/after the text
-            vim.api.nvim_buf_set_lines(buf, 0, -1, false,
-              { "", " Pushing " .. branch .. " " .. spinner_frames[frame], "" })
+            -- Update buffer with spinner and message on a single line
+            vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+              spinner_frames[frame] .. " Pushing to " .. branch
+            })
+            -- Move to the next frame
             frame = (frame % #spinner_frames) + 1
           end
         end
