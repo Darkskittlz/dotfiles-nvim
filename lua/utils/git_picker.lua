@@ -2,6 +2,36 @@
 
 local M = {}
 
+local overlay_win = nil
+local overlay_buf = nil
+
+local function create_picker_overlay()
+  overlay_buf = vim.api.nvim_create_buf(false, true)
+  overlay_win = vim.api.nvim_open_win(overlay_buf, false, {
+    relative = "editor",
+    width = vim.o.columns,
+    height = vim.o.lines,
+    row = 0,
+    col = 0,
+    style = "minimal",
+    focusable = false,
+    zindex = 50, -- below Telescope picker
+    border = "none",
+  })
+  local ns = vim.api.nvim_create_namespace("GitPickerOverlay")
+  vim.api.nvim_set_hl(0, "GitPickerOverlay", { bg = "#000000", blend = 80 })
+  vim.api.nvim_win_set_hl_ns(overlay_win, ns)
+  vim.api.nvim_buf_set_option(overlay_buf, "modifiable", false)
+end
+
+local function remove_picker_overlay()
+  if overlay_win and vim.api.nvim_win_is_valid(overlay_win) then
+    vim.api.nvim_win_close(overlay_win, true)
+  end
+  overlay_win = nil
+  overlay_buf = nil
+end
+
 local has_telescope, telescope = pcall(require, "telescope")
 if not has_telescope then
   vim.notify("Telescope is not installed", vim.log.levels.ERROR)
@@ -15,6 +45,7 @@ local actions = require("telescope.actions")
 local action_state = require("telescope.actions.state")
 local previewers = require("telescope.previewers")
 local entry_display = require("telescope.pickers.entry_display")
+
 
 -- Highlight for current branch
 vim.api.nvim_set_hl(0, "GitBranchCurrent", { fg = "#549afc", bold = true })
@@ -50,6 +81,69 @@ local function reopen_git_picker()
   end, 100)
 end
 
+
+local function create_diff_hunk_previewer()
+  return previewers.new_buffer_previewer({
+    title = "Diff Preview",
+
+    get_buffer_by_name = function(_, entry)
+      return "Diff: " .. (entry and entry.value or "HEAD")
+    end,
+
+    define_preview = function(self, entry, status)
+      local buf = self.state.bufnr
+      if not entry or not entry.value then
+        vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "No diff available" })
+        return
+      end
+
+      local diff_lines = vim.fn.systemlist("git diff -- " .. entry.value) or {}
+
+      -- find hunk line numbers
+      local hunks = {}
+      for i, line in ipairs(diff_lines) do
+        if line:match("^@@ .* @@") then
+          table.insert(hunks, i)
+        end
+      end
+
+      vim.api.nvim_buf_set_option(buf, "modifiable", true)
+      vim.api.nvim_buf_set_lines(buf, 0, -1, false, diff_lines)
+      vim.api.nvim_buf_set_option(buf, "modifiable", false)
+      vim.api.nvim_buf_set_option(buf, "filetype", "diff")
+
+      -- hunk navigation
+      local current_hunk = 1
+      local winid = self.state.winid
+      local function nav_hunk(next)
+        if not winid or not vim.api.nvim_win_is_valid(winid) then return end
+        if #hunks == 0 then return end
+
+        if next and current_hunk < #hunks then
+          current_hunk = current_hunk + 1
+        elseif not next and current_hunk > 1 then
+          current_hunk = current_hunk - 1
+        end
+
+        local row = hunks[current_hunk]
+        if not row or row < 1 then return end   -- safety check
+        local max_row = vim.api.nvim_buf_line_count(buf)
+        if row > max_row then row = max_row end -- clamp to last line
+        vim.api.nvim_win_set_cursor(winid, { row, 0 })
+      end
+
+      local opts = { noremap = true, silent = true }
+      vim.api.nvim_buf_set_keymap(buf, "n", "<C-h>", "", vim.tbl_extend("force", opts, {
+        callback = function() nav_hunk(false) end
+      }))
+      vim.api.nvim_buf_set_keymap(buf, "n", "<C-l>", "", vim.tbl_extend("force", opts, {
+        callback = function() nav_hunk(true) end
+      }))
+    end
+  })
+end
+
+
 local function open_branch_file_picker(branch)
   local files = get_branch_files(branch)
   local all_files = {}
@@ -73,8 +167,8 @@ local function open_branch_file_picker(branch)
       vertical = {
         width = 0.85,
         height = 0.85,
-        preview_cutoff = 0.3,
-        preview_height = 0.6,
+        preview_cutoff = 0.25,
+        preview_height = 0.75,
         prompt_position = "top",
       },
     },
@@ -96,15 +190,39 @@ local function open_branch_file_picker(branch)
       end,
     },
     sorter = conf.generic_sorter({}),
-    previewer = previewers.new_termopen_previewer({
-      title = "Diff Preview",
-      get_command = function(entry)
-        return { "git", "diff", "--color=always", entry.value }
-      end,
-    }),
+    previewer = create_diff_hunk_previewer(),
 
     attach_mappings = function(prompt_bufnr, map)
       local picker = action_state.get_current_picker(prompt_bufnr)
+      local previewer = picker.previewer
+
+
+      local diff_lines = {}
+      if previewer and previewer.state and vim.api.nvim_buf_is_valid(previewer.state.bufnr) then
+        diff_lines = vim.api.nvim_buf_get_lines(previewer.state.bufnr, 0, -1, false) or {}
+      end
+
+      local hunks = {}
+      for i, line in ipairs(diff_lines) do
+        if line:match("^@@ .* @@") then
+          table.insert(hunks, i)
+        end
+      end
+
+      local current_hunk = 1
+      -- now you can define hunk navigation keymaps
+      local function nav_hunk(next)
+        if next and current_hunk < #hunks then
+          current_hunk = current_hunk + 1
+        elseif not next and current_hunk > 1 then
+          current_hunk = current_hunk - 1
+        end
+        vim.api.nvim_win_set_cursor(0, { hunks[current_hunk], 0 })
+      end
+
+      map({ "n", "i" }, "<C-h>", function() nav_hunk(false) end)
+      map({ "n", "i" }, "<C-l>", function() nav_hunk(true) end)
+
 
       local function refresh_list()
         -- rebuild file list dynamically
@@ -162,6 +280,189 @@ local function open_branch_file_picker(branch)
         end
       end)
 
+
+      -- Diff previewer commit logic
+      map({ "i", "n" }, "c", function()
+        local selection = action_state.get_selected_entry()
+        if not selection or not selection.value then return end
+        local branch = selection.value
+
+        actions.close(prompt_bufnr) -- close the branch picker temporarily
+
+        local width = math.floor(vim.o.columns * 0.6)
+        local height_title_win = 1
+        local height_desc_win = 3
+        local height_diff = math.floor(vim.o.lines * 0.4)
+        local spacing = 1
+        local row = math.floor((vim.o.lines - (height_title_win + height_desc_win + height_diff + spacing * 2)) / 2)
+        local col = math.floor((vim.o.columns - width) / 2)
+
+        -- 🟩 Buffers
+        local buf_title = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_option(buf_title, "buftype", "acwrite")
+        vim.api.nvim_buf_set_option(buf_title, "bufhidden", "wipe")
+        vim.api.nvim_buf_set_lines(buf_title, 0, -1, false, { "" })
+
+        local buf_desc = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_option(buf_desc, "buftype", "acwrite")
+        vim.api.nvim_buf_set_option(buf_desc, "bufhidden", "wipe")
+        vim.api.nvim_buf_set_lines(buf_desc, 0, -1, false, { "", "", "" })
+
+        local commit_label = "Commit Message"
+        local padding = math.floor((width - #commit_label) / 2)
+        local centered_label = string.rep(" ", padding) .. commit_label
+
+        -- 🏷 Label buffer
+        local buf_label = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_option(buf_label, "buftype", "nofile")
+        vim.api.nvim_buf_set_option(buf_label, "bufhidden", "wipe")
+        vim.api.nvim_buf_set_option(buf_label, "modifiable", true)  -- allow writing first
+        vim.api.nvim_buf_set_lines(buf_label, 0, -1, false, { centered_label })
+        vim.api.nvim_buf_set_option(buf_label, "modifiable", false) -- lock after
+
+        -- 🟦 Diff buffer
+        local buf_diff = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_option(buf_diff, "buftype", "nofile")
+        vim.api.nvim_buf_set_option(buf_diff, "bufhidden", "wipe")
+        vim.api.nvim_buf_set_option(buf_diff, "filetype", "diff")
+
+        -- Temporarily make modifiable to fill content
+        vim.api.nvim_buf_set_option(buf_diff, "modifiable", true)
+        local diff_cmd = "git diff --cached " .. (branch or "")
+        local diff_lines = vim.fn.systemlist(diff_cmd)
+        if vim.v.shell_error ~= 0 then
+          diff_lines = { "[No staged changes or unable to read diff]" }
+        end
+        vim.api.nvim_buf_set_lines(buf_diff, 0, -1, false, diff_lines)
+        vim.api.nvim_buf_set_option(buf_diff, "modifiable", false)
+
+        -- 🪟 Windows
+        local height_label = 1
+        local win_label = vim.api.nvim_open_win(buf_label, false, {
+          relative = "editor",
+          width = width,
+          height = height_label,
+          row = row,
+          col = col,
+          style = "minimal",
+          border = "none",
+          zindex = 300,
+        })
+
+        local win_title = vim.api.nvim_open_win(buf_title, true, {
+          relative = "editor",
+          width = width,
+          height = height_title_win,
+          row = row + height_label,
+          col = col,
+          style = "minimal",
+          border = "rounded",
+          zindex = 300,
+        })
+
+        local win_desc = vim.api.nvim_open_win(buf_desc, true, {
+          relative = "editor",
+          width = width,
+          height = height_desc_win,
+          row = row + height_label + height_title_win + 2,
+          col = col,
+          style = "minimal",
+          border = "rounded",
+          zindex = 300,
+        })
+
+        local win_diff = vim.api.nvim_open_win(buf_diff, false, {
+          relative = "editor",
+          width = width,
+          height = height_diff,
+          row = row + height_label + height_title_win + height_desc_win + 4,
+          col = col,
+          style = "minimal",
+          border = "rounded",
+          zindex = 300,
+        })
+
+        -- 🧹 Close + reopen picker
+        local function close_commit_popup(branch)
+          for _, w in ipairs({ win_label, win_title, win_desc, win_diff }) do
+            if vim.api.nvim_win_is_valid(w) then
+              vim.api.nvim_win_close(w, true)
+            end
+          end
+
+          vim.schedule(function()
+            local ok, picker_module = pcall(require, "utils.git_picker")
+            if not ok then return end
+            if picker_module.open_branch_file_picker then
+              picker_module.open_branch_file_picker(branch, true)
+            end
+          end)
+        end
+
+        -- 💾 Commit logic
+        local function commit_changes()
+          local title = vim.api.nvim_buf_get_lines(buf_title, 0, -1, false)[1] or ""
+          local body = table.concat(vim.api.nvim_buf_get_lines(buf_desc, 0, -1, false), "\n")
+          vim.fn.system("git add -A")
+          local cmd = 'git commit -m ' .. vim.fn.shellescape(title)
+          if body:match("%S") then
+            cmd = cmd .. ' -m ' .. vim.fn.shellescape(body)
+          end
+          vim.fn.system(cmd)
+          vim.notify("Committed changes on branch: " .. branch, vim.log.levels.INFO)
+          close_commit_popup(branch)
+        end
+
+        -- 🗝️ Keymaps
+        for _, buf in ipairs({ buf_title, buf_desc, buf_diff }) do
+          vim.keymap.set("n", "q", function() close_commit_popup(branch) end,
+            { buffer = buf, noremap = true, silent = true })
+          vim.keymap.set("n", "<Esc>", function() close_commit_popup(branch) end,
+            { buffer = buf, noremap = true, silent = true })
+        end
+
+        -- Save
+        vim.keymap.set("n", "<leader>w", commit_changes, { buffer = buf_title, noremap = true, silent = true })
+        vim.keymap.set("n", "<leader>w", commit_changes, { buffer = buf_desc, noremap = true, silent = true })
+
+        -- 🔁 Tab navigation (cycle windows)
+        local windows = { win_title, win_desc, win_diff }
+        local function cycle_window(forward)
+          local current = vim.api.nvim_get_current_win()
+          local idx
+          for i, w in ipairs(windows) do
+            if w == current then
+              idx = i
+              break
+            end
+          end
+          if not idx then return end
+          local next_idx = forward and (idx % #windows + 1) or (idx - 2) % #windows + 1
+          vim.api.nvim_set_current_win(windows[next_idx])
+        end
+
+        for _, buf in ipairs({ buf_title, buf_desc, buf_diff }) do
+          vim.keymap.set("n", "<Tab>", function() cycle_window(true) end,
+            { buffer = buf, noremap = true, silent = true })
+          vim.keymap.set("n", "<S-Tab>", function() cycle_window(false) end,
+            { buffer = buf, noremap = true, silent = true })
+        end
+
+        -- ⬆️⬇️ Diff scroll
+        vim.keymap.set("n", "<C-j>", function()
+          vim.api.nvim_win_call(win_diff, function() vim.cmd("normal! <C-e>") end)
+        end, { buffer = buf_diff, noremap = true, silent = true })
+
+        vim.keymap.set("n", "<C-k>", function()
+          vim.api.nvim_win_call(win_diff, function() vim.cmd("normal! <C-y>") end)
+        end, { buffer = buf_diff, noremap = true, silent = true })
+
+        -- Start editing
+        vim.api.nvim_set_current_win(win_title)
+        vim.cmd("startinsert")
+      end)
+
+
       map({ "n", "i" }, "q", function()
         actions.close(prompt_bufnr)
         reopen_git_picker()
@@ -170,34 +471,6 @@ local function open_branch_file_picker(branch)
       return true
     end,
   }):find()
-end
-
-local function create_files_previewer(branch)
-  return previewers.new_termopen_previewer({
-    title = function() return "Changed Files" end,
-    get_command = function(entry)
-      local branch_name = (entry and entry.value) or branch or "HEAD"
-      local current_branch = vim.fn.systemlist("git rev-parse --abbrev-ref HEAD")[1] or ""
-      if branch_name ~= current_branch then
-        return { "echo", "Files preview only available for current branch" }
-      end
-
-      local files = get_branch_files(branch_name)
-      local lines = {}
-
-      if #files.staged > 0 then
-        table.insert(lines, "Staged files:")
-        for _, f in ipairs(files.staged) do table.insert(lines, "  " .. f) end
-      end
-      if #files.unstaged > 0 then
-        table.insert(lines, "Unstaged files:")
-        for _, f in ipairs(files.unstaged) do table.insert(lines, "  " .. f) end
-      end
-
-      if #lines == 0 then table.insert(lines, "No changes") end
-      return { "echo", table.concat(lines, "\n") }
-    end,
-  })
 end
 
 local function create_file_diff_previewer()
@@ -402,30 +675,24 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
         if not selection or not selection.value then return end
         local branch = selection.value
 
-        -- Save Telescope picker window
-        local picker_win = vim.api.nvim_get_current_win()
+        actions.close(prompt_bufnr)
 
-        -- Layout calculations
         local width = math.floor(vim.o.columns * 0.6)
-        local height_title_win = 3
+        local height_title_win = 1
         local height_desc_win = 3
-        local spacing = 3
-
-        -- Top row for first label
-        local row = math.floor((vim.o.lines - (height_title_win + height_desc_win + 2 + spacing)) / 2)
+        local height_diff = math.floor(vim.o.lines * 0.4)
+        local spacing = 1
+        local row = math.floor((vim.o.lines - (height_title_win + height_desc_win + height_diff + spacing * 2)) / 2)
         local col = math.floor((vim.o.columns - width) / 2)
 
-        -- Label 1: Commit Title
+        -- Commit title (centered label)
         local commit_label = "Commit Message"
         local padding = math.floor((width - #commit_label) / 2)
         local centered_label = string.rep(" ", padding) .. commit_label
 
-        local buf_label1 = vim.api.nvim_create_buf(false, true)
-        vim.api.nvim_buf_set_option(buf_label1, "buftype", "nofile")
-        vim.api.nvim_buf_set_option(buf_label1, "bufhidden", "wipe")
-        vim.api.nvim_buf_set_lines(buf_label1, 0, -1, false, { centered_label })
-
-        local win_label1 = vim.api.nvim_open_win(buf_label1, false, {
+        local buf_title_label = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_lines(buf_title_label, 0, -1, false, { centered_label })
+        local win_title_label = vim.api.nvim_open_win(buf_title_label, false, {
           relative = "editor",
           width = width,
           height = 1,
@@ -433,9 +700,10 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
           col = col,
           style = "minimal",
           border = "none",
+          zindex = 300,
         })
 
-        -- Window 1: Title input
+        -- Commit input field
         local buf_title = vim.api.nvim_create_buf(false, true)
         vim.api.nvim_buf_set_option(buf_title, "buftype", "acwrite")
         vim.api.nvim_buf_set_option(buf_title, "bufhidden", "wipe")
@@ -443,14 +711,16 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
         local win_title = vim.api.nvim_open_win(buf_title, true, {
           relative = "editor",
           width = width,
-          height = 1,    -- only 1 row
-          row = row + 1, -- 1 row below the label
+          height = height_title_win,
+          row = row + 1,
           col = col,
           style = "minimal",
           border = "rounded",
+          zindex = 300,
         })
 
-        -- Window 2: Description input
+
+        -- Commit description
         local buf_desc = vim.api.nvim_create_buf(false, true)
         vim.api.nvim_buf_set_option(buf_desc, "buftype", "acwrite")
         vim.api.nvim_buf_set_option(buf_desc, "bufhidden", "wipe")
@@ -459,40 +729,59 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
           relative = "editor",
           width = width,
           height = height_desc_win,
-          row = row + 1 + spacing, -- label row + 1 row for title + spacing
+          row = row + 2 + height_title_win + spacing,
           col = col,
           style = "minimal",
           border = "rounded",
+          zindex = 300
         })
 
-        vim.api.nvim_set_current_win(win_title)
-        vim.schedule(function()
-          if vim.api.nvim_win_is_valid(win_title) then
-            vim.api.nvim_set_current_win(win_title)
-            vim.api.nvim_win_set_cursor(win_title, { 1, 0 })
-            vim.cmd("startinsert") -- <- this switches into insert mode
-          end
-        end)
+        -- Diff preview: read-only buffer
+        local buf_diff = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_option(buf_diff, "buftype", "nofile")
+        vim.api.nvim_buf_set_option(buf_diff, "bufhidden", "wipe")
+        vim.api.nvim_buf_set_option(buf_diff, "modifiable", true)
 
-        -- Helper: close commit windows only
-        local function close_windows()
-          for _, w in ipairs({ win_title, win_desc, win_label1, win_label2 }) do
-            if vim.api.nvim_win_is_valid(w) then
-              vim.api.nvim_win_close(w, true)
-            end
+        local diff_lines = vim.fn.systemlist("git diff --cached " .. entry.value) or {}
+        for i, line in ipairs(diff_lines) do
+          if line:match("^@@ .* @@") then
+            table.insert(hunks, i)
           end
-          -- Reopen Git branch picker
+        end
+
+        vim.api.nvim_buf_set_lines(buf_diff, 1, -1, false, diff_lines)
+        vim.api.nvim_buf_set_option(buf_diff, "modifiable", false)
+        vim.api.nvim_buf_set_option(buf_diff, "filetype", "diff") -- enables highlighting
+
+        local win_diff = vim.api.nvim_open_win(buf_diff, false, {
+          relative = "editor",
+          width = width,
+          height = height_diff,
+          row = row + 4 + height_title_win + height_desc_win + spacing * 2,
+          col = col,
+          style = "minimal",
+          border = "rounded",
+          zindex = 301,
+        })
+
+        -- Auto-scroll to bottom
+        vim.api.nvim_win_set_cursor(win_diff, { math.max(#diff_lines, 2), 0 })
+
+        -- Close helper
+        local function close_windows()
+          for _, w in ipairs({ win_title, win_desc, win_title_label, win_diff }) do
+            if vim.api.nvim_win_is_valid(w) then vim.api.nvim_win_close(w, true) end
+          end
           vim.schedule(function()
             require("utils.git_picker").git_branch_picker()
           end)
           vim.notify("Commit Cancelled", vim.log.levels.INFO)
         end
 
-        -- Commit logic
+        -- Commit
         local function commit_changes()
-          local title = vim.api.nvim_buf_get_lines(buf_title, 0, -1, false)[1] or ""
-          local body = table.concat(vim.api.nvim_buf_get_lines(buf_desc, 0, -1, false), "\n")
-
+          local title = vim.api.nvim_buf_get_lines(buf_title, 1, -1, false)[1] or ""
+          local body = table.concat(vim.api.nvim_buf_get_lines(buf_desc, 1, -1, false), "\n")
           vim.fn.system("git add -A")
           local cmd = 'git commit -m ' .. vim.fn.shellescape(title)
           if body:match("%S") then
@@ -503,43 +792,26 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
           close_windows()
         end
 
-        -- Keymaps for closing and committing
+        -- Keymaps
         for _, buf in ipairs({ buf_title, buf_desc }) do
-          for _, key in ipairs({ "q", "<Esc>" }) do
-            vim.api.nvim_buf_set_keymap(buf, "n", key, "", {
-              noremap = true,
-              silent = true,
-              callback = close_windows,
-            })
-          end
-          vim.api.nvim_buf_set_keymap(buf, "n", "<leader>w", "", {
-            noremap = true,
-            silent = true,
-            callback = commit_changes,
-          })
+          vim.api.nvim_buf_set_keymap(buf, "n", "q", "", { noremap = true, silent = true, callback = close_windows })
+          vim.api.nvim_buf_set_keymap(buf, "n", "<Esc>", "", { noremap = true, silent = true, callback = close_windows })
+          vim.api.nvim_buf_set_keymap(buf, "n", "<leader>w", "",
+            { noremap = true, silent = true, callback = commit_changes })
         end
 
-        -- Tab switching: title <-> description
-        vim.api.nvim_buf_set_keymap(buf_title, "n", "<Tab>", "", {
-          noremap = true,
-          silent = true,
-          callback = function() vim.api.nvim_set_current_win(win_desc) end,
-        })
-        vim.api.nvim_buf_set_keymap(buf_desc, "n", "<Tab>", "", {
-          noremap = true,
-          silent = true,
-          callback = function() vim.api.nvim_set_current_win(win_title) end,
-        })
-        vim.api.nvim_buf_set_keymap(buf_title, "n", "<S-Tab>", "", {
-          noremap = true,
-          silent = true,
-          callback = function() vim.api.nvim_set_current_win(win_desc) end,
-        })
-        vim.api.nvim_buf_set_keymap(buf_desc, "n", "<S-Tab>", "", {
-          noremap = true,
-          silent = true,
-          callback = function() vim.api.nvim_set_current_win(win_title) end,
-        })
+        -- Tab switching
+        vim.api.nvim_buf_set_keymap(buf_title, "n", "<Tab>", "",
+          { noremap = true, silent = true, callback = function() vim.api.nvim_set_current_win(win_desc) end })
+        vim.api.nvim_buf_set_keymap(buf_desc, "n", "<Tab>", "",
+          { noremap = true, silent = true, callback = function() vim.api.nvim_set_current_win(win_title) end })
+        vim.api.nvim_buf_set_keymap(buf_title, "n", "<S-Tab>", "",
+          { noremap = true, silent = true, callback = function() vim.api.nvim_set_current_win(win_desc) end })
+        vim.api.nvim_buf_set_keymap(buf_desc, "n", "<S-Tab>", "",
+          { noremap = true, silent = true, callback = function() vim.api.nvim_set_current_win(win_title) end })
+
+        vim.api.nvim_set_current_win(win_title)
+        vim.cmd("startinsert")
       end)
 
 
@@ -560,10 +832,10 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
 
         -- Create a floating window to show spinner
         local buf = vim.api.nvim_create_buf(false, true)
-        local width = 20
-        local height = 1 -- keep window 1 line tall
-        local row = math.floor((vim.o.lines - height) / 2)
-        local col = math.floor((vim.o.columns - width) / 2)
+        local width = 21
+        local height = 2 -- keep window 1 line tall
+        local row = math.floor((vim.o.lines - height) / 3)
+        local col = math.floor((vim.o.columns - width) / 3)
         local win = vim.api.nvim_open_win(buf, true, {
           relative = "editor",
           width = width,
@@ -576,21 +848,21 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
 
         -- Spinner animation
         local spinner_frames = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠏" }
-        local frame = 1
+        local frame = 2
         local timer = vim.loop.new_timer()
 
         local function update_spinner()
           if vim.api.nvim_buf_is_valid(buf) then
             -- Update buffer with spinner and message on a single line
-            vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+            vim.api.nvim_buf_set_lines(buf, 1, -1, false, {
               " " .. spinner_frames[frame] .. " Pushing to " .. branch
             })
             -- Move to the next frame
-            frame = (frame % #spinner_frames) + 1
+            frame = (frame % #spinner_frames) + 2
           end
         end
 
-        timer:start(0, 100, vim.schedule_wrap(update_spinner))
+        timer:start(1, 100, vim.schedule_wrap(update_spinner))
 
         -- Run push asynchronously
         vim.fn.jobstart({ "git", "push", "origin", branch }, {
@@ -599,7 +871,7 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
             vim.api.nvim_win_close(win, true)
             vim.api.nvim_buf_delete(buf, { force = true })
 
-            if exit_code == 0 then
+            if exit_code == 1 then
               vim.notify("Branch pushed: " .. branch, vim.log.levels.INFO)
               vim.schedule(function()
                 require("utils.git_picker").git_branch_picker()
@@ -613,7 +885,10 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
 
 
       -- Close picker
-      map("n", "q", actions.close)
+      map("n", "q", function(prompt_bufnr)
+        remove_picker_overlay()
+        actions.close(prompt_bufnr)
+      end)
 
       -- Delete branch
       map({ "i", "n" }, "d", function()
@@ -631,29 +906,48 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
         end)
       end)
 
-      -- Stage file
-      map({ "i", "n" }, "<leader>s", function()
+      -- Inside attach_mappings
+      map({ "n", "i" }, "<Space>", function()
         local selection = action_state.get_selected_entry()
         if not selection or not selection.value then return end
-        vim.fn.system("git add " .. selection.value)
-        vim.notify("Staged: " .. selection.value, vim.log.levels.INFO)
-        -- refresh preview
-        local picker = action_state.get_current_picker(prompt_bufnr)
-        if picker and picker._previewer and picker._previewer.refresh then
-          picker._previewer:refresh(picker:get_selection(), { reset_prompt = false })
-        end
-      end)
 
-      -- Unstage file
-      map({ "i", "n" }, "<leader>u", function()
-        local selection = action_state.get_selected_entry()
-        if not selection or not selection.value then return end
-        vim.fn.system("git restore --staged " .. selection.value)
-        vim.notify("Unstaged: " .. selection.value, vim.log.levels.INFO)
-        -- refresh preview
-        local picker = action_state.get_current_picker(prompt_bufnr)
-        if picker and picker._previewer and picker._previewer.refresh then
-          picker._previewer:refresh(picker:get_selection(), { reset_prompt = false })
+        local branch_name = selection.value
+        local result = vim.fn.system("git switch " .. branch_name)
+
+        if vim.v.shell_error == 1 then
+          vim.notify("Switched to branch: " .. branch_name, vim.log.levels.INFO)
+
+          -- Refresh file list for the new branch
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local new_files = get_branch_files(branch_name)
+          local refreshed = {}
+
+          for _, f in ipairs(new_files.staged or {}) do
+            table.insert(refreshed, { path = f, status = "staged" })
+          end
+          for _, f in ipairs(new_files.unstaged or {}) do
+            table.insert(refreshed, { path = f, status = "unstaged" })
+          end
+
+          picker:refresh(finders.new_table {
+            results = refreshed,
+            entry_maker = function(entry)
+              local icon = entry.status == "staged" and "✓" or "○"
+              local color = entry.status == "staged" and "DiffAdd" or "DiffChange"
+              return {
+                value = entry.path,
+                ordinal = entry.path,
+                display = function()
+                  return string.format("%s  %s [%s]", icon, entry.path, entry.status)
+                end,
+                hl = { { 1, 1, color } },
+              }
+            end,
+          }, { reset_prompt = false })
+        else
+          -- Git failed (likely due to local changes)
+          vim.notify("Failed to switch branch:\n" .. result, vim.log.levels.ERROR)
+          -- picker stays open; do not refresh or close anything
         end
       end)
 
@@ -662,22 +956,22 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
         local selection = action_state.get_selected_entry()
         if not selection or not selection.value then return end
         if direction == "next" then
-          current_mode = (current_mode % #preview_modes) + 1
+          current_mode = (current_mode % #preview_modes) + 2
         else
-          current_mode = (current_mode - 2) % #preview_modes + 1
+          current_mode = (current_mode - 3) % #preview_modes + 1
         end
         actions.close(prompt_bufnr)
         vim.defer_fn(function()
           M.git_branch_picker_with_mode(selection.value, current_mode)
-        end, 50)
+        end, 51)
       end
       map({ "i", "n" }, "+", function() cycle_preview("next") end)
       map({ "i", "n" }, "_", function() cycle_preview("prev") end)
 
 
       -- Scroll preview
-      map({ "i", "n" }, "<C-d>", actions.preview_scrolling_down)
-      map({ "i", "n" }, "<C-b>", actions.preview_scrolling_up)
+      map({ "n", "i" }, "<C-d>", actions.preview_scrolling_down)
+      map({ "n", "i" }, "<C-b>", actions.preview_scrolling_up)
 
       map({ "i", "n" }, "fd", function()
         local selection = action_state.get_selected_entry()
@@ -693,7 +987,7 @@ end
 
 -- Default entry point
 function M.git_branch_picker()
-  M.git_branch_picker_with_mode(nil, 1)
+  M.git_branch_picker_with_mode(nil, 2)
 end
 
 return M
