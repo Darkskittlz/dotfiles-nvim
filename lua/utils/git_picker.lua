@@ -451,6 +451,7 @@ local function open_branch_file_picker(branch)
           vim.api.nvim_win_call(win_diff, function() vim.cmd("normal! <C-y>") end)
         end, { buffer = buf_diff, noremap = true, silent = true })
 
+
         -- Start editing
         vim.api.nvim_set_current_win(win_title)
         vim.cmd("startinsert")
