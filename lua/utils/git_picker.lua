@@ -886,9 +886,7 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
 
             if exit_code == 0 then
               vim.notify("Branch pushed: " .. branch, vim.log.levels.INFO)
-              vim.schedule(function()
-                require("utils.git_picker").git_branch_picker()
-              end)
+              require("utils.git_picker").git_branch_picker()
             else
               vim.notify("Push failed for branch: " .. branch, vim.log.levels.ERROR)
             end
