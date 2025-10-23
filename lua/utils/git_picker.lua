@@ -185,8 +185,6 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
         preview_cutoff = 0.3,
         preview_height = 0.6,
         prompt_position = "top",
-        mirror = false,
-        padding = { top = 2, bottom = 2, left = 4, right = 4 },
       },
     },
     sorting_strategy = "ascending",
