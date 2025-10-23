@@ -67,7 +67,7 @@ local function open_branch_file_picker(branch)
   end
 
   pickers.new({
-    initial_mode = "normal", -- 🟢 start in NORMAL mode
+    initial_mode = "normal",
     layout_strategy = "vertical",
     layout_config = {
       vertical = {
@@ -99,24 +99,46 @@ local function open_branch_file_picker(branch)
     previewer = previewers.new_termopen_previewer({
       title = "Diff Preview",
       get_command = function(entry)
-        -- Show diff for single file
         return { "git", "diff", "--color=always", entry.value }
       end,
     }),
 
     attach_mappings = function(prompt_bufnr, map)
-      local function refresh()
-        actions.close(prompt_bufnr)
-        vim.defer_fn(function()
-          open_branch_file_picker(branch)
-        end, 50)
+      local picker = action_state.get_current_picker(prompt_bufnr)
+
+      local function refresh_list()
+        -- rebuild file list dynamically
+        local new_files = get_branch_files(branch)
+        local refreshed = {}
+
+        for _, f in ipairs(new_files.staged) do
+          table.insert(refreshed, { path = f, status = "staged" })
+        end
+        for _, f in ipairs(new_files.unstaged) do
+          table.insert(refreshed, { path = f, status = "unstaged" })
+        end
+
+        picker:refresh(finders.new_table {
+          results = refreshed,
+          entry_maker = function(entry)
+            local icon = entry.status == "staged" and "✓" or "○"
+            local color = entry.status == "staged" and "DiffAdd" or "DiffChange"
+            return {
+              value = entry.path,
+              ordinal = entry.path,
+              display = function()
+                return string.format("%s  %s [%s]", icon, entry.path, entry.status)
+              end,
+              hl = { { 0, 1, color } },
+            }
+          end,
+        }, { reset_prompt = false })
       end
 
-      -- 🟢 SPACE = toggle stage/unstage
+      -- 🟢 SPACE = toggle stage/unstage without reload
       map({ "n", "i" }, "<Space>", function()
         local selection = action_state.get_selected_entry()
         if not selection then return end
-
         local is_staged = vim.fn.system("git diff --cached --name-only " .. selection.value)
         if is_staged:match(selection.value) then
           vim.fn.system("git restore --staged " .. selection.value)
@@ -125,30 +147,26 @@ local function open_branch_file_picker(branch)
           vim.fn.system("git add " .. selection.value)
           vim.notify("Staged: " .. selection.value, vim.log.levels.INFO)
         end
-        refresh()
+        refresh_list()
       end)
 
-      -- Optional separate keys
-      map({ "n", "i" }, "<leader>s", function()
+      -- 🔴 D = discard local changes
+      map({ "n", "i" }, "d", function()
         local selection = action_state.get_selected_entry()
         if not selection then return end
-        vim.fn.system("git add " .. selection.value)
-        vim.notify("Staged: " .. selection.value, vim.log.levels.INFO)
-        refresh()
-      end)
-
-      map({ "n", "i" }, "<leader>u", function()
-        local selection = action_state.get_selected_entry()
-        if not selection then return end
-        vim.fn.system("git restore --staged " .. selection.value)
-        vim.notify("Unstaged: " .. selection.value, vim.log.levels.INFO)
-        refresh()
+        local confirm = vim.fn.confirm("Discard all changes to " .. selection.value .. "?", "&Yes\n&No", 2)
+        if confirm == 1 then
+          vim.fn.system("git restore " .. selection.value)
+          vim.notify("Discarded changes in " .. selection.value, vim.log.levels.WARN)
+          refresh_list()
+        end
       end)
 
       map({ "n", "i" }, "q", function()
         actions.close(prompt_bufnr)
         reopen_git_picker()
       end)
+
       return true
     end,
   }):find()
