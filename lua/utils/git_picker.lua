@@ -968,7 +968,7 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
         local branch_name = selection.value
         local result = vim.fn.system("git switch " .. branch_name)
 
-        if vim.v.shell_error == 1 then
+        if vim.v.shell_error == 0 then
           vim.notify("Switched to branch: " .. branch_name, vim.log.levels.INFO)
 
           -- Refresh file list for the new branch
@@ -994,14 +994,13 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
                 display = function()
                   return string.format("%s  %s [%s]", icon, entry.path, entry.status)
                 end,
-                hl = { { 1, 1, color } },
+                hl = { { 0, 1, color } }, -- corrected highlight start index
               }
             end,
           }, { reset_prompt = false })
         else
           -- Git failed (likely due to local changes)
           vim.notify("Failed to switch branch:\n" .. result, vim.log.levels.ERROR)
-          -- picker stays open; do not refresh or close anything
         end
       end)
 
