@@ -421,8 +421,8 @@ local function open_branch_file_picker(branch)
           vim.keymap.set("n", "<Esc>", close_commit_popup, { buffer = buf, noremap = true, silent = true })
         end
 
-        vim.keymap.set("n", "<leader>w", commit_changes, { buffer = buf_title, noremap = true, silent = true })
-        vim.keymap.set("n", "<leader>w", commit_changes, { buffer = buf_desc, noremap = true, silent = true })
+        vim.keymap.set("n", "<CR>", commit_changes, { buffer = buf_title, noremap = true, silent = true })
+        vim.keymap.set("n", "<CR>", commit_changes, { buffer = buf_desc, noremap = true, silent = true })
 
         -- 🔁 Tab navigation
         local windows = { win_title, win_desc, win_diff }
