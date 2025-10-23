@@ -966,41 +966,27 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
         if not selection or not selection.value then return end
 
         local branch_name = selection.value
-        local result = vim.fn.system("git switch " .. branch_name)
+        local picker = action_state.get_current_picker(prompt_bufnr)
 
+        -- Close current picker first
+        actions.close(prompt_bufnr)
+
+        -- Switch branch
+        local result = vim.fn.system("git switch " .. branch_name)
         if vim.v.shell_error == 0 then
           vim.notify("Switched to branch: " .. branch_name, vim.log.levels.INFO)
 
-          -- Refresh file list for the new branch
-          local picker = action_state.get_current_picker(prompt_bufnr)
-          local new_files = get_branch_files(branch_name)
-          local refreshed = {}
-
-          for _, f in ipairs(new_files.staged or {}) do
-            table.insert(refreshed, { path = f, status = "staged" })
-          end
-          for _, f in ipairs(new_files.unstaged or {}) do
-            table.insert(refreshed, { path = f, status = "unstaged" })
-          end
-
-          picker:refresh(finders.new_table {
-            results = refreshed,
-            entry_maker = function(entry)
-              local icon = entry.status == "staged" and "✓" or "○"
-              local color = entry.status == "staged" and "DiffAdd" or "DiffChange"
-              return {
-                value = entry.path,
-                ordinal = entry.path,
-                display = function()
-                  return string.format("%s  %s [%s]", icon, entry.path, entry.status)
-                end,
-                hl = { { 0, 1, color } }, -- corrected highlight start index
-              }
-            end,
-          }, { reset_prompt = false })
+          -- Reopen picker with refreshed file list
+          vim.defer_fn(function()
+            M.git_branch_picker_with_mode(branch_name, 1) -- 1 = Diff mode
+          end, 50)                                  -- small delay to ensure git switch completed
         else
-          -- Git failed (likely due to local changes)
           vim.notify("Failed to switch branch:\n" .. result, vim.log.levels.ERROR)
+
+          -- Reopen picker anyway so user isn't stuck
+          vim.defer_fn(function()
+            M.git_branch_picker_with_mode(branch_name, 1)
+          end, 50)
         end
       end)
 
