@@ -827,13 +827,21 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
       -- Push branch with spinner
       map({ "i", "n" }, "P", function()
         local selection = action_state.get_selected_entry()
-        if not selection or not selection.value then return end
-        local branch = selection.value
+        if not selection or not selection.value then
+          vim.notify("No branch selected", vim.log.levels.WARN)
+          return
+        end
+
+        local branch = tostring(selection.value or "")
+        if branch == "" then
+          vim.notify("Invalid branch name", vim.log.levels.ERROR)
+          return
+        end
 
         -- Create a floating window to show spinner
         local buf = vim.api.nvim_create_buf(false, true)
-        local width = 21
-        local height = 2 -- keep window 1 line tall
+        local width = 24
+        local height = 2
         local row = math.floor((vim.o.lines - height) / 3)
         local col = math.floor((vim.o.columns - width) / 3)
         local win = vim.api.nvim_open_win(buf, true, {
@@ -848,30 +856,35 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
 
         -- Spinner animation
         local spinner_frames = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠏" }
-        local frame = 2
+        local frame = 1
         local timer = vim.loop.new_timer()
 
         local function update_spinner()
           if vim.api.nvim_buf_is_valid(buf) then
-            -- Update buffer with spinner and message on a single line
-            vim.api.nvim_buf_set_lines(buf, 1, -1, false, {
-              " " .. spinner_frames[frame] .. " Pushing to " .. branch
+            vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+              " " .. spinner_frames[frame] .. " Pushing to " .. branch,
             })
-            -- Move to the next frame
-            frame = (frame % #spinner_frames) + 2
+            frame = (frame % #spinner_frames) + 1
           end
         end
 
-        timer:start(1, 100, vim.schedule_wrap(update_spinner))
+        timer:start(0, 100, vim.schedule_wrap(update_spinner))
 
         -- Run push asynchronously
         vim.fn.jobstart({ "git", "push", "origin", branch }, {
+          stdout_buffered = true,
+          stderr_buffered = true,
+
           on_exit = vim.schedule_wrap(function(_, exit_code)
             timer:stop()
-            vim.api.nvim_win_close(win, true)
-            vim.api.nvim_buf_delete(buf, { force = true })
+            if vim.api.nvim_win_is_valid(win) then
+              vim.api.nvim_win_close(win, true)
+            end
+            if vim.api.nvim_buf_is_valid(buf) then
+              vim.api.nvim_buf_delete(buf, { force = true })
+            end
 
-            if exit_code == 1 then
+            if exit_code == 0 then
               vim.notify("Branch pushed: " .. branch, vim.log.levels.INFO)
               vim.schedule(function()
                 require("utils.git_picker").git_branch_picker()
