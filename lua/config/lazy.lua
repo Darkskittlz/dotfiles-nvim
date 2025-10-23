@@ -1,5 +1,5 @@
 local lazypath = vim.fn.stdpath("data")
-  .. "/lazy/lazy.nvim"
+    .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
   -- bootstrap lazy.nvim
   -- stylua: ignore
@@ -9,6 +9,17 @@ end
 vim.opt.rtp:prepend(vim.env.LAZY or lazypath)
 
 vim.g.maplocalleader = " "
+
+vim.api.nvim_create_autocmd("VimEnter", {
+  callback = function()
+    -- temporarily switch to light
+    vim.o.background = "light"
+    -- defer to next event loop tick, then switch back to dark
+    vim.schedule(function()
+      vim.o.background = "dark"
+    end)
+  end,
+})
 
 require("lazy").setup({
   spec = {
@@ -62,7 +73,7 @@ require("lazy").setup({
   },
   install = { colorscheme = { "vim-habanight" } }, -- specify the color scheme to be installed
   -- install = { colorscheme = { "tokyonight", "habamax" } },
-  checker = { enabled = true }, -- automatically check for plugin updates
+  checker = { enabled = true },                    -- automatically check for plugin updates
   performance = {
     rtp = {
       -- disable some rtp plugins
