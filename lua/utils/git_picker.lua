@@ -28,13 +28,6 @@ local displayer = entry_display.create {
   },
 }
 
--- Preview modes
-local preview_modes = {
-  { name = "Diff",   cmd_fn = function(branch) return { "git", "diff", branch } end },
-  { name = "Log",    cmd_fn = function(branch) return { "git", "log", "--oneline", branch } end },
-  { name = "Reflog", cmd_fn = function(branch) return { "git", "reflog", "--oneline", branch } end },
-}
-
 local function get_branch_files(branch)
   local files = { staged = {}, unstaged = {} }
   local current_branch = vim.fn.systemlist("git rev-parse --abbrev-ref HEAD")[1] or ""
@@ -50,6 +43,176 @@ local function get_branch_files(branch)
   return files
 end
 
+local function reopen_git_picker()
+  vim.defer_fn(function()
+    -- replace with your actual git picker function
+    require("utils.git_picker").git_branch_picker()
+  end, 100)
+end
+
+local function open_branch_file_picker(branch)
+  local files = get_branch_files(branch)
+  local all_files = {}
+
+  for _, f in ipairs(files.staged) do
+    table.insert(all_files, { path = f, status = "staged" })
+  end
+  for _, f in ipairs(files.unstaged) do
+    table.insert(all_files, { path = f, status = "unstaged" })
+  end
+
+  if vim.tbl_isempty(all_files) then
+    vim.notify("No changed files on branch " .. branch, vim.log.levels.INFO)
+    return
+  end
+
+  pickers.new({
+    initial_mode = "normal", -- 🟢 start in NORMAL mode
+    layout_strategy = "vertical",
+    layout_config = {
+      vertical = {
+        width = 0.85,
+        height = 0.85,
+        preview_cutoff = 0.3,
+        preview_height = 0.6,
+        prompt_position = "top",
+      },
+    },
+  }, {
+    prompt_title = "Changed Files (" .. branch .. ")",
+    finder = finders.new_table {
+      results = all_files,
+      entry_maker = function(entry)
+        local icon = entry.status == "staged" and "✓" or "○"
+        local color = entry.status == "staged" and "DiffAdd" or "DiffChange"
+        return {
+          value = entry.path,
+          ordinal = entry.path,
+          display = function()
+            return string.format("%s  %s [%s]", icon, entry.path, entry.status)
+          end,
+          hl = { { 0, 1, color } },
+        }
+      end,
+    },
+    sorter = conf.generic_sorter({}),
+    previewer = previewers.new_termopen_previewer({
+      title = "Diff Preview",
+      get_command = function(entry)
+        -- Show diff for single file
+        return { "git", "diff", "--color=always", entry.value }
+      end,
+    }),
+
+    attach_mappings = function(prompt_bufnr, map)
+      local function refresh()
+        actions.close(prompt_bufnr)
+        vim.defer_fn(function()
+          open_branch_file_picker(branch)
+        end, 50)
+      end
+
+      -- 🟢 SPACE = toggle stage/unstage
+      map({ "n", "i" }, "<Space>", function()
+        local selection = action_state.get_selected_entry()
+        if not selection then return end
+
+        local is_staged = vim.fn.system("git diff --cached --name-only " .. selection.value)
+        if is_staged:match(selection.value) then
+          vim.fn.system("git restore --staged " .. selection.value)
+          vim.notify("Unstaged: " .. selection.value, vim.log.levels.INFO)
+        else
+          vim.fn.system("git add " .. selection.value)
+          vim.notify("Staged: " .. selection.value, vim.log.levels.INFO)
+        end
+        refresh()
+      end)
+
+      -- Optional separate keys
+      map({ "n", "i" }, "<leader>s", function()
+        local selection = action_state.get_selected_entry()
+        if not selection then return end
+        vim.fn.system("git add " .. selection.value)
+        vim.notify("Staged: " .. selection.value, vim.log.levels.INFO)
+        refresh()
+      end)
+
+      map({ "n", "i" }, "<leader>u", function()
+        local selection = action_state.get_selected_entry()
+        if not selection then return end
+        vim.fn.system("git restore --staged " .. selection.value)
+        vim.notify("Unstaged: " .. selection.value, vim.log.levels.INFO)
+        refresh()
+      end)
+
+      map({ "n", "i" }, "q", function()
+        actions.close(prompt_bufnr)
+        reopen_git_picker()
+      end)
+      return true
+    end,
+  }):find()
+end
+
+local function create_files_previewer(branch)
+  return previewers.new_termopen_previewer({
+    title = function() return "Changed Files" end,
+    get_command = function(entry)
+      local branch_name = (entry and entry.value) or branch or "HEAD"
+      local current_branch = vim.fn.systemlist("git rev-parse --abbrev-ref HEAD")[1] or ""
+      if branch_name ~= current_branch then
+        return { "echo", "Files preview only available for current branch" }
+      end
+
+      local files = get_branch_files(branch_name)
+      local lines = {}
+
+      if #files.staged > 0 then
+        table.insert(lines, "Staged files:")
+        for _, f in ipairs(files.staged) do table.insert(lines, "  " .. f) end
+      end
+      if #files.unstaged > 0 then
+        table.insert(lines, "Unstaged files:")
+        for _, f in ipairs(files.unstaged) do table.insert(lines, "  " .. f) end
+      end
+
+      if #lines == 0 then table.insert(lines, "No changes") end
+      return { "echo", table.concat(lines, "\n") }
+    end,
+  })
+end
+
+local function create_file_diff_previewer()
+  return previewers.new_termopen_previewer({
+    title = function() return "Diff" end,
+    get_command = function(entry)
+      local branch_name = (entry and entry.value) or "HEAD"
+      -- Show diff for the branch (or file if selected)
+      return { "git", "diff", branch_name }
+    end,
+  })
+end
+
+-- Preview modes
+local preview_modes = {
+  {
+    name = "Diff",
+    cmd_fn = function(branch) return { "git", "diff", branch } end,
+    cmd_fn_preview = function(branch) return create_file_diff_previewer() end,
+  },
+  {
+    name = "Files",
+    cmd_fn_preview = function(branch) return create_files_previewer(branch) end,
+  },
+  {
+    name = "Log",
+    cmd_fn = function(branch) return { "git", "log", "--oneline", branch } end,
+  },
+  {
+    name = "Reflog",
+    cmd_fn = function(branch) return { "git", "reflog", "--oneline", branch } end,
+  },
+}
 
 local function get_branch_info(branch)
   local info = { staged = 0, unstaged = 0, ahead = 0, behind = 0, files_changed = 0 }
@@ -145,19 +308,24 @@ end
 
 -- Previewer
 local function create_git_previewer(branch, mode_index)
+  local mode = preview_modes[mode_index]
+  if not mode then return previewers.new_termopen_previewer({}) end
+
+  -- Use custom previewer if defined
+  if mode.cmd_fn_preview then
+    return mode.cmd_fn_preview(branch)
+  end
+
+  -- Default termopen previewer (runs simple git command)
   return previewers.new_termopen_previewer({
-    title = function()
-      local mode = preview_modes[mode_index]
-      return mode and mode.name or ""
-    end,
+    title = function() return mode.name end,
     get_command = function(entry)
       local branch_name = (entry and entry.value) or branch or "HEAD"
-      local mode = preview_modes[mode_index]
-      if not branch_name or not mode then return { "echo", "" } end
       return mode.cmd_fn(branch_name)
     end,
   })
 end
+
 
 -- Main picker
 function M.git_branch_picker_with_mode(selected_branch, mode_index)
@@ -449,18 +617,30 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
         end)
       end)
 
+      -- Stage file
       map({ "i", "n" }, "<leader>s", function()
         local selection = action_state.get_selected_entry()
         if not selection or not selection.value then return end
         vim.fn.system("git add " .. selection.value)
         vim.notify("Staged: " .. selection.value, vim.log.levels.INFO)
+        -- refresh preview
+        local picker = action_state.get_current_picker(prompt_bufnr)
+        if picker and picker._previewer and picker._previewer.refresh then
+          picker._previewer:refresh(picker:get_selection(), { reset_prompt = false })
+        end
       end)
 
+      -- Unstage file
       map({ "i", "n" }, "<leader>u", function()
         local selection = action_state.get_selected_entry()
         if not selection or not selection.value then return end
         vim.fn.system("git restore --staged " .. selection.value)
         vim.notify("Unstaged: " .. selection.value, vim.log.levels.INFO)
+        -- refresh preview
+        local picker = action_state.get_current_picker(prompt_bufnr)
+        if picker and picker._previewer and picker._previewer.refresh then
+          picker._previewer:refresh(picker:get_selection(), { reset_prompt = false })
+        end
       end)
 
       -- Cycle preview modes
@@ -483,6 +663,13 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
       -- Scroll preview
       map({ "i", "n" }, "<C-d>", actions.preview_scrolling_down)
       map({ "i", "n" }, "<C-b>", actions.preview_scrolling_up)
+
+      map({ "i", "n" }, "fd", function()
+        local selection = action_state.get_selected_entry()
+        if not selection or not selection.value then return end
+        actions.close(prompt_bufnr)
+        open_branch_file_picker(selection.value)
+      end)
 
       return true
     end,
