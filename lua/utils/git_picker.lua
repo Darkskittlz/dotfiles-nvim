@@ -202,40 +202,84 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
         if not selection or not selection.value then return end
         local branch = selection.value
 
-        -- Save the Telescope picker window so we can restore it later
+        -- Save Telescope picker window
         local picker_win = vim.api.nvim_get_current_win()
 
+        -- Layout calculations
         local width = math.floor(vim.o.columns * 0.6)
-        local spacing_between = 2
-        local total_height = 1 + spacing_between + 4
-        local row = math.floor((vim.o.lines - total_height) / 2)
+        local height_title_win = 3
+        local height_desc_win = 3
+        local spacing = 3
+
+        -- Top row for first label
+        local row = math.floor((vim.o.lines - (height_title_win + height_desc_win + 2 + spacing)) / 2)
         local col = math.floor((vim.o.columns - width) / 2)
 
-        -- Title window
-        local buf_title = vim.api.nvim_create_buf(false, true)
-        vim.api.nvim_buf_set_option(buf_title, "buftype", "acwrite")
-        vim.api.nvim_buf_set_option(buf_title, "bufhidden", "wipe")
-        vim.api.nvim_buf_set_lines(buf_title, 0, 1, false, { "" })
-        local win_title = vim.api.nvim_open_win(buf_title, true, {
+        -- Label 1: Commit Title
+        local commit_label = "Commit Message"
+        local padding = math.floor((width - #commit_label) / 2)
+        local centered_label = string.rep(" ", padding) .. commit_label
+
+        local buf_label1 = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_option(buf_label1, "buftype", "nofile")
+        vim.api.nvim_buf_set_option(buf_label1, "bufhidden", "wipe")
+        vim.api.nvim_buf_set_lines(buf_label1, 0, -1, false, { centered_label })
+
+        local win_label1 = vim.api.nvim_open_win(buf_label1, false, {
           relative = "editor",
           width = width,
           height = 1,
           row = row,
           col = col,
           style = "minimal",
+          border = "none",
+        })
+
+        -- Window 1: Title input
+        local buf_title = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_option(buf_title, "buftype", "acwrite")
+        vim.api.nvim_buf_set_option(buf_title, "bufhidden", "wipe")
+        vim.api.nvim_buf_set_lines(buf_title, 0, -1, false, { "" })
+        local win_title = vim.api.nvim_open_win(buf_title, true, {
+          relative = "editor",
+          width = width,
+          height = 1,    -- only 1 row
+          row = row + 1, -- 1 row below the label
+          col = col,
+          style = "minimal",
           border = "rounded",
         })
 
-        -- Body window
-        local buf_body = vim.api.nvim_create_buf(false, true)
-        vim.api.nvim_buf_set_option(buf_body, "buftype", "acwrite")
-        vim.api.nvim_buf_set_option(buf_body, "bufhidden", "wipe")
-        vim.api.nvim_buf_set_lines(buf_body, 0, -1, false, { "", "", "", "" })
-        local win_body = vim.api.nvim_open_win(buf_body, false, {
+        -- Label 2: Description (centered)
+        -- local desc_label = "Description"
+        -- local padding2 = math.floor((width - #desc_label) / 2)
+        -- local centered_desc = string.rep(" ", padding2) .. desc_label
+        --
+        -- local buf_label2 = vim.api.nvim_create_buf(false, true)
+        -- vim.api.nvim_buf_set_option(buf_label2, "buftype", "nofile")
+        -- vim.api.nvim_buf_set_option(buf_label2, "bufhidden", "wipe")
+        -- vim.api.nvim_buf_set_lines(buf_label2, 0, -1, false, { centered_desc })
+        --
+        -- local win_label2 = vim.api.nvim_open_win(buf_label2, false, {
+        --   relative = "editor",
+        --   width = width,
+        --   height = 1,
+        --   row = row + height_title_win + 1, -- extra +1 to clear border
+        --   col = col,
+        --   style = "minimal",
+        --   border = "none",
+        -- })
+
+        -- Window 2: Description input
+        local buf_desc = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_option(buf_desc, "buftype", "acwrite")
+        vim.api.nvim_buf_set_option(buf_desc, "bufhidden", "wipe")
+        vim.api.nvim_buf_set_lines(buf_desc, 0, -1, false, { "", "", "" })
+        local win_desc = vim.api.nvim_open_win(buf_desc, true, {
           relative = "editor",
           width = width,
-          height = 4,
-          row = row + 1 + spacing_between,
+          height = height_desc_win,
+          row = row + 1 + spacing, -- label row + 1 row for title + spacing
           col = col,
           style = "minimal",
           border = "rounded",
@@ -243,28 +287,24 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
 
         vim.api.nvim_set_current_win(win_title)
 
-        -- -- Helper: close commit windows only
+        -- Helper: close commit windows only
         local function close_windows()
-          -- Close the commit floating windows
-          for _, w in ipairs({ win_title, win_body }) do
+          for _, w in ipairs({ win_title, win_desc, win_label1, win_label2 }) do
             if vim.api.nvim_win_is_valid(w) then
               vim.api.nvim_win_close(w, true)
             end
           end
-
-          -- Reopen the Git branch picker
+          -- Reopen Git branch picker
           vim.schedule(function()
             require("utils.git_picker").git_branch_picker()
           end)
-
           vim.notify("Commit Cancelled", vim.log.levels.INFO)
         end
-
 
         -- Commit logic
         local function commit_changes()
           local title = vim.api.nvim_buf_get_lines(buf_title, 0, -1, false)[1] or ""
-          local body = table.concat(vim.api.nvim_buf_get_lines(buf_body, 0, -1, false), "\n")
+          local body = table.concat(vim.api.nvim_buf_get_lines(buf_desc, 0, -1, false), "\n")
 
           vim.fn.system("git add -A")
           local cmd = 'git commit -m ' .. vim.fn.shellescape(title)
@@ -276,9 +316,8 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
           close_windows()
         end
 
-        -- Keymaps
-        for _, buf in ipairs({ buf_title, buf_body }) do
-          -- Close with q or Esc
+        -- Keymaps for closing and committing
+        for _, buf in ipairs({ buf_title, buf_desc }) do
           for _, key in ipairs({ "q", "<Esc>" }) do
             vim.api.nvim_buf_set_keymap(buf, "n", key, "", {
               noremap = true,
@@ -286,8 +325,6 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
               callback = close_windows,
             })
           end
-
-          -- Commit with <leader>w
           vim.api.nvim_buf_set_keymap(buf, "n", "<leader>w", "", {
             noremap = true,
             silent = true,
@@ -295,13 +332,13 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
           })
         end
 
-        -- Tab switching
+        -- Tab switching: title <-> description
         vim.api.nvim_buf_set_keymap(buf_title, "n", "<Tab>", "", {
           noremap = true,
           silent = true,
-          callback = function() vim.api.nvim_set_current_win(win_body) end,
+          callback = function() vim.api.nvim_set_current_win(win_desc) end,
         })
-        vim.api.nvim_buf_set_keymap(buf_body, "n", "<Tab>", "", {
+        vim.api.nvim_buf_set_keymap(buf_desc, "n", "<Tab>", "", {
           noremap = true,
           silent = true,
           callback = function() vim.api.nvim_set_current_win(win_title) end,
@@ -309,9 +346,9 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
         vim.api.nvim_buf_set_keymap(buf_title, "n", "<S-Tab>", "", {
           noremap = true,
           silent = true,
-          callback = function() vim.api.nvim_set_current_win(win_body) end,
+          callback = function() vim.api.nvim_set_current_win(win_desc) end,
         })
-        vim.api.nvim_buf_set_keymap(buf_body, "n", "<S-Tab>", "", {
+        vim.api.nvim_buf_set_keymap(buf_desc, "n", "<S-Tab>", "", {
           noremap = true,
           silent = true,
           callback = function() vim.api.nvim_set_current_win(win_title) end,
