@@ -35,6 +35,22 @@ local preview_modes = {
   { name = "Reflog", cmd_fn = function(branch) return { "git", "reflog", "--oneline", branch } end },
 }
 
+local function get_branch_files(branch)
+  local files = { staged = {}, unstaged = {} }
+  local current_branch = vim.fn.systemlist("git rev-parse --abbrev-ref HEAD")[1] or ""
+  if branch ~= current_branch then return files end
+
+  local status = vim.fn.systemlist("git status --porcelain")
+  for _, line in ipairs(status) do
+    local x, y = line:sub(1, 1), line:sub(2, 2)
+    local file = line:sub(4)
+    if x ~= " " then table.insert(files.staged, file) end
+    if y ~= " " then table.insert(files.unstaged, file) end
+  end
+  return files
+end
+
+
 local function get_branch_info(branch)
   local info = { staged = 0, unstaged = 0, ahead = 0, behind = 0, files_changed = 0 }
   local current_branch = vim.fn.systemlist("git rev-parse --abbrev-ref HEAD")[1] or ""
@@ -169,10 +185,14 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
         preview_cutoff = 0.3,
         preview_height = 0.6,
         prompt_position = "top",
+        mirror = false,
+        padding = { top = 2, bottom = 2, left = 4, right = 4 },
       },
     },
     sorting_strategy = "ascending",
     previewer = create_git_previewer(selected_branch, mode_index),
+
+    initial_mode = "normal",
 
     attach_mappings = function(prompt_bufnr, map)
       local current_mode = mode_index
@@ -250,26 +270,6 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
           border = "rounded",
         })
 
-        -- Label 2: Description (centered)
-        -- local desc_label = "Description"
-        -- local padding2 = math.floor((width - #desc_label) / 2)
-        -- local centered_desc = string.rep(" ", padding2) .. desc_label
-        --
-        -- local buf_label2 = vim.api.nvim_create_buf(false, true)
-        -- vim.api.nvim_buf_set_option(buf_label2, "buftype", "nofile")
-        -- vim.api.nvim_buf_set_option(buf_label2, "bufhidden", "wipe")
-        -- vim.api.nvim_buf_set_lines(buf_label2, 0, -1, false, { centered_desc })
-        --
-        -- local win_label2 = vim.api.nvim_open_win(buf_label2, false, {
-        --   relative = "editor",
-        --   width = width,
-        --   height = 1,
-        --   row = row + height_title_win + 1, -- extra +1 to clear border
-        --   col = col,
-        --   style = "minimal",
-        --   border = "none",
-        -- })
-
         -- Window 2: Description input
         local buf_desc = vim.api.nvim_create_buf(false, true)
         vim.api.nvim_buf_set_option(buf_desc, "buftype", "acwrite")
@@ -286,6 +286,13 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
         })
 
         vim.api.nvim_set_current_win(win_title)
+        vim.schedule(function()
+          if vim.api.nvim_win_is_valid(win_title) then
+            vim.api.nvim_set_current_win(win_title)
+            vim.api.nvim_win_set_cursor(win_title, { 1, 0 })
+            vim.cmd("startinsert") -- <- this switches into insert mode
+          end
+        end)
 
         -- Helper: close commit windows only
         local function close_windows()
@@ -396,7 +403,7 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
           if vim.api.nvim_buf_is_valid(buf) then
             -- Update buffer with spinner and message on a single line
             vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
-              " " .. spinner_frames[frame] .. " Pushing to " .. branch .. " "
+              " " .. spinner_frames[frame] .. " Pushing to " .. branch
             })
             -- Move to the next frame
             frame = (frame % #spinner_frames) + 1
@@ -442,6 +449,20 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
             vim.notify("Branch deletion canceled", vim.log.levels.INFO)
           end
         end)
+      end)
+
+      map({ "i", "n" }, "<leader>s", function()
+        local selection = action_state.get_selected_entry()
+        if not selection or not selection.value then return end
+        vim.fn.system("git add " .. selection.value)
+        vim.notify("Staged: " .. selection.value, vim.log.levels.INFO)
+      end)
+
+      map({ "i", "n" }, "<leader>u", function()
+        local selection = action_state.get_selected_entry()
+        if not selection or not selection.value then return end
+        vim.fn.system("git restore --staged " .. selection.value)
+        vim.notify("Unstaged: " .. selection.value, vim.log.levels.INFO)
       end)
 
       -- Cycle preview modes
