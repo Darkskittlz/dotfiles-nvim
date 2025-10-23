@@ -390,13 +390,7 @@ local function open_branch_file_picker(branch)
             end
           end
 
-          vim.schedule(function()
-            local ok, picker_module = pcall(require, "utils.git_picker")
-            if not ok then return end
-            if picker_module.open_branch_file_picker then
-              picker_module.open_branch_file_picker(branch, true)
-            end
-          end)
+          picker_module.open_branch_file_picker(branch, true)
         end
 
         -- 💾 Commit logic
