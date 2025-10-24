@@ -621,32 +621,28 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
 
           local spinner_chars = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
           local spinner_idx = 1
-          local spinner_timer = nil
 
-          -- Start spinner
-          local spinner_notify = vim.notify("Pushing to " .. branch .. " " .. spinner_chars[spinner_idx],
-            vim.log.levels.INFO, { timeout = false })
-          spinner_timer = vim.loop.new_timer()
-          spinner_timer:start(100, 100, vim.schedule_wrap(function()
+          local function update_spinner()
+            vim.api.nvim_echo({ { "Pushing to " .. branch .. " " .. spinner_chars[spinner_idx], "None" } }, false, {})
             spinner_idx = spinner_idx % #spinner_chars + 1
-            vim.notify("Pushing to " .. branch .. " " .. spinner_chars[spinner_idx], vim.log.levels.INFO,
-              { replace = spinner_notify })
-          end))
+          end
+
+          local spinner_timer = vim.loop.new_timer()
+          spinner_timer:start(100, 100, vim.schedule_wrap(update_spinner))
 
           -- Run git push asynchronously
           vim.fn.jobstart({ "git", "push", "origin", branch }, {
             on_exit = function(_, exit_code, _)
               spinner_timer:stop()
               spinner_timer:close()
-              if exit_code == 0 then
-                vim.schedule(function()
-                  vim.notify("Successfully pushed branch: " .. branch, vim.log.levels.INFO)
-                end)
-              else
-                vim.schedule(function()
-                  vim.notify("Failed to push branch: " .. branch, vim.log.levels.ERROR)
-                end)
-              end
+              vim.schedule(function()
+                vim.api.nvim_echo({}, false, {}) -- clear spinner
+                if exit_code == 0 then
+                  print("Successfully pushed branch: " .. branch)
+                else
+                  print("Failed to push branch: " .. branch)
+                end
+              end)
             end,
           })
         end)
