@@ -687,6 +687,7 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
               end)
             end,
           })
+          close_commit_popup()
         end)
 
 
