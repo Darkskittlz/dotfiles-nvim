@@ -21,7 +21,7 @@ end, { desc = "Git blameline" }
 )
 
 keymap.set("n", "<leader>gh", function()
-  require("utils.git_picker").git_branch_picker()
+  require("utils.git_picker").open_git_ui()
 end, { desc = "Git branch picker" })
 
 -- Neogit Keymap
