@@ -246,30 +246,29 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
     -- vim.print({ git_diff_unstaged = unstaged, git_diff_staged = staged })
 
     local results = {}
+    local index = {}
 
-    -- Add unstaged files
-    for _, line in ipairs(unstaged) do
-      local status, path = line:match("^(%S+)%s+(.*)$")
-      if path then
-        table.insert(results, { value = path, status = status, staged = false })
+    local function add_entry(status, path, staged_flag)
+      if not index[path] then
+        index[path] = { value = path, status = status, staged = staged_flag }
+        table.insert(results, index[path])
+      else
+        -- Update existing entry if staged version appears later
+        if staged_flag then
+          index[path].staged = true
+          index[path].status = status or index[path].status
+        end
       end
     end
 
-    -- Add staged files (avoid duplicates)
+    for _, line in ipairs(unstaged) do
+      local status, path = line:match("^(%S+)%s+(.*)$")
+      if path then add_entry(status, path, false) end
+    end
+
     for _, line in ipairs(staged) do
       local status, path = line:match("^(%S+)%s+(.*)$")
-      if path then
-        local exists = false
-        for _, e in ipairs(results) do
-          if e.value == path then
-            exists = true
-            break
-          end
-        end
-        if not exists then
-          table.insert(results, { value = path, status = status, staged = true })
-        end
-      end
+      if path then add_entry(status, path, true) end
     end
 
     -- vim.print({ parsed_files = results })
