@@ -1,5 +1,11 @@
 ---@diagnostic disable: undefined-global
 
+----- Highlight for current branch
+vim.api.nvim_set_hl(0, "GitBranchCurrent", { fg = "#549afc", bold = true })
+vim.api.nvim_set_hl(0, "GitStaged", { fg = "#a6e22e", bg = "NONE", bold = true })
+vim.api.nvim_set_hl(0, "GitUnstaged", { fg = "#e6db74", bg = "NONE", bold = true })
+
+
 local M = {}
 
 local overlay_win = nil
@@ -46,10 +52,6 @@ local actions = require("telescope.actions")
 local action_state = require("telescope.actions.state")
 local previewers = require("telescope.previewers")
 local entry_display = require("telescope.pickers.entry_display")
-
-
--- Highlight for current branch
-vim.api.nvim_set_hl(0, "GitBranchCurrent", { fg = "#549afc", bold = true })
 
 -- Displayer for columns
 local displayer = entry_display.create {
@@ -130,25 +132,6 @@ local function get_branch_info(branch)
   return info
 end
 
--- Get changed files in the branch
-local function get_changed_files(branch)
-  branch = branch or "HEAD"
-
-  -- `git diff --name-status <branch>` lists changed files
-  local files = vim.fn.systemlist("git diff --name-status " .. branch)
-  local results = {}
-
-  for _, line in ipairs(files) do
-    -- line is like "M\tpath/to/file.lua" or "A\tnewfile.txt"
-    local status, path = line:match("^(%S+)%s+(.*)$")
-    if path then
-      table.insert(results, { value = path, status = status })
-    end
-  end
-
-  return results
-end
-
 local function branch_entry_maker(branch)
   local current_branch = vim.fn.systemlist("git rev-parse --abbrev-ref HEAD")[1] or ""
 
@@ -210,7 +193,7 @@ end
 local function create_git_previewer(branch, mode_index)
   local mode = preview_modes[mode_index]
   if not mode then
-    vim.notify("Invalid preview mode", vim.log.levels.WARN)
+    -- vim.notify("Invalid preview mode", vim.log.levels.WARN)
     return previewers.new_termopen_previewer({})
   end
 
@@ -218,28 +201,27 @@ local function create_git_previewer(branch, mode_index)
     title = function() return mode.name end,
     get_command = function(entry)
       local git_root = vim.fn.systemlist("git rev-parse --show-toplevel")[1] or "."
-      local branch_name = (entry and entry.value) or branch or "HEAD"
-
-      vim.print({ mode_index = mode_index, branch_name = branch_name, git_root = git_root })
 
       if mode_index == 1 then
-        -- File diff
-        local file_path = branch_name
+        -- Diff mode: require a file path
+        if not entry or not entry.value then
+          return { "echo", "[No file selected]" }
+        end
+        local file_path = entry.value
         local cmd = { "git", "-C", git_root, "diff", "--color=always", file_path }
-        vim.print({ git_diff_cmd = cmd })
+        -- -- vim.print({ git_diff_cmd = cmd })
         return cmd
       elseif mode_index == 2 then
-        -- Git log
+        local branch_name = branch or (entry and entry.value) or "HEAD"
         local cmd = { "git", "-C", git_root, "log", "--oneline", branch_name }
-        vim.print({ git_log_cmd = cmd })
+        -- -- vim.print({ git_log_cmd = cmd })
         return cmd
       elseif mode_index == 3 then
-        -- Git reflog
-        local cmd = { "git", "-C", git_root, "reflog", branch_name }
-        vim.print({ git_reflog_cmd = cmd })
+        local branch_name = branch or (entry and entry.value) or "HEAD"
+        local cmd = { "git", "-C", git_root, "reflog", "--oneline", branch_name }
+        -- -- vim.print({ git_reflog_cmd = cmd })
         return cmd
       else
-        -- fallback
         return { "echo", "[No preview]" }
       end
     end,
@@ -250,68 +232,104 @@ end
 function M.git_branch_picker_with_mode(selected_branch, mode_index)
   mode_index = mode_index or 1 -- default mode is 1 (diff mode)
 
-  -- print("=== git_branch_picker_with_mode called ===")
-  -- print("Mode index:", mode_index)
-  -- print("Selected branch:", selected_branch)
-
-  -- Mode 1 = show changed files, Mode 2+ = show branches
   local entries = {}
-  local entry_maker = nil
   local picker_title = ""
 
-  if mode_index == 1 then
-    -- Get changed files for the selected branch
-    local function get_changed_files(branch)
-      branch = branch or "HEAD"
-      local files = vim.fn.systemlist("git diff --name-status " .. branch)
-      vim.print({ git_diff_output = files })
+  ---------------------------------------------------------
+  -- Diff Mode: Show both staged + unstaged changed files
+  ---------------------------------------------------------
+  local function get_changed_files(branch)
+    branch = branch or "HEAD"
 
-      local results = {}
-      for _, line in ipairs(files) do
-        local status, path = line:match("^(%S+)%s+(.*)$")
-        if path then
-          table.insert(results, { value = path, status = status })
+    local unstaged = vim.fn.systemlist("git diff --name-status " .. branch)
+    local staged = vim.fn.systemlist("git diff --cached --name-status " .. branch)
+    -- vim.print({ git_diff_unstaged = unstaged, git_diff_staged = staged })
+
+    local results = {}
+
+    -- Add unstaged files
+    for _, line in ipairs(unstaged) do
+      local status, path = line:match("^(%S+)%s+(.*)$")
+      if path then
+        table.insert(results, { value = path, status = status, staged = false })
+      end
+    end
+
+    -- Add staged files (avoid duplicates)
+    for _, line in ipairs(staged) do
+      local status, path = line:match("^(%S+)%s+(.*)$")
+      if path then
+        local exists = false
+        for _, e in ipairs(results) do
+          if e.value == path then
+            exists = true
+            break
+          end
+        end
+        if not exists then
+          table.insert(results, { value = path, status = status, staged = true })
         end
       end
-
-      vim.print({ parsed_files = results })
-      return results
     end
 
-    -- Entry maker for files
-    entry_maker = function(entry)
-      -- entry = { value = filepath, status = git_status }
-      return {
-        value = entry.value,
-        display = string.format("%s %s", entry.status or " ", entry.value),
-        ordinal = entry.value,
-      }
-    end
+    -- vim.print({ parsed_files = results })
+    return results
+  end
+
+  -- Entry maker for diff view
+  local entry_maker = function(entry)
+    return {
+      value = entry.value,
+      ordinal = entry.value,
+      display = function()
+        local prefix = entry.staged and "[S]" or "[U]"
+        local hl_group = entry.staged and "GitStaged" or "GitUnstaged"
+        local text = string.format("%s %s %s", prefix, entry.status or " ", entry.value)
+
+        -- Correct highlight indices: byte positions in string, 0-indexed
+        local start_byte = 0
+        local end_byte = #prefix - 1
+        if end_byte < 0 then end_byte = 0 end -- safety
+
+        local highlights = { { 0, #prefix, hl_group } }
+
+        vim.print({ entry = entry, text = text, highlights = highlights })
+        return text, highlights
+      end,
+    }
+  end
+
+
+  if mode_index == 1 then
     entries = get_changed_files(selected_branch)
     picker_title = "Changed Files: " .. (selected_branch or "HEAD")
   else
-    -- Get branches normally
+    ---------------------------------------------------------
+    -- Branch Mode: Show branches normally
+    ---------------------------------------------------------
     local branches = vim.fn.systemlist("git branch --list --format='%(refname:short)'")
-    vim.print({ branches = branches })
+    -- vim.print({ branches = branches })
     if vim.tbl_isempty(branches) then
-      vim.notify("No branches found", vim.log.levels.INFO)
       return
     end
     branches = sort_branches(branches)
     entries = branches
     entry_maker = branch_entry_maker
     picker_title = "Branches"
+    selected_branch = selected_branch or branches[1]
   end
 
-  vim.print({ picker_title = picker_title })
+  -- vim.print({ picker_title = picker_title })
 
-  -- Build the Telescope picker
+  -- ============================================
+  -- Telescope picker setup
+  -- ============================================
   pickers.new({}, {
     prompt_title = picker_title,
-    finder = finders.new_table {
+    finder = finders.new_table({
       results = entries,
       entry_maker = entry_maker,
-    },
+    }),
     sorter = conf.generic_sorter({}),
     layout_strategy = "vertical",
     layout_config = {
@@ -324,8 +342,6 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
       },
     },
     sorting_strategy = "ascending",
-
-    -- Use diff previewer for files, default for branches
     previewer = create_git_previewer(selected_branch, mode_index),
     initial_mode = "normal",
 
@@ -341,12 +357,12 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
         return vim.fn.systemlist("git rev-parse --abbrev-ref HEAD")[1] or "HEAD"
       end
 
-      -- =========================
-      -- Default action (Enter)
-      -- =========================
+      ---------------------------------------------------------
+      -- Default Enter behavior
+      ---------------------------------------------------------
       actions.select_default:replace(function()
         local entry = get_selection()
-        vim.print({ selected_entry = entry, current_mode = current_mode })
+        -- vim.print({ selected_entry = entry, current_mode = current_mode })
         actions.close(prompt_bufnr)
 
         if not entry then return end
@@ -356,20 +372,78 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
           if git_root and git_root ~= "" then
             local full_path = git_root .. "/" .. entry
             vim.cmd("edit " .. vim.fn.fnameescape(full_path))
-          else
-            vim.notify("Cannot determine git root", vim.log.levels.ERROR)
           end
         else
           vim.cmd("Git checkout " .. entry)
           vim.notify("Switched to branch: " .. entry, vim.log.levels.INFO)
         end
       end)
-      print("Picker title:", picker_title)
+
+      ---------------------------------------------------------
+      -- <Space>: Stage / Unstage file
+      ---------------------------------------------------------
+      map({ "i", "n" }, "<Space>", function(prompt_bufnr)
+        local action_state = require("telescope.actions.state")
+        local actions = require("telescope.actions")
+
+        local entry = action_state.get_selected_entry()
+        if not entry then
+          vim.notify("No item selected", vim.log.levels.WARN)
+          return
+        end
+
+        if current_mode == 1 then
+          -- Diff mode: stage/unstage files
+          local git_root = vim.fn.systemlist("git rev-parse --show-toplevel")[1]
+          if not git_root or git_root == "" then
+            vim.notify("Unable to find Git root", vim.log.levels.ERROR)
+            return
+          end
+
+          local file_path = git_root .. "/" .. entry.value
+          local staged_files = vim.fn.systemlist("git diff --cached --name-only")
+          local is_staged = vim.tbl_contains(staged_files, entry.value)
+
+          local cmd
+          if is_staged then
+            cmd = { "git", "restore", "--staged", file_path }
+            vim.notify("Unstaged " .. entry.value, vim.log.levels.INFO)
+          else
+            cmd = { "git", "add", file_path }
+            vim.notify("Staged " .. entry.value, vim.log.levels.INFO)
+          end
+
+          local git_cmd_result = vim.fn.system(cmd)
+          if vim.v.shell_error ~= 0 then
+            vim.notify("Git command failed:\n" .. git_cmd_result, vim.log.levels.ERROR)
+            return
+          end
+
+          -- Refresh picker with updated staged/unstaged state
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          picker:refresh(require("telescope.finders").new_table({
+            results = get_changed_files(selected_branch),
+            entry_maker = entry_maker,
+          }), { reset_prompt = false })
+        else
+          -- Branch mode: switch branches
+          actions.close(prompt_bufnr)
+          local git_switch_result = vim.fn.system("git switch " .. entry.value)
+          if vim.v.shell_error == 0 then
+            vim.notify("Switched to branch: " .. entry.value, vim.log.levels.INFO)
+            vim.defer_fn(function()
+              M.git_branch_picker_with_mode(entry.value, current_mode)
+            end, 50)
+          else
+            vim.notify("Failed to switch branch:\n" .. git_switch_result, vim.log.levels.ERROR)
+          end
+        end
+      end)
 
 
-      -- =========================
-      -- Copy branch name (branch mode only)
-      -- =========================
+      ---------------------------------------------------------
+      -- Copy branch name (branch mode)
+      ---------------------------------------------------------
       map({ "i", "n" }, "y", function()
         if current_mode == 1 then return end
         local entry = get_selection()
@@ -559,22 +633,6 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
             end
           end)
         end)
-
-        -- Space: switch branch
-        map({ "i", "n" }, "<Space>", function()
-          local branch = get_selection()
-          if not branch then return end
-          actions.close(prompt_bufnr)
-          local result = vim.fn.system("git switch " .. branch)
-          if vim.v.shell_error == 0 then
-            vim.notify("Switched to branch: " .. branch, vim.log.levels.INFO)
-            vim.defer_fn(function()
-              M.git_branch_picker_with_mode(branch, 2) -- branch mode
-            end, 50)
-          else
-            vim.notify("Failed to switch branch:\n" .. result, vim.log.levels.ERROR)
-          end
-        end)
       end
 
       -- =========================
@@ -598,8 +656,8 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
           end
         end, 50)
       end
-      map({ "i", "n" }, "+", function() cycle_preview("next") end)
-      map({ "i", "n" }, "_", function() cycle_preview("prev") end)
+      map({ "i", "n" }, "h", function() cycle_preview("next") end)
+      map({ "i", "n" }, "l", function() cycle_preview("prev") end)
 
       -- Scroll preview
       map({ "n", "i" }, "<C-d>", actions.preview_scrolling_down)
