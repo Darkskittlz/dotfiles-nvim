@@ -91,10 +91,10 @@ local preview_modes = {
     name = "Log",
     cmd_fn = function(branch) return { "git", "log", "--oneline", branch } end,
   },
-  {
-    name = "Reflog",
-    cmd_fn = function(branch) return { "git", "reflog", "--oneline", branch } end,
-  },
+  -- {
+  --   name = "Reflog",
+  --   cmd_fn = function(branch) return { "git", "reflog", "--oneline", branch } end,
+  -- },
 }
 
 local function get_branch_info(branch)
@@ -287,11 +287,7 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
         local text = string.format("%s %s %s", prefix, entry.status or " ", entry.value)
 
         -- Correct highlight indices: byte positions in string, 0-indexed
-        local start_byte = 0
-        local end_byte = #prefix - 1
-        if end_byte < 0 then end_byte = 0 end -- safety
-
-        local highlights = { { 0, #prefix, hl_group } }
+        local highlights = { { start = 0, finish = #prefix, hl_group = hl_group } }
 
         vim.print({ entry = entry, text = text, highlights = highlights })
         return text, highlights
@@ -383,9 +379,6 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
       -- <Space>: Stage / Unstage file
       ---------------------------------------------------------
       map({ "i", "n" }, "<Space>", function(prompt_bufnr)
-        local action_state = require("telescope.actions.state")
-        local actions = require("telescope.actions")
-
         local entry = action_state.get_selected_entry()
         if not entry then
           vim.notify("No item selected", vim.log.levels.WARN)
@@ -421,9 +414,49 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
 
           -- Refresh picker with updated staged/unstaged state
           local picker = action_state.get_current_picker(prompt_bufnr)
-          picker:refresh(require("telescope.finders").new_table({
-            results = get_changed_files(selected_branch),
-            entry_maker = entry_maker,
+          local refreshed = get_changed_files(selected_branch or "HEAD")
+
+          vim.print({
+            step = "refreshing",
+            branch = selected_branch,
+            refreshed_count = #refreshed,
+            sample = refreshed[1],
+          })
+
+          picker:refresh(finders.new_table({
+            results = refreshed,
+            entry_maker = function(item)
+              if not item or not item.value then
+                vim.print({ step = "bad_entry", item = item })
+                return nil
+              end
+
+              local prefix = item.staged and "[S]" or "[U]"
+              local hl_group = item.staged and "GitStaged" or "GitUnstaged"
+              local text = string.format("%s %s %s", prefix, item.status or " ", item.value)
+
+              local highlights = {
+                { 0, #prefix, hl_group },
+              }
+
+
+              vim.print({
+                step = "entry_maker",
+                item = item,
+                text = text,
+                highlights = highlights,
+                text_len = #text,
+                hl_group_defined = vim.fn.hlexists(hl_group),
+              })
+
+              return {
+                value = item.value,
+                ordinal = item.value,
+                display = function()
+                  return text, highlights
+                end,
+              }
+            end,
           }), { reset_prompt = false })
         else
           -- Branch mode: switch branches
@@ -545,7 +578,8 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
           col = col,
           style = "minimal",
           border = "rounded",
-          zindex = 300
+          zindex = 300,
+          focusable = true,
         })
 
         -- Close popup helper
@@ -578,17 +612,24 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
           vim.keymap.set("n", "<Esc>", close_commit_popup, { buffer = buf, noremap = true, silent = true })
           vim.keymap.set("n", "<Tab>", function() vim.api.nvim_set_current_win(win_desc) end, { buffer = buf })
           vim.keymap.set("n", "<S-Tab>", function() vim.api.nvim_set_current_win(win_title) end, { buffer = buf })
+
+          vim.keymap.set("n", "<C-d>", function()
+            vim.api.nvim_win_call(win_diff, function()
+              print("Scrolling win_diff down")
+              vim.cmd("normal! <C-d>")
+            end)
+          end, { buffer = buf_diff, noremap = true, silent = false })
+
+          vim.keymap.set("n", "<C-b>", function()
+            vim.api.nvim_win_call(win_diff, function()
+              print("Scrolling win_diff up")
+              vim.cmd("normal! <C-b>")
+            end)
+          end, { buffer = buf_diff, noremap = true, silent = false })
         end
+
         vim.keymap.set("n", "<CR>", commit_changes, { buffer = buf_title, noremap = true, silent = true })
         vim.keymap.set("n", "<CR>", commit_changes, { buffer = buf_desc, noremap = true, silent = true })
-
-        -- Scroll diff
-        vim.keymap.set("n", "<C-j>", function()
-          vim.api.nvim_win_call(win_diff, function() vim.cmd("normal! <C-e>") end)
-        end, { buffer = buf_diff })
-        vim.keymap.set("n", "<C-k>", function()
-          vim.api.nvim_win_call(win_diff, function() vim.cmd("normal! <C-y>") end)
-        end, { buffer = buf_diff })
 
         vim.api.nvim_set_current_win(win_title)
         vim.cmd("startinsert")
@@ -606,6 +647,7 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
             vim.notify("Pulled latest changes for branch: " .. branch, vim.log.levels.INFO)
           end
         end)
+
 
         -- Push
         map({ "i", "n" }, "P", function(prompt_bufnr)
@@ -670,11 +712,13 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
       local function cycle_preview(direction)
         local entry = get_selection()
         if not entry then return end
+
         if direction == "next" then
-          current_mode = (current_mode % #preview_modes) + 1
+          current_mode = current_mode == 1 and 2 or 1
         else
-          current_mode = (current_mode - 2) % #preview_modes + 1
+          current_mode = current_mode == 2 and 1 or 2
         end
+
         actions.close(prompt_bufnr)
         vim.defer_fn(function()
           if current_mode == 1 then
