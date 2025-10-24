@@ -464,9 +464,9 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
           local git_switch_result = vim.fn.system("git switch " .. entry.value)
           if vim.v.shell_error == 0 then
             vim.notify("Switched to branch: " .. entry.value, vim.log.levels.INFO)
-            vim.defer_fn(function()
-              M.git_branch_picker_with_mode(entry.value, current_mode)
-            end, 50)
+            -- vim.defer_fn(function()
+            --   M.git_branch_picker_with_mode(entry.value, current_mode)
+            -- end, 50)
           else
             vim.notify("Failed to switch branch:\n" .. git_switch_result, vim.log.levels.ERROR)
           end
@@ -498,10 +498,10 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
         actions.close(prompt_bufnr)
 
         -- === Floating windows setup ===
-        local width = math.floor(vim.o.columns * 0.6)
+        local width = math.floor(vim.o.columns * 0.9)
         local height_title = 1
         local height_desc = 3
-        local height_diff = math.floor(vim.o.lines * 0.4)
+        local height_diff = math.floor(vim.o.lines * 0.7)
         local spacing = 1
         local row = math.floor((vim.o.lines - (height_title + height_desc + height_diff + spacing * 2)) / 2)
         local col = math.floor((vim.o.columns - width) / 2)
