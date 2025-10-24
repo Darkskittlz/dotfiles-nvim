@@ -608,16 +608,49 @@ function M.git_branch_picker_with_mode(selected_branch, mode_index)
         end)
 
         -- Push
-        map({ "i", "n" }, "P", function()
-          local branch = get_selection()
-          if not branch or branch == "" then
+        map({ "i", "n" }, "P", function(prompt_bufnr)
+          local branch = action_state.get_selected_entry()
+          if not branch or branch.value == "" then
             vim.notify("No branch selected", vim.log.levels.WARN)
             return
           end
 
-          -- Push spinner logic here (your existing code)
-          -- ...
+          branch = branch.value
+
+          actions.close(prompt_bufnr)
+
+          local spinner_chars = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
+          local spinner_idx = 1
+          local spinner_timer = nil
+
+          -- Start spinner
+          local spinner_notify = vim.notify("Pushing to " .. branch .. " " .. spinner_chars[spinner_idx],
+            vim.log.levels.INFO, { timeout = false })
+          spinner_timer = vim.loop.new_timer()
+          spinner_timer:start(100, 100, vim.schedule_wrap(function()
+            spinner_idx = spinner_idx % #spinner_chars + 1
+            vim.notify("Pushing to " .. branch .. " " .. spinner_chars[spinner_idx], vim.log.levels.INFO,
+              { replace = spinner_notify })
+          end))
+
+          -- Run git push asynchronously
+          vim.fn.jobstart({ "git", "push", "origin", branch }, {
+            on_exit = function(_, exit_code, _)
+              spinner_timer:stop()
+              spinner_timer:close()
+              if exit_code == 0 then
+                vim.schedule(function()
+                  vim.notify("Successfully pushed branch: " .. branch, vim.log.levels.INFO)
+                end)
+              else
+                vim.schedule(function()
+                  vim.notify("Failed to push branch: " .. branch, vim.log.levels.ERROR)
+                end)
+              end
+            end,
+          })
         end)
+
 
         -- Delete branch
         map({ "i", "n" }, "d", function()
