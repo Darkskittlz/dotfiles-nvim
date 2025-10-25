@@ -5,6 +5,10 @@ vim.g.maplocalleader = " "
 keymap.set("n", "-", "<C-a>")
 keymap.set("n", "+", "<C-x>")
 
+keymap.set("n", "<leader>rl", function()
+  vim.cmd("source $MYVIMRC") -- reload your init.lua / init.vim
+  require("lazy").sync()     -- reload LazyVim plugins
+end, { desc = "Reload Neovim config and plugins" })
 
 -- Mason --
 vim.api.nvim_set_keymap(
