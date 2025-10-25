@@ -1,26 +1,37 @@
 -- git_picker_no_telescope.lua
--- Replace the Telescope-based picker with a bespoke two-pane Git UI.
--- Left pane: branches/logs (actions: checkout, pull, push, delete, etc.)
--- Right pane: file-diff preview & staging actions (stage/unstage/discard)
--- Switch focus/mode with h / l
-
 ---@diagnostic disable: undefined-global
 local M = {}
 
--- Highlights (keep user-provided ones, but define fallbacks)
-vim.api.nvim_set_hl(0, "GitBranchCurrent", { fg = "#549afc", bold = true })
-vim.api.nvim_set_hl(0, "GitStaged", { fg = "#a6e22e", bg = "NONE", bold = true })
-vim.api.nvim_set_hl(0, "GitUnstaged", { fg = "#e6db74", bg = "NONE", bold = true })
+-- Highlights
+vim.api.nvim_set_hl(
+  0,
+  "GitBranchCurrent",
+  { fg = "#549afc", bold = true }
+)
+vim.api.nvim_set_hl(
+  0,
+  "GitStaged",
+  { fg = "#a6e22e", bold = true }
+)
+vim.api.nvim_set_hl(
+  0,
+  "GitUnstaged",
+  { fg = "#e6db74", bold = true }
+)
+vim.cmd([[
+highlight GitStaged guifg=green
+highlight GitStagedFile guifg=green
+highlight GitUnstaged guifg=yellow
+highlight GitUnstagedFile guifg=yellow
+highlight GitBranchCurrent guifg=cyan gui=bold
+]])
 
--- state
 local Ui = {
-  overlay_buf = nil,
-  overlay_win = nil,
   left_buf = nil,
   left_win = nil,
   right_buf = nil,
   right_win = nil,
-  mode = "branches", -- or "files"
+  mode = "branches",
   branches = {},
   changed_files = {},
   selected_index = 1,
@@ -28,370 +39,773 @@ local Ui = {
 }
 
 local function git_root()
-  local root = vim.fn.systemlist("git rev-parse --show-toplevel")[1]
-  return root and root ~= "" and root or nil
+  local root = vim.fn.systemlist(
+    "git rev-parse --show-toplevel"
+  )[1]
+  return root ~= "" and root or "."
 end
 
 local function run_git(cmd)
-  -- cmd: table or string
   if type(cmd) == "table" then
     return vim.fn.systemlist(cmd)
-  else
-    return vim.fn.systemlist(cmd)
   end
+  return vim.fn.systemlist(cmd)
 end
 
--- data loaders
+---------------------------------------------------------------------------
+-- 🔄 Load list of Git branches
+---------------------------------------------------------------------------
 local function load_branches()
-  local branches = run_git("git branch --list --format='%(refname:short)'") or {}
-  Ui.branches = branches
-  Ui.branch_selected = Ui.branch_selected or branches[1]
+  local branches = run_git(
+    "git branch --list --format='%(refname:short)'"
+  ) or {}
+
+  -- Filter out empty or whitespace-only lines
+  local cleaned = {}
+  for _, b in ipairs(branches) do
+    if b and b:match("%S") then
+      table.insert(cleaned, b)
+    end
+  end
+
+  Ui.branches = cleaned
+
+  -- Default selected branch
+  Ui.branch_selected = Ui.branch_selected
+    or Ui.branches[1]
 end
 
+---------------------------------------------------------------------------
+-- 🧩 Load list of changed files (staged + unstaged)
+--  branch: optional branch or commit ref (defaults to HEAD)
+---------------------------------------------------------------------------
 local function get_changed_files(branch)
-  branch = branch or "HEAD"
-  local staged = run_git("git diff --cached --name-status " .. branch) or {}
-  local unstaged = run_git("git diff --name-status " .. branch) or {}
+  branch = branch or "HEAD" -- fallback if not provided
 
-  local index = {}
-  local results = {}
+  -------------------------------------------------------------------------
+  -- Run two Git commands:
+  --   - `git diff --cached` → shows *staged* changes
+  --   - `git diff`          → shows *unstaged* changes
+  --
+  -- Both commands output lines like:
+  --   M some/file.lua
+  --   A new/file.txt
+  --   D deleted/file.js
+  -------------------------------------------------------------------------
+  local staged = run_git(
+    "git diff --cached --name-status " .. branch
+  ) or {}
+  local unstaged = run_git(
+    "git diff --name-status " .. branch
+  ) or {}
 
+  -------------------------------------------------------------------------
+  -- Prepare data structures:
+  --   index   → map of path → { value, status, staged }
+  --   results → list of all files (for ordered display)
+  -------------------------------------------------------------------------
+  local index, results = {}, {}
+
+  -------------------------------------------------------------------------
+  -- Helper: add(status, path, staged_flag)
+  -- Adds or updates a file entry depending on whether it’s staged.
+  -------------------------------------------------------------------------
   local function add(status, path, staged_flag)
+    -- If file hasn't been seen yet, create a new entry
     if not index[path] then
-      index[path] = { value = path, status = status, staged = staged_flag }
+      index[path] = {
+        value = path, -- file path
+        status = status, -- M / A / D etc.
+        staged = staged_flag, -- true if from --cached diff
+      }
       table.insert(results, index[path])
     else
-      -- if unstaged also present, prefer showing unstaged state
+      -- If we've already seen it (e.g., appears in both diffs)
+      -- and this is the *unstaged* version, mark it as unstaged
+      -- and update its status to the latest one.
       if not staged_flag then
         index[path].staged = false
-        index[path].status = status or index[path].status
-      else
-        index[path].staged = index[path].staged or true
+        index[path].status = status
+          or index[path].status
       end
     end
   end
 
-  -- staged first (so they persist)
+  -------------------------------------------------------------------------
+  -- Parse the staged diff output
+  -- Each line is like: "M  path/to/file"
+  -------------------------------------------------------------------------
   for _, line in ipairs(staged) do
-    local s, p = line:match("^(%S+)%s+(.*)$")
-    if p then add(s, p, true) end
+    if line and line:match("%S") then -- skip blank lines
+      local s, p = line:match("^(%S+)%s+(.*)$")
+      if p then
+        add(s, p, true)
+      end
+    end
   end
+  -------------------------------------------------------------------------
+  -- Parse the unstaged diff output
+  -- Similar format, but mark files as unstaged
+  -------------------------------------------------------------------------
   for _, line in ipairs(unstaged) do
-    local s, p = line:match("^(%S+)%s+(.*)$")
-    if p then add(s, p, false) end
+    if line and line:match("%S") then
+      local s, p = line:match("^(%S+)%s+(.*)$")
+      if p then
+        add(s, p, false)
+      end
+    end
   end
 
+  -------------------------------------------------------------------------
+  -- Store final list of changed files on the global UI table
+  -- Each entry looks like:
+  --   {
+  --     value  = "src/main.lua",
+  --     status = "M",
+  --     staged = true / false
+  --   }
+  -------------------------------------------------------------------------
   Ui.changed_files = results
 end
 
+-- Diff preview
 local function get_diff_for_target(target)
-  -- target may be branch or file
-  if not target or target == "" then return { "[No target]" } end
-  local git_root_dir = git_root() or "."
-  -- produce combined diff: unstaged then staged
-  local cmd = string.format("git -C %s diff -- %s; echo '\n--- STAGED CHANGES ---\n'; git -C %s diff --cached -- %s",
-    vim.fn.fnameescape(git_root_dir), vim.fn.shellescape(target), vim.fn.fnameescape(git_root_dir),
-    vim.fn.shellescape(target))
-  local out = vim.fn.systemlist({ "bash", "-c", cmd })
-  if vim.v.shell_error ~= 0 or #out == 0 then return { "[No changes to display]" } end
+  if not target or target == "" then
+    return { "[No target]" }
+  end
+  local root = git_root()
+  local cmd = string.format(
+    "git -C %s diff -- %s; echo '\n--- STAGED CHANGES ---\n'; git -C %s diff --cached -- %s",
+    vim.fn.fnameescape(root),
+    vim.fn.shellescape(target),
+    vim.fn.fnameescape(root),
+    vim.fn.shellescape(target)
+  )
+  local out =
+    vim.fn.systemlist({ "bash", "-c", cmd })
+  if vim.v.shell_error ~= 0 or #out == 0 then
+    return { "[No changes]" }
+  end
   return out
 end
 
--- renderers
-local function open_or_reuse_buf(name)
-  local bufnr = vim.fn.bufnr(name)
-  if bufnr == -1 then
-    bufnr = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_buf_set_name(bufnr, name)
-  end
-  return bufnr
-end
-
+---------------------------------------------------------------------------
+-- Render the left panel (branches or changed files)
+---------------------------------------------------------------------------
 local function render_left()
-  if not Ui.left_buf then return end
-  vim.api.nvim_buf_set_option(Ui.left_buf, "modifiable", true)
-  vim.api.nvim_buf_set_lines(Ui.left_buf, 0, -1, false, {})
+  if not Ui.left_buf then
+    return
+  end
+  vim.api.nvim_buf_set_option(
+    Ui.left_buf,
+    "modifiable",
+    true
+  )
+
+  local lines = {} -- lines to write
+  local highlights = {} -- highlight info
 
   if Ui.mode == "branches" then
     load_branches()
-    local current = vim.fn.systemlist("git rev-parse --abbrev-ref HEAD")[1] or ""
+    local current = run_git(
+      "git rev-parse --abbrev-ref HEAD"
+    )[1] or ""
     for i, b in ipairs(Ui.branches) do
       local marker = (b == current) and "*" or " "
-      local line = string.format("%2s %s", marker, b)
-      vim.api.nvim_buf_set_lines(Ui.left_buf, -1, -1, false, { line })
-      -- add highlight for current
+      table.insert(
+        lines,
+        string.format("%2s %s", marker, b)
+      )
       if b == current then
-        vim.api.nvim_buf_add_highlight(Ui.left_buf, -1, "GitBranchCurrent", i - 1, 0, -1)
+        table.insert(
+          highlights,
+          { line = i, hl = "GitBranchCurrent" }
+        )
       end
     end
   else
-    -- files mode: show changed files (use selected branch for context)
     get_changed_files(Ui.branch_selected)
     for i, f in ipairs(Ui.changed_files) do
       local prefix = f.staged and "[S]" or "[U]"
-      local line = string.format("%s %s %s", prefix, f.status or "", f.value)
-      vim.api.nvim_buf_set_lines(Ui.left_buf, -1, -1, false, { line })
-      local hl = f.staged and "GitStaged" or "GitUnstaged"
-      vim.api.nvim_buf_add_highlight(Ui.left_buf, -1, hl, i - 1, 0, #prefix)
+      local line = string.format(
+        "%s %s %s",
+        prefix,
+        f.status or "",
+        f.value
+      )
+      table.insert(lines, line)
+
+      -- Highlight prefix color
+      table.insert(highlights, {
+        line = i,
+        hl = f.staged and "GitStaged"
+          or "GitUnstaged",
+        col = 0,
+        length = 3, -- only highlight [U]/[S]
+      })
+
+      -- Optionally, highlight the filename itself differently
+      table.insert(highlights, {
+        line = i,
+        hl = f.staged and "GitStagedFile"
+          or "GitUnstagedFile",
+        col = 4,
+        length = #f.value,
+      })
     end
   end
 
-  vim.api.nvim_buf_set_option(Ui.left_buf, "modifiable", false)
+  -- Update buffer lines
+  vim.api.nvim_buf_set_lines(
+    Ui.left_buf,
+    0,
+    -1,
+    false,
+    lines
+  )
+
+  -- Apply highlights
+  vim.api.nvim_buf_clear_namespace(
+    Ui.left_buf,
+    -1,
+    0,
+    -1
+  )
+  for _, h in ipairs(highlights) do
+    vim.api.nvim_buf_add_highlight(
+      Ui.left_buf,
+      -1,
+      h.hl,
+      h.line - 1,
+      h.col or 0,
+      h.length or -1
+    )
+  end
+
+  vim.api.nvim_buf_set_option(
+    Ui.left_buf,
+    "modifiable",
+    false
+  )
 end
 
+---------------------------------------------------------------------------
+-- Render the right panel (commit log or diff preview)
+---------------------------------------------------------------------------
 local function render_right()
-  if not Ui.right_buf then return end
-  vim.api.nvim_buf_set_option(Ui.right_buf, "modifiable", true)
-  vim.api.nvim_buf_set_lines(Ui.right_buf, 0, -1, false, {})
-
-  if Ui.mode == "branches" then
-    -- show git log for branch_selected
-    local branch = Ui.branch_selected or "HEAD"
-    local out = run_git("git log --oneline --decorate " .. vim.fn.shellescape(branch))
-    if #out == 0 then out = { "[No commits]" } end
-    vim.api.nvim_buf_set_lines(Ui.right_buf, 0, -1, false, out)
-    vim.api.nvim_buf_set_option(Ui.right_buf, "filetype", "gitcommit")
-  else
-    -- files mode: preview diff for selected changed file
-    local sel = Ui.changed_files[Ui.selected_index]
-    if not sel then
-      vim.api.nvim_buf_set_lines(Ui.right_buf, 0, -1, false, { "[No file selected]" })
-    else
-      local out = get_diff_for_target(sel.value)
-      vim.api.nvim_buf_set_lines(Ui.right_buf, 0, -1, false, out)
-      vim.api.nvim_buf_set_option(Ui.right_buf, "filetype", "diff")
-    end
+  if not Ui.right_buf then
+    return
   end
 
-  vim.api.nvim_buf_set_option(Ui.right_buf, "modifiable", false)
+  vim.api.nvim_buf_set_option(
+    Ui.right_buf,
+    "modifiable",
+    true
+  )
+
+  local out = {}
+
+  if Ui.mode == "branches" then
+    local branch = Ui.branch_selected or "HEAD"
+    out = run_git(
+      "git log --oneline --decorate "
+        .. vim.fn.shellescape(branch)
+    )
+    if #out == 0 then
+      out = { "[No commits]" }
+    end
+    vim.api.nvim_buf_set_option(
+      Ui.right_buf,
+      "filetype",
+      "gitcommit"
+    )
+  else
+    local sel =
+      Ui.changed_files[Ui.selected_index]
+    out = sel and get_diff_for_target(sel.value)
+      or { "[No file selected]" }
+    vim.api.nvim_buf_set_option(
+      Ui.right_buf,
+      "filetype",
+      "diff"
+    )
+  end
+
+  vim.api.nvim_buf_set_lines(
+    Ui.right_buf,
+    0,
+    -1,
+    false,
+    out
+  )
+  vim.api.nvim_buf_set_option(
+    Ui.right_buf,
+    "modifiable",
+    false
+  )
 end
 
 local function refresh_ui()
+  -- Always render left panel (branches or files)
   render_left()
+  -- Always render right panel (preview)
   render_right()
-  -- ensure selection visible
-  if Ui.left_win and vim.api.nvim_win_is_valid(Ui.left_win) then
-    vim.api.nvim_set_current_win(Ui.left_win)
-    local lcount = vim.api.nvim_buf_line_count(Ui.left_buf)
-    local line = math.min(math.max(Ui.selected_index, 1), lcount)
-    pcall(vim.api.nvim_win_set_cursor, Ui.left_win, { line, 0 })
+
+  local total = (Ui.mode == "branches")
+      and #Ui.branches
+    or #Ui.changed_files
+  Ui.selected_index = math.max(
+    1,
+    math.min(
+      Ui.selected_index,
+      math.max(1, total)
+    )
+  )
+
+  if
+    Ui.left_win
+    and vim.api.nvim_win_is_valid(Ui.left_win)
+  then
+    vim.api.nvim_win_set_cursor(
+      Ui.left_win,
+      { Ui.selected_index, 0 }
+    )
   end
 end
 
--- actions
+-- Focus helpers
 local function focus_left()
-  if Ui.left_win and vim.api.nvim_win_is_valid(Ui.left_win) then
+  if
+    Ui.left_win
+    and vim.api.nvim_win_is_valid(Ui.left_win)
+  then
     vim.api.nvim_set_current_win(Ui.left_win)
   end
 end
+
 local function focus_right()
-  if Ui.right_win and vim.api.nvim_win_is_valid(Ui.right_win) then
+  if
+    Ui.right_win
+    and vim.api.nvim_win_is_valid(Ui.right_win)
+  then
     vim.api.nvim_set_current_win(Ui.right_win)
   end
 end
 
+-- Actions
+-- Toggle between branches and files mode
 local function toggle_mode()
-  Ui.mode = (Ui.mode == "branches") and "files" or "branches"
+  if not Ui then
+    return
+  end
+
+  Ui.mode = (Ui.mode == "branches") and "files"
+    or "branches"
   Ui.selected_index = 1
   refresh_ui()
+  focus_left()
+
+  if Ui.mode == "files" then
+    -- Update staged files preview
+    staged_files =
+      run_git("git diff --cached --name-only")
+  end
 end
 
+-- Stage or unstage the selected file
 local function stage_unstage_selected()
-  if Ui.mode ~= "files" then return end
+  if Ui.mode ~= "files" then
+    return
+  end
+
   local sel = Ui.changed_files[Ui.selected_index]
-  if not sel then return end
-  local git_root_dir = git_root() or "."
-  local full = git_root_dir .. "/" .. sel.value
-  local staged_files = run_git("git diff --cached --name-only")
-  local is_staged = vim.tbl_contains(staged_files, sel.value)
+  if not sel then
+    return
+  end
+
+  local root = git_root()
+  local staged_files =
+    run_git("git diff --cached --name-only")
   local cmd
-  if is_staged then
-    cmd = { "git", "restore", "--staged", full }
+
+  if
+    vim.tbl_contains(staged_files, sel.value)
+  then
+    cmd = {
+      "git",
+      "restore",
+      "--staged",
+      root .. "/" .. sel.value,
+    }
   else
-    cmd = { "git", "add", full }
+    cmd =
+      { "git", "add", root .. "/" .. sel.value }
   end
-  local out = vim.fn.system(cmd)
-  if vim.v.shell_error ~= 0 then
-    vim.notify("Git failed: " .. out, vim.log.levels.ERROR)
-  end
-  -- reload changed files and render
+
+  vim.fn.system(cmd)
+
+  -- ✅ Refresh changed files immediately
   get_changed_files(Ui.branch_selected)
-  refresh_ui()
+  render_left() -- explicitly redraw the left panel
+  vim.api.nvim_win_set_cursor(
+    Ui.left_win,
+    { Ui.selected_index, 0 }
+  )
 end
 
+-- Discard changes for the selected file
 local function discard_changes_selected()
-  if Ui.mode ~= "files" then return end
-  local sel = Ui.changed_files[Ui.selected_index]
-  if not sel then return end
-  local ok = vim.fn.confirm("Discard changes to " .. sel.value .. "?", "Yes\nNo", 2)
-  if ok ~= 1 then return end
-  local git_root_dir = git_root() or "."
-  local full = git_root_dir .. "/" .. sel.value
-  local cmd = { "git", "restore", full }
-  local out = vim.fn.system(cmd)
-  if vim.v.shell_error ~= 0 then
-    vim.notify("Git failed: " .. out, vim.log.levels.ERROR)
+  if Ui.mode ~= "files" then
+    return
   end
-  get_changed_files(Ui.branch_selected)
+
+  local sel = Ui.changed_files[Ui.selected_index]
+  if not sel then
+    return
+  end
+
+  if
+    vim.fn.confirm(
+      "Discard changes to " .. sel.value .. "?",
+      "Yes\nNo",
+      2
+    ) ~= 1
+  then
+    return
+  end
+
+  local root = git_root()
+  local cmd =
+    { "git", "restore", root .. "/" .. sel.value }
+  vim.fn.system(cmd)
   refresh_ui()
 end
 
+-- Checkout the selected branch
 local function checkout_branch()
-  if Ui.mode ~= "branches" then return end
-  local cursor = vim.api.nvim_win_get_cursor(Ui.left_win)
-  local line = cursor[1]
-  local branch = Ui.branches[line]
-  if not branch then return end
-  local out = vim.fn.system("git checkout " .. vim.fn.shellescape(branch))
-  if vim.v.shell_error ~= 0 then
-    vim.notify("Checkout failed: " .. out, vim.log.levels.ERROR)
-  else
-    vim.notify("Checked out: " .. branch, vim.log.levels.INFO)
+  if Ui.mode ~= "branches" then
+    return
   end
-  load_branches()
+
+  local branch = Ui.branches[Ui.selected_index]
+  if not branch then
+    return
+  end
+
+  vim.fn.system(
+    "git checkout " .. vim.fn.shellescape(branch)
+  )
   Ui.branch_selected = branch
   refresh_ui()
 end
 
+-- Delete the selected branch
 local function delete_branch()
-  if Ui.mode ~= "branches" then return end
-  local cursor = vim.api.nvim_win_get_cursor(Ui.left_win)
-  local branch = Ui.branches[cursor[1]]
-  if not branch then return end
-  local ok = vim.fn.confirm("Delete branch " .. branch .. "?", "Yes\nNo", 2)
-  if ok ~= 1 then return end
-  local out = vim.fn.system("git branch -D " .. vim.fn.shellescape(branch))
-  if vim.v.shell_error ~= 0 then
-    vim.notify("Failed to delete: " .. out, vim.log.levels.ERROR)
-  else
-    vim.notify("Deleted branch: " .. branch, vim.log.levels.INFO)
+  -- only relevant in branches mode
+  if Ui.mode ~= "branches" then
+    return
   end
+
+  -- get currently selected branch
+  local branch = Ui.branches[Ui.selected_index]
+  if not branch then
+    return
+  end
+
+  -- confirm deletion
+  local ok_confirm = vim.fn.confirm(
+    "Delete branch " .. branch .. "?",
+    "Yes\nNo",
+    2
+  )
+  if ok_confirm ~= 1 then
+    return
+  end
+
+  -- run git delete branch
+  local out = vim.fn.system(
+    "git branch -D " .. vim.fn.shellescape(branch)
+  )
+  if vim.v.shell_error ~= 0 then
+    vim.notify(
+      "Failed to delete branch: " .. out,
+      vim.log.levels.ERROR
+    )
+  else
+    vim.notify(
+      "Deleted branch: " .. branch,
+      vim.log.levels.INFO
+    )
+  end
+
+  -- reload branch list and refresh UI
   load_branches()
   refresh_ui()
 end
 
-local function refresh_data()
-  load_branches()
-  get_changed_files(Ui.branch_selected)
-  refresh_ui()
-end
-
--- UI open/close
+-- Open UI
 function M.open_git_ui()
+  -- Create buffers
+  Ui.right_buf =
+    vim.api.nvim_create_buf(false, true)
+  Ui.left_buf =
+    vim.api.nvim_create_buf(false, true)
 
-  -- left and right buffers
-  Ui.left_buf = open_or_reuse_buf("__GitPickerLeft__")
-  Ui.right_buf = open_or_reuse_buf("__GitPickerRight__")
+  -- Determine sizes
+  local w = 90 -- width of each window
+  local top_h = 5
+  local bottom_h = 25
+  local total_h = top_h + bottom_h + 1 -- +1 for spacing between windows
 
-  local w = math.floor(vim.o.columns * 0.9)
-  local h = math.floor(vim.o.lines * 0.9)
-  local row = math.floor((vim.o.lines - h) / 2)
-  local col = math.floor((vim.o.columns - w) / 2)
+  -- Get Neovim UI dimensions
+  local ui = vim.api.nvim_list_uis()[1]
+  local editor_w = ui.width
+  local editor_h = ui.height
 
-  local left_w = math.floor(w * 0.36)
-  local right_w = w - left_w - 2
+  -- Compute centered position
+  local row = math.floor((editor_h - total_h) / 2)
+  local col = math.floor((editor_w - w) / 2)
 
-  Ui.left_win = vim.api.nvim_open_win(Ui.left_buf, true, {
-    relative = "editor",
-    width = left_w,
-    height = h,
-    row = row,
-    col = col,
-    style = "minimal",
-    border = "rounded",
-    zindex = 1001,
-  })
+  -- Create left window (branches/files list)
+  Ui.left_win =
+    vim.api.nvim_open_win(Ui.left_buf, true, {
+      relative = "editor",
+      width = w,
+      height = top_h,
+      row = row,
+      col = col,
+      style = "minimal",
+      border = "rounded",
+      zindex = 1000,
+    })
 
-  Ui.right_win = vim.api.nvim_open_win(Ui.right_buf, false, {
-    relative = "editor",
-    width = right_w,
-    height = h,
-    row = row,
-    col = col + left_w + 2,
-    style = "minimal",
-    border = "rounded",
-    zindex = 1001,
-  })
+  -- Create right window (preview)
+  Ui.right_win =
+    vim.api.nvim_open_win(Ui.right_buf, false, {
+      relative = "editor",
+      width = w,
+      height = bottom_h,
+      row = row + top_h + 2,
+      col = col,
+      style = "minimal",
+      border = "rounded",
+      zindex = 1000,
+    })
 
-  vim.api.nvim_buf_set_option(Ui.left_buf, "buftype", "nofile")
-  vim.api.nvim_buf_set_option(Ui.right_buf, "buftype", "nofile")
-  vim.api.nvim_buf_set_option(Ui.left_buf, "bufhidden", "wipe")
-  vim.api.nvim_buf_set_option(Ui.right_buf, "bufhidden", "wipe")
+  -- Set buffer options for both buffers
+  for _, buf in ipairs({
+    Ui.left_buf,
+    Ui.right_buf,
+  }) do
+    vim.api.nvim_buf_set_option(
+      buf,
+      "buftype",
+      "nofile"
+    )
+    vim.api.nvim_buf_set_option(
+      buf,
+      "bufhidden",
+      "wipe"
+    )
+    vim.api.nvim_buf_set_option(
+      buf,
+      "modifiable",
+      false
+    )
+  end
 
-  -- initial data
-  load_branches()
-  get_changed_files(Ui.branch_selected)
+  -- Initialize UI state
   Ui.mode = "branches"
   Ui.selected_index = 1
+  load_branches()
+  get_changed_files()
 
-  -- render
+  -- Function to close UI
+  local function close_ui()
+    if
+      Ui.left_win
+      and vim.api.nvim_win_is_valid(Ui.left_win)
+    then
+      vim.api.nvim_win_close(Ui.left_win, true)
+    end
+    if
+      Ui.right_win
+      and vim.api.nvim_win_is_valid(Ui.right_win)
+    then
+      vim.api.nvim_win_close(Ui.right_win, true)
+    end
+    Ui.left_win, Ui.right_win, Ui.left_buf, Ui.right_buf =
+      nil, nil, nil, nil
+    vim.schedule(function()
+      pcall(vim.cmd, "wincmd p")
+    end)
+  end
+
+  -- Keymaps
+  local function set_keymaps(buf)
+    -- Navigation & mode toggle
+    vim.keymap.set("n", "H", toggle_mode, {
+      buffer = buf,
+      noremap = true,
+      silent = true,
+    })
+    vim.keymap.set("n", "L", toggle_mode, {
+      buffer = buf,
+      noremap = true,
+      silent = true,
+    })
+    vim.keymap.set("n", "h", focus_left, {
+      buffer = buf,
+      noremap = true,
+      silent = true,
+    })
+    vim.keymap.set("n", "l", focus_right, {
+      buffer = buf,
+      noremap = true,
+      silent = true,
+    })
+    vim.keymap.set("n", "j", function()
+      local max_items = (
+        Ui.mode == "branches" and #Ui.branches
+        or #Ui.changed_files
+      )
+      Ui.selected_index =
+        math.min(max_items, Ui.selected_index + 1)
+      refresh_ui()
+    end, {
+      buffer = buf,
+      noremap = true,
+      silent = true,
+    })
+    vim.keymap.set("n", "k", function()
+      Ui.selected_index =
+        math.max(1, Ui.selected_index - 1)
+      refresh_ui()
+    end, {
+      buffer = buf,
+      noremap = true,
+      silent = true,
+    })
+    vim.keymap.set("n", "j", function()
+      local win = vim.api.nvim_get_current_win()
+      if win == Ui.right_win then
+        -- Scroll preview window down
+        vim.cmd("normal! j")
+        return
+      end
+
+      -- Scroll selection in left panel
+      local max_items = (
+        Ui.mode == "branches" and #Ui.branches
+        or #Ui.changed_files
+      )
+      Ui.selected_index =
+        math.min(max_items, Ui.selected_index + 1)
+      refresh_ui()
+    end, {
+      buffer = buf,
+      noremap = true,
+      silent = true,
+    })
+
+    vim.keymap.set("n", "k", function()
+      local win = vim.api.nvim_get_current_win()
+      if win == Ui.right_win then
+        -- Scroll preview window up
+        vim.cmd("normal! k")
+        return
+      end
+
+      -- Scroll selection in left panel
+      Ui.selected_index =
+        math.max(1, Ui.selected_index - 1)
+      refresh_ui()
+    end, {
+      buffer = buf,
+      noremap = true,
+      silent = true,
+    })
+
+    -- Actions
+    vim.keymap.set("n", "<Space>", function()
+      local win = vim.api.nvim_get_current_win()
+      if win ~= Ui.left_win then
+        -- Only allow staging/unstaging from left window
+        return
+      end
+      stage_unstage_selected()
+    end, {
+      buffer = buf,
+      noremap = true,
+      silent = true,
+    })
+
+    vim.keymap.set("n", "D", function()
+      local win = vim.api.nvim_get_current_win()
+      if win ~= Ui.left_win then
+        return
+      end
+
+      if Ui.mode == "files" then
+        discard_changes_selected()
+      else
+        delete_branch()
+      end
+    end, {
+      buffer = buf,
+      noremap = true,
+      silent = true,
+    })
+
+    vim.keymap.set("n", "c", checkout_branch, {
+      buffer = buf,
+      noremap = true,
+      silent = true,
+    })
+
+    -- Open file in editor
+    vim.keymap.set("n", "o", function()
+      if Ui.mode ~= "files" then
+        return
+      end
+      local sel =
+        Ui.changed_files[Ui.selected_index]
+      if sel then
+        vim.cmd(
+          "edit "
+            .. vim.fn.fnameescape(
+              git_root() .. "/" .. sel.value
+            )
+        )
+      end
+    end, {
+      buffer = buf,
+      noremap = true,
+      silent = true,
+    })
+
+    -- Render preview
+    vim.keymap.set("n", "p", function()
+      render_right()
+      focus_right()
+    end, {
+      buffer = buf,
+      noremap = true,
+      silent = true,
+    })
+
+    -- Close UI
+    vim.keymap.set("n", "q", close_ui, {
+      buffer = buf,
+      noremap = true,
+      silent = true,
+    })
+  end
+
+  -- Apply keymaps to both buffers
+  set_keymaps(Ui.left_buf)
+  set_keymaps(Ui.right_buf)
   refresh_ui()
-
-  -- keymaps
-  local opts = { noremap = true, silent = true }
-
-  -- close
-  vim.keymap.set("n", "q", function()
-    if Ui.left_win and vim.api.nvim_win_is_valid(Ui.left_win) then pcall(vim.api.nvim_win_close, Ui.left_win, true) end
-    if Ui.right_win and vim.api.nvim_win_is_valid(Ui.right_win) then pcall(vim.api.nvim_win_close, Ui.right_win, true) end
-    if Ui.overlay_win and vim.api.nvim_win_is_valid(Ui.overlay_win) then pcall(vim.api.nvim_win_close, Ui.overlay_win,
-        true) end
-  end, opts)
-
-  -- switch focus/mode
-  vim.keymap.set("n", "h", function() -- go to left (branches/files list)
-    Ui.mode = (Ui.mode == "branches") and "files" or "branches"
-    Ui.selected_index = 1
-    refresh_ui()
-    focus_left()
-  end, opts)
-  vim.keymap.set("n", "l", function() focus_right() end, opts)
-
-  -- navigation in left buffer
-  vim.keymap.set("n", "j", function()
-    Ui.selected_index = math.min(#(Ui.mode == "branches" and Ui.branches or Ui.changed_files), Ui.selected_index + 1)
-    refresh_ui()
-  end, opts)
-  vim.keymap.set("n", "k", function()
-    Ui.selected_index = math.max(1, Ui.selected_index - 1)
-    refresh_ui()
-  end, opts)
-
-  -- actions
-  vim.keymap.set("n", "<Space>", function()
-    if Ui.mode == "files" then stage_unstage_selected() end
-  end, opts)
-
-  vim.keymap.set("n", "D", function()
-    if Ui.mode == "files" then discard_changes_selected() end
-    if Ui.mode == "branches" then delete_branch() end
-  end, opts)
-
-  vim.keymap.set("n", "c", function()
-    if Ui.mode == "branches" then checkout_branch() end
-  end, opts)
-
-  vim.keymap.set("n", "r", function() refresh_data() end, opts)
-
-  -- view raw diff for current selection in right pane
-  vim.keymap.set("n", "p", function()
-    -- refresh right pane explicitly
-    render_right()
-    focus_right()
-  end, opts)
-
-  -- open file in editor from files mode
-  vim.keymap.set("n", "o", function()
-    if Ui.mode ~= "files" then return end
-    local sel = Ui.changed_files[Ui.selected_index]
-    if not sel then return end
-    local root = git_root() or "."
-    local full = root .. "/" .. sel.value
-    vim.cmd("edit " .. vim.fn.fnameescape(full))
-  end, opts)
-
-  focus_left()
 end
 
 return M
-
