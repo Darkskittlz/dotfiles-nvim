@@ -700,31 +700,74 @@ function M.open_git_ui()
   local row = math.floor((editor_h - total_h) / 2)
   local col = math.floor((editor_w - w) / 2)
 
-  -- Create left window (branches/files list)
-  Ui.left_win =
-      vim.api.nvim_open_win(Ui.left_buf, true, {
-        relative = "editor",
-        width = w,
-        height = top_h,
-        row = row,
-        col = col,
-        style = "minimal",
-        border = "rounded",
-        zindex = 1000,
-      })
+  -- Create a blank buffer that covers the whole editor
+  local blank_buf =
+      vim.api.nvim_create_buf(false, true) -- nofile, ephemeral
+  vim.api.nvim_buf_set_option(
+    blank_buf,
+    "buftype",
+    "nofile"
+  )
+  vim.api.nvim_buf_set_option(
+    blank_buf,
+    "bufhidden",
+    "wipe"
+  )
+  vim.api.nvim_buf_set_lines(
+    blank_buf,
+    0,
+    -1,
+    false,
+    {}
+  ) -- empty content
 
-  -- Create right window (preview)
-  Ui.right_win =
-      vim.api.nvim_open_win(Ui.right_buf, false, {
-        relative = "editor",
-        width = w,
-        height = bottom_h,
-        row = row + top_h + 2,
-        col = col,
-        style = "minimal",
-        border = "rounded",
-        zindex = 1000,
-      })
+  -- Fullscreen blank background (non-focusable)
+  full_win = vim.api.nvim_open_win(blank_buf, false, {
+    relative = "editor",
+    width = ui.width,
+    height = ui.height,
+    row = 0,
+    col = 0,
+    style = "minimal",
+    border = "none",
+    zindex = 1,       -- LOW zindex
+    focusable = false -- won't steal input
+  })
+
+  -- Git picker left window
+  Ui.left_win = vim.api.nvim_open_win(Ui.left_buf, true, {
+    relative = "editor",
+    width = w,
+    height = top_h,
+    row = row,
+    col = col,
+    style = "minimal",
+    border = "rounded",
+    zindex = 10, -- HIGHER than blank
+  })
+
+  -- Git picker right window
+  Ui.right_win = vim.api.nvim_open_win(Ui.right_buf, false, {
+    relative = "editor",
+    width = w,
+    height = bottom_h,
+    row = row + top_h + 2,
+    col = col,
+    style = "minimal",
+    border = "rounded",
+    zindex = 10, -- HIGHER than blank
+  })
+
+  vim.api.nvim_buf_set_option(
+    blank_buf,
+    "modifiable",
+    false
+  )
+  vim.api.nvim_buf_set_option(
+    blank_buf,
+    "buflisted",
+    false
+  )
 
   -- Set buffer options for both buffers
   for _, buf in ipairs({
@@ -756,22 +799,55 @@ function M.open_git_ui()
 
   -- Function to close UI
   local function close_ui()
+    -- Close left picker window
     if
         Ui.left_win
         and vim.api.nvim_win_is_valid(Ui.left_win)
     then
       vim.api.nvim_win_close(Ui.left_win, true)
     end
+
+    -- Close right picker window
     if
         Ui.right_win
         and vim.api.nvim_win_is_valid(Ui.right_win)
     then
       vim.api.nvim_win_close(Ui.right_win, true)
     end
+
+    -- Close full-screen blank window
+    if
+        full_win
+        and vim.api.nvim_win_is_valid(full_win)
+    then
+      vim.api.nvim_win_close(full_win, true)
+    end
+
+    -- Delete the buffers if they still exist
+    for _, buf in ipairs({
+      Ui.left_buf,
+      Ui.right_buf,
+      blank_buf,
+    }) do
+      if
+          buf and vim.api.nvim_buf_is_valid(buf)
+      then
+        vim.api.nvim_buf_delete(
+          buf,
+          { force = true }
+        )
+      end
+    end
+
+    -- Clear UI state
     Ui.left_win, Ui.right_win, Ui.left_buf, Ui.right_buf =
         nil, nil, nil, nil
+
+    -- Restore focus to the previously active window
     vim.schedule(function()
-      pcall(vim.cmd, "wincmd p")
+      pcall(function()
+        vim.cmd("wincmd p")
+      end)
     end)
   end
 
