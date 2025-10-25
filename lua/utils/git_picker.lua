@@ -99,19 +99,14 @@ local function get_changed_files(branch)
   branch = branch or "HEAD" -- fallback if not provided
 
   -------------------------------------------------------------------------
-  -- Run two Git commands:
-  --   - `git diff --cached` → shows *staged* changes
-  --   - `git diff`          → shows *unstaged* changes
-  --
-  -- Both commands output lines like:
-  --   M some/file.lua
-  --   A new/file.txt
-  --   D deleted/file.js
+  -- Run Git commands:
+  --   - `git diff --cached --name-status` → staged changes
+  --   - `git diff --name-status`          → unstaged changes
   -------------------------------------------------------------------------
-  local staged = run_git(
+  local staged_lines = run_git(
     "git diff --cached --name-status " .. branch
   ) or {}
-  local unstaged = run_git(
+  local unstaged_lines = run_git(
     "git diff --name-status " .. branch
   ) or {}
 
@@ -124,48 +119,64 @@ local function get_changed_files(branch)
 
   -------------------------------------------------------------------------
   -- Helper: add(status, path, staged_flag)
-  -- Adds or updates a file entry depending on whether it’s staged.
   -------------------------------------------------------------------------
   local function add(status, path, staged_flag)
-    -- If file hasn't been seen yet, create a new entry
     if not index[path] then
       index[path] = {
-        value = path, -- file path
-        status = status, -- M / A / D etc.
-        staged = staged_flag, -- true if from --cached diff
+        value = path,
+        status = status or "M",
+        staged = staged_flag or false,
       }
       table.insert(results, index[path])
     else
-      -- If we've already seen it (e.g., appears in both diffs)
-      -- and this is the *unstaged* version, mark it as unstaged
-      -- and update its status to the latest one.
-      if not staged_flag then
-        index[path].staged = false
+      -- Update staged flag and status if necessary
+      if staged_flag then
+        index[path].staged = true
+        index[path].status = status
+          or index[path].status
+      else
+        index[path].staged = index[path].staged
+          or false
         index[path].status = status
           or index[path].status
       end
     end
+    print(
+      "get_changed_files: file=",
+      path,
+      "status=",
+      status,
+      "staged=",
+      index[path].staged
+    )
   end
 
   -------------------------------------------------------------------------
-  -- Parse the staged diff output
-  -- Each line is like: "M  path/to/file"
+  -- Parse staged lines
   -------------------------------------------------------------------------
-  for _, line in ipairs(staged) do
-    if line and line:match("%S") then -- skip blank lines
+  for _, line in ipairs(staged_lines) do
+    if line and line:match("%S") then
+      -- line format: "M  path/to/file" or "A  path/to/file"
       local s, p = line:match("^(%S+)%s+(.*)$")
+      if not s then
+        -- fallback if --name-status didn't provide status
+        s, p = "M", line
+      end
       if p then
         add(s, p, true)
       end
     end
   end
+
   -------------------------------------------------------------------------
-  -- Parse the unstaged diff output
-  -- Similar format, but mark files as unstaged
+  -- Parse unstaged lines
   -------------------------------------------------------------------------
-  for _, line in ipairs(unstaged) do
+  for _, line in ipairs(unstaged_lines) do
     if line and line:match("%S") then
       local s, p = line:match("^(%S+)%s+(.*)$")
+      if not s then
+        s, p = "M", line
+      end
       if p then
         add(s, p, false)
       end
@@ -173,13 +184,7 @@ local function get_changed_files(branch)
   end
 
   -------------------------------------------------------------------------
-  -- Store final list of changed files on the global UI table
-  -- Each entry looks like:
-  --   {
-  --     value  = "src/main.lua",
-  --     status = "M",
-  --     staged = true / false
-  --   }
+  -- Store final list
   -------------------------------------------------------------------------
   Ui.changed_files = results
 end
@@ -210,8 +215,11 @@ end
 ---------------------------------------------------------------------------
 local function render_left()
   if not Ui.left_buf then
+    print("render_left: no left buffer")
     return
   end
+
+  print("render_left: starting, mode =", Ui.mode)
   vim.api.nvim_buf_set_option(
     Ui.left_buf,
     "modifiable",
@@ -222,12 +230,24 @@ local function render_left()
   local highlights = {} -- highlight info
 
   if Ui.mode == "branches" then
+    print("render_left: loading branches")
     load_branches()
     local current = run_git(
       "git rev-parse --abbrev-ref HEAD"
     )[1] or ""
+    print(
+      "render_left: current branch =",
+      current
+    )
     for i, b in ipairs(Ui.branches) do
       local marker = (b == current) and "*" or " "
+      print(
+        "render_left: branch",
+        i,
+        b,
+        "marker:",
+        marker
+      )
       table.insert(
         lines,
         string.format("%2s %s", marker, b)
@@ -240,9 +260,27 @@ local function render_left()
       end
     end
   else
+    print(
+      "render_left: rendering changed files, selected branch =",
+      Ui.branch_selected
+    )
+    print("render_left: get_changed_files call")
     get_changed_files(Ui.branch_selected)
+    print(
+      "render_left: Ui.changed_files count =",
+      #Ui.changed_files
+    )
     for i, f in ipairs(Ui.changed_files) do
+      print(
+        string.format(
+          "render_left: file[%d] = %s staged=%s",
+          i,
+          f.value,
+          tostring(f.staged)
+        )
+      )
       local prefix = f.staged and "[S]" or "[U]"
+      print("render_left: prefix =", prefix)
       local line = string.format(
         "%s %s %s",
         prefix,
@@ -260,7 +298,7 @@ local function render_left()
         length = 3, -- only highlight [U]/[S]
       })
 
-      -- Optionally, highlight the filename itself differently
+      -- Highlight filename differently
       table.insert(highlights, {
         line = i,
         hl = f.staged and "GitStagedFile"
@@ -271,7 +309,10 @@ local function render_left()
     end
   end
 
-  -- Update buffer lines
+  print(
+    "render_left: writing lines to buffer, line count =",
+    #lines
+  )
   vim.api.nvim_buf_set_lines(
     Ui.left_buf,
     0,
@@ -303,6 +344,7 @@ local function render_left()
     "modifiable",
     false
   )
+  print("render_left: done")
 end
 
 ---------------------------------------------------------------------------
@@ -434,22 +476,43 @@ end
 -- Stage or unstage the selected file
 local function stage_unstage_selected()
   if Ui.mode ~= "files" then
+    print(
+      "stage_unstage_selected: not in files mode, exiting"
+    )
     return
   end
 
   local sel = Ui.changed_files[Ui.selected_index]
   if not sel then
+    print(
+      "stage_unstage_selected: no file selected at index",
+      Ui.selected_index
+    )
     return
   end
+
+  print(
+    "stage_unstage_selected: selected file =",
+    sel.value,
+    "staged =",
+    sel.staged
+  )
 
   local root = git_root()
   local staged_files =
     run_git("git diff --cached --name-only")
-  local cmd
+  print(
+    "stage_unstage_selected: currently staged files:",
+    table.concat(staged_files, ", ")
+  )
 
+  local cmd
   if
     vim.tbl_contains(staged_files, sel.value)
   then
+    print(
+      "stage_unstage_selected: file is staged, will unstage"
+    )
     cmd = {
       "git",
       "restore",
@@ -457,19 +520,71 @@ local function stage_unstage_selected()
       root .. "/" .. sel.value,
     }
   else
+    print(
+      "stage_unstage_selected: file is not staged, will stage"
+    )
     cmd =
       { "git", "add", root .. "/" .. sel.value }
   end
 
-  vim.fn.system(cmd)
+  -- Run the git command
+  local result = vim.fn.system(cmd)
+  print(
+    "stage_unstage_selected: git command executed, output:\n",
+    result
+  )
 
-  -- ✅ Refresh changed files immediately
+  -- Refresh changed files
+  print(
+    "stage_unstage_selected: refreshing changed files"
+  )
   get_changed_files(Ui.branch_selected)
-  render_left() -- explicitly redraw the left panel
+  print(
+    "stage_unstage_selected: Ui.changed_files after refresh:"
+  )
+  for i, f in ipairs(Ui.changed_files) do
+    print(
+      string.format(
+        "  [%d] %s staged=%s status=%s",
+        i,
+        f.value,
+        tostring(f.staged),
+        f.status or ""
+      )
+    )
+  end
+
+  -- Redraw panels
+  print(
+    "stage_unstage_selected: rendering left panel"
+  )
+  render_left()
+  print(
+    "stage_unstage_selected: rendering right panel"
+  )
+  render_right()
+
+  -- Highlight selected line briefly
+  vim.api.nvim_buf_add_highlight(
+    Ui.left_buf,
+    -1,
+    "Visual",
+    Ui.selected_index - 1,
+    0,
+    -1
+  )
+  vim.defer_fn(function()
+    print(
+      "stage_unstage_selected: deferred render_left"
+    )
+    render_left()
+  end, 100)
+
   vim.api.nvim_win_set_cursor(
     Ui.left_win,
     { Ui.selected_index, 0 }
   )
+  print("stage_unstage_selected: finished")
 end
 
 -- Discard changes for the selected file
