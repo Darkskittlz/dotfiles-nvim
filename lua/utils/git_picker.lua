@@ -1,7 +1,6 @@
 -- git_picker_no_telescope.lua
 ---@diagnostic disable: undefined-global
 local M = {}
-local full_win = nil
 
 -- Highlights
 vim.api.nvim_set_hl(
@@ -128,7 +127,7 @@ local function load_branches()
 
   -- Default selected branch
   Ui.branch_selected = Ui.branch_selected
-      or Ui.branches[1]
+    or Ui.branches[1]
 end
 
 ---------------------------------------------------------------------------
@@ -173,12 +172,12 @@ local function get_changed_files(branch)
       if staged_flag then
         index[path].staged = true
         index[path].status = status
-            or index[path].status
+          or index[path].status
       else
         index[path].staged = index[path].staged
-            or false
+          or false
         index[path].status = status
-            or index[path].status
+          or index[path].status
       end
     end
     -- print(
@@ -243,7 +242,7 @@ local function get_diff_for_target(target)
     vim.fn.shellescape(target)
   )
   local out =
-      vim.fn.systemlist({ "bash", "-c", cmd })
+    vim.fn.systemlist({ "bash", "-c", cmd })
   if vim.v.shell_error ~= 0 or #out == 0 then
     return { "[No changes]" }
   end
@@ -266,7 +265,7 @@ local function render_left()
     true
   )
 
-  local lines = {}      -- lines to write
+  local lines = {} -- lines to write
   local highlights = {} -- highlight info
 
   if Ui.mode == "branches" then
@@ -331,7 +330,7 @@ local function render_left()
       table.insert(highlights, {
         line = i,
         hl = f.staged and "GitStaged"
-            or "GitUnstaged",
+          or "GitUnstaged",
         col = 0,
         length = #line, -- only highlight [U]/[S]
       })
@@ -340,7 +339,7 @@ local function render_left()
       table.insert(highlights, {
         line = i,
         hl = f.staged and "GitStagedFile"
-            or "GitUnstagedFile",
+          or "GitUnstagedFile",
         col = 4,
         length = #f.value,
       })
@@ -405,7 +404,7 @@ local function render_right()
     local branch = Ui.branch_selected or "HEAD"
     out = run_git(
       "git log --oneline --decorate "
-      .. vim.fn.shellescape(branch)
+        .. vim.fn.shellescape(branch)
     )
     if #out == 0 then
       out = { "[No commits]" }
@@ -417,9 +416,9 @@ local function render_right()
     )
   else
     local sel =
-        Ui.changed_files[Ui.selected_index]
+      Ui.changed_files[Ui.selected_index]
     out = sel and get_diff_for_target(sel.value)
-        or { "[No file selected]" }
+      or { "[No file selected]" }
     vim.api.nvim_buf_set_option(
       Ui.right_buf,
       "filetype",
@@ -444,7 +443,7 @@ end
 local function refresh_ui()
   if Ui.mode == "branches" then
     Ui.branch_selected =
-        Ui.branches[Ui.selected_index]
+      Ui.branches[Ui.selected_index]
   end
 
   render_left()
@@ -452,7 +451,7 @@ local function refresh_ui()
 
   local total = (Ui.mode == "branches")
       and #Ui.branches
-      or #Ui.changed_files
+    or #Ui.changed_files
   Ui.selected_index = math.max(
     1,
     math.min(
@@ -462,8 +461,8 @@ local function refresh_ui()
   )
 
   if
-      Ui.left_win
-      and vim.api.nvim_win_is_valid(Ui.left_win)
+    Ui.left_win
+    and vim.api.nvim_win_is_valid(Ui.left_win)
   then
     vim.api.nvim_win_set_cursor(
       Ui.left_win,
@@ -475,8 +474,8 @@ end
 -- Focus helpers
 local function focus_left()
   if
-      Ui.left_win
-      and vim.api.nvim_win_is_valid(Ui.left_win)
+    Ui.left_win
+    and vim.api.nvim_win_is_valid(Ui.left_win)
   then
     vim.api.nvim_set_current_win(Ui.left_win)
   end
@@ -484,8 +483,8 @@ end
 
 local function focus_right()
   if
-      Ui.right_win
-      and vim.api.nvim_win_is_valid(Ui.right_win)
+    Ui.right_win
+    and vim.api.nvim_win_is_valid(Ui.right_win)
   then
     vim.api.nvim_set_current_win(Ui.right_win)
   end
@@ -498,7 +497,7 @@ local function toggle_mode()
   end
 
   Ui.mode = (Ui.mode == "branches") and "files"
-      or "branches"
+    or "branches"
   Ui.selected_index = 1
   refresh_ui()
   focus_left()
@@ -506,18 +505,18 @@ local function toggle_mode()
   if Ui.mode == "files" then
     -- Update staged files preview
     staged_files =
-        run_git("git diff --cached --name-only")
+      run_git("git diff --cached --name-only")
   end
 
   -- Update the title of the left window dynamically
   if
-      Ui.left_win
-      and vim.api.nvim_win_is_valid(Ui.left_win)
+    Ui.left_win
+    and vim.api.nvim_win_is_valid(Ui.left_win)
   then
     vim.api.nvim_win_set_config(Ui.left_win, {
       title = (Ui.mode == "branches")
           and " Git Branches "
-          or " Files Changed ",
+        or " Files Changed ",
     })
   end
 end
@@ -549,7 +548,7 @@ local function stage_unstage_selected()
 
   local root = git_root()
   local staged_files =
-      run_git("git diff --cached --name-only")
+    run_git("git diff --cached --name-only")
   -- print(
   --   "stage_unstage_selected: currently staged files:",
   --   table.concat(staged_files, ", ")
@@ -557,7 +556,7 @@ local function stage_unstage_selected()
 
   local cmd
   if
-      vim.tbl_contains(staged_files, sel.value)
+    vim.tbl_contains(staged_files, sel.value)
   then
     -- print(
     --   "stage_unstage_selected: file is staged, will unstage"
@@ -573,7 +572,7 @@ local function stage_unstage_selected()
     --   "stage_unstage_selected: file is not staged, will stage"
     -- )
     cmd =
-    { "git", "add", root .. "/" .. sel.value }
+      { "git", "add", root .. "/" .. sel.value }
   end
 
   -- Run the git command
@@ -648,20 +647,88 @@ local function discard_changes_selected()
   end
 
   if
-      vim.fn.confirm(
-        "Discard changes to " .. sel.value .. "?",
-        "Yes\nNo",
-        2
-      ) ~= 1
+    vim.fn.confirm(
+      "Discard changes to " .. sel.value .. "?",
+      "Yes\nNo",
+      2
+    ) ~= 1
   then
     return
   end
 
   local root = git_root()
   local cmd =
-  { "git", "restore", root .. "/" .. sel.value }
+    { "git", "restore", root .. "/" .. sel.value }
   vim.fn.system(cmd)
   refresh_ui()
+end
+
+local function show_centered_message(msg, icon)
+  icon = icon or "💬" -- default icon
+  local buf = vim.api.nvim_create_buf(false, true)
+  local lines = vim.split(msg, "\n")
+
+  -- Prepend icon to first line
+  if #lines > 0 then
+    lines[1] = icon .. " " .. lines[1]
+  else
+    lines = { icon }
+  end
+
+  vim.api.nvim_buf_set_lines(
+    buf,
+    0,
+    -1,
+    false,
+    lines
+  )
+
+  -- Create a white text highlight
+  vim.api.nvim_set_hl(
+    0,
+    "CenteredMessage",
+    { fg = "#FFFFFF", bold = true }
+  )
+
+  for i = 0, #lines - 1 do
+    vim.api.nvim_buf_add_highlight(
+      buf,
+      -1,
+      "CenteredMessage",
+      i,
+      0,
+      -1
+    )
+  end
+
+  local width =
+    math.max(60, math.min(80, #lines[1] + 4))
+  local height = #lines
+  local ui = vim.api.nvim_list_uis()[1]
+
+  local win = vim.api.nvim_open_win(buf, false, {
+    relative = "editor",
+    width = width,
+    height = height,
+    row = 2,
+    col = math.floor((ui.width - width) / 2),
+    style = "minimal",
+    border = "rounded",
+    zindex = 50,
+  })
+
+  vim.api.nvim_buf_set_option(
+    buf,
+    "modifiable",
+    false
+  )
+
+  -- Auto close after 2 seconds
+  vim.defer_fn(function()
+    if vim.api.nvim_win_is_valid(win) then
+      vim.api.nvim_win_close(win, true)
+    end
+  end, 2000)
 end
 
 local function show_centered_error(msg)
@@ -739,7 +806,7 @@ local function checkout_branch()
 
   -- Check for uncommitted changes
   local status =
-      vim.fn.systemlist("git status --porcelain")
+    vim.fn.systemlist("git status --porcelain")
   print("DEBUG: git status lines =", #status)
   if #status > 0 then
     print(
@@ -754,7 +821,7 @@ local function checkout_branch()
   -- Switch branch using 'git switch'
   print("DEBUG: Running git switch command")
   local cmd = "git switch "
-      .. vim.fn.shellescape(branch)
+    .. vim.fn.shellescape(branch)
   local result = vim.fn.system(cmd)
   print(
     "DEBUG: git switch result =",
@@ -779,18 +846,18 @@ local function checkout_branch()
     "DEBUG: branch_selected updated to",
     Ui.branch_selected
   )
-  vim.notify(
+  show_centered_message(
     "Switched to branch: " .. branch,
     vim.log.levels.INFO
   )
 
   -- === Refresh branch window (flicker-free) ===
   if
-      Ui.full_win
-      and vim.api.nvim_win_is_valid(Ui.full_win)
+    Ui.full_win
+    and vim.api.nvim_win_is_valid(Ui.full_win)
   then
     local buf =
-        vim.api.nvim_win_get_buf(Ui.full_win)
+      vim.api.nvim_win_get_buf(Ui.full_win)
     vim.api.nvim_buf_set_option(
       buf,
       "modifiable",
@@ -800,7 +867,7 @@ local function checkout_branch()
     local lines = {}
     for i, b in ipairs(Ui.branches) do
       local prefix = (b == branch) and "* "
-          or "  "
+        or "  "
       table.insert(lines, prefix .. b)
     end
 
@@ -855,12 +922,12 @@ local function delete_branch()
     "git branch -D " .. vim.fn.shellescape(branch)
   )
   if vim.v.shell_error ~= 0 then
-    vim.notify(
+    show_centered_message(
       "Failed to delete branch: " .. out,
       vim.log.levels.ERROR
     )
   else
-    vim.notify(
+    show_centered_message(
       "Deleted branch: " .. branch,
       vim.log.levels.INFO
     )
@@ -875,9 +942,9 @@ end
 function M.open_git_ui()
   -- Create buffers
   Ui.right_buf =
-      vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_create_buf(false, true)
   Ui.left_buf =
-      vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_create_buf(false, true)
 
   -- Determine sizes
   local w = 90 -- width of each window
@@ -896,7 +963,7 @@ function M.open_git_ui()
 
   -- Create a blank buffer that covers the whole editor
   local blank_buf =
-      vim.api.nvim_create_buf(false, true) -- nofile, ephemeral
+    vim.api.nvim_create_buf(false, true) -- nofile, ephemeral
   vim.api.nvim_buf_set_option(
     blank_buf,
     "buftype",
@@ -918,47 +985,47 @@ function M.open_git_ui()
 
   -- Fullscreen blank background (non-focusable)
   Ui.full_win =
-      vim.api.nvim_open_win(blank_buf, false, {
-        relative = "editor",
-        width = ui.width,
-        height = ui.height,
-        row = 0,
-        col = 0,
-        style = "minimal",
-        border = "none",
-        zindex = 1,        -- LOW zindex
-        focusable = false, -- won't steal input
-      })
+    vim.api.nvim_open_win(blank_buf, false, {
+      relative = "editor",
+      width = ui.width,
+      height = ui.height,
+      row = 0,
+      col = 0,
+      style = "minimal",
+      border = "none",
+      zindex = 1, -- LOW zindex
+      focusable = false, -- won't steal input
+    })
 
   -- Git picker left window
   Ui.left_win =
-      vim.api.nvim_open_win(Ui.left_buf, true, {
-        relative = "editor",
-        width = w,
-        height = top_h,
-        row = row,
-        col = col,
-        style = "minimal",
-        border = "rounded",
-        title = (Ui.mode == "branches")
-            and " Git Branches "
-            or " Files Changed ",
-        title_pos = "center",
-        zindex = 10, -- HIGHER than blank
-      })
+    vim.api.nvim_open_win(Ui.left_buf, true, {
+      relative = "editor",
+      width = w,
+      height = top_h,
+      row = row,
+      col = col,
+      style = "minimal",
+      border = "rounded",
+      title = (Ui.mode == "branches")
+          and " Git Branches "
+        or " Files Changed ",
+      title_pos = "center",
+      zindex = 10, -- HIGHER than blank
+    })
 
   -- Git picker right window
   Ui.right_win =
-      vim.api.nvim_open_win(Ui.right_buf, false, {
-        relative = "editor",
-        width = w,
-        height = bottom_h,
-        row = row + top_h + 2,
-        col = col,
-        style = "minimal",
-        border = "rounded",
-        zindex = 10,
-      })
+    vim.api.nvim_open_win(Ui.right_buf, false, {
+      relative = "editor",
+      width = w,
+      height = bottom_h,
+      row = row + top_h + 2,
+      col = col,
+      style = "minimal",
+      border = "rounded",
+      zindex = 10,
+    })
 
   vim.api.nvim_buf_set_option(
     blank_buf,
@@ -1003,24 +1070,24 @@ function M.open_git_ui()
   local function close_ui()
     -- Close left picker window
     if
-        Ui.left_win
-        and vim.api.nvim_win_is_valid(Ui.left_win)
+      Ui.left_win
+      and vim.api.nvim_win_is_valid(Ui.left_win)
     then
       vim.api.nvim_win_close(Ui.left_win, true)
     end
 
     -- Close right picker window
     if
-        Ui.right_win
-        and vim.api.nvim_win_is_valid(Ui.right_win)
+      Ui.right_win
+      and vim.api.nvim_win_is_valid(Ui.right_win)
     then
       vim.api.nvim_win_close(Ui.right_win, true)
     end
 
     -- Close full-screen blank window
     if
-        Ui.full_win
-        and vim.api.nvim_win_is_valid(Ui.full_win)
+      Ui.full_win
+      and vim.api.nvim_win_is_valid(Ui.full_win)
     then
       vim.api.nvim_win_close(Ui.full_win, true)
       Ui.full_win = nil -- clear it after closing
@@ -1033,7 +1100,7 @@ function M.open_git_ui()
       blank_buf,
     }) do
       if
-          buf and vim.api.nvim_buf_is_valid(buf)
+        buf and vim.api.nvim_buf_is_valid(buf)
       then
         vim.api.nvim_buf_delete(
           buf,
@@ -1044,7 +1111,7 @@ function M.open_git_ui()
 
     -- Clear UI state
     Ui.left_win, Ui.right_win, Ui.left_buf, Ui.right_buf =
-        nil, nil, nil, nil
+      nil, nil, nil, nil
 
     -- Restore focus to the previously active window
     vim.schedule(function()
@@ -1083,7 +1150,7 @@ function M.open_git_ui()
         or #Ui.changed_files
       )
       Ui.selected_index =
-          math.min(max_items, Ui.selected_index + 1)
+        math.min(max_items, Ui.selected_index + 1)
       refresh_ui()
     end, {
       buffer = buf,
@@ -1092,7 +1159,7 @@ function M.open_git_ui()
     })
     vim.keymap.set("n", "k", function()
       Ui.selected_index =
-          math.max(1, Ui.selected_index - 1)
+        math.max(1, Ui.selected_index - 1)
       refresh_ui()
     end, {
       buffer = buf,
@@ -1113,7 +1180,7 @@ function M.open_git_ui()
         or #Ui.changed_files
       )
       Ui.selected_index =
-          math.min(max_items, Ui.selected_index + 1)
+        math.min(max_items, Ui.selected_index + 1)
       refresh_ui()
     end, {
       buffer = buf,
@@ -1131,7 +1198,7 @@ function M.open_git_ui()
 
       -- Scroll selection in left panel
       Ui.selected_index =
-          math.max(1, Ui.selected_index - 1)
+        math.max(1, Ui.selected_index - 1)
       refresh_ui()
     end, {
       buffer = buf,
@@ -1161,17 +1228,17 @@ function M.open_git_ui()
     -- Commit Keymap
     vim.keymap.set("n", "c", function()
       local branch =
-          Ui.branches[Ui.selected_index]
+        Ui.branches[Ui.selected_index]
       if not branch or branch == "" then
         branch = Ui.branch_selected or "HEAD"
       end
 
       local width =
-          math.floor(vim.o.columns * 0.9)
+        math.floor(vim.o.columns * 0.9)
       local height_title = 1
       local height_desc = 3
       local height_diff =
-          math.floor(vim.o.lines * 0.7)
+        math.floor(vim.o.lines * 0.7)
       local spacing = 1
       local row = math.floor(
         (
@@ -1185,13 +1252,13 @@ function M.open_git_ui()
         ) / 2
       )
       local col =
-          math.floor((vim.o.columns - width) / 2)
+        math.floor((vim.o.columns - width) / 2)
 
       -- =========================
       -- Background overlay
       -- =========================
       local buf_overlay =
-          vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_create_buf(false, true)
       vim.api.nvim_buf_set_lines(
         buf_overlay,
         0,
@@ -1216,7 +1283,7 @@ function M.open_git_ui()
 
       -- Buffers for popup
       local buf_title =
-          vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_create_buf(false, true)
       vim.api.nvim_buf_set_option(
         buf_title,
         "buftype",
@@ -1236,7 +1303,7 @@ function M.open_git_ui()
       )
 
       local buf_desc =
-          vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_create_buf(false, true)
       vim.api.nvim_buf_set_option(
         buf_desc,
         "buftype",
@@ -1256,7 +1323,7 @@ function M.open_git_ui()
       )
 
       local buf_label =
-          vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_create_buf(false, true)
       vim.api.nvim_buf_set_option(
         buf_label,
         "buftype",
@@ -1269,7 +1336,7 @@ function M.open_git_ui()
       )
       local commit_label = "Commit Message"
       local padding =
-          math.floor((width - #commit_label) / 2)
+        math.floor((width - #commit_label) / 2)
       vim.api.nvim_buf_set_lines(
         buf_label,
         0,
@@ -1277,12 +1344,12 @@ function M.open_git_ui()
         false,
         {
           string.rep(" ", padding)
-          .. commit_label,
+            .. commit_label,
         }
       )
 
       local buf_diff =
-          vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_create_buf(false, true)
       vim.api.nvim_buf_set_option(
         buf_diff,
         "buftype",
@@ -1305,12 +1372,12 @@ function M.open_git_ui()
         true
       )
       local diff_cmd = "git diff --cached "
-          .. vim.fn.shellescape(branch)
+        .. vim.fn.shellescape(branch)
       local diff_lines =
-          vim.fn.systemlist(diff_cmd)
+        vim.fn.systemlist(diff_cmd)
       if
-          vim.v.shell_error ~= 0
-          or #diff_lines == 0
+        vim.v.shell_error ~= 0
+        or #diff_lines == 0
       then
         diff_lines = { "[No staged changes]" }
       end
@@ -1329,53 +1396,53 @@ function M.open_git_ui()
 
       -- Windows
       local win_label =
-          vim.api.nvim_open_win(buf_label, false, {
-            relative = "editor",
-            width = width,
-            height = height_title,
-            row = row,
-            col = col,
-            style = "minimal",
-            border = "none",
-            zindex = 300,
-          })
+        vim.api.nvim_open_win(buf_label, false, {
+          relative = "editor",
+          width = width,
+          height = height_title,
+          row = row,
+          col = col,
+          style = "minimal",
+          border = "none",
+          zindex = 300,
+        })
       local win_title =
-          vim.api.nvim_open_win(buf_title, true, {
-            relative = "editor",
-            width = width,
-            height = height_title,
-            row = row + height_title,
-            col = col,
-            style = "minimal",
-            border = "rounded",
-            zindex = 300,
-          })
+        vim.api.nvim_open_win(buf_title, true, {
+          relative = "editor",
+          width = width,
+          height = height_title,
+          row = row + height_title,
+          col = col,
+          style = "minimal",
+          border = "rounded",
+          zindex = 300,
+        })
       local win_desc =
-          vim.api.nvim_open_win(buf_desc, true, {
-            relative = "editor",
-            width = width,
-            height = height_desc,
-            row = row + height_title * 2 + 2,
-            col = col,
-            style = "minimal",
-            border = "rounded",
-            zindex = 300,
-          })
+        vim.api.nvim_open_win(buf_desc, true, {
+          relative = "editor",
+          width = width,
+          height = height_desc,
+          row = row + height_title * 2 + 2,
+          col = col,
+          style = "minimal",
+          border = "rounded",
+          zindex = 300,
+        })
       local win_diff =
-          vim.api.nvim_open_win(buf_diff, false, {
-            relative = "editor",
-            width = width,
-            height = height_diff,
-            row = row
-                + height_title * 2
-                + height_desc
-                + 4,
-            col = col,
-            style = "minimal",
-            border = "rounded",
-            zindex = 300,
-            focusable = true,
-          })
+        vim.api.nvim_open_win(buf_diff, false, {
+          relative = "editor",
+          width = width,
+          height = height_diff,
+          row = row
+            + height_title * 2
+            + height_desc
+            + 4,
+          col = col,
+          style = "minimal",
+          border = "rounded",
+          zindex = 300,
+          focusable = true,
+        })
 
       -- Close popup helper
       local function close_commit_popup()
@@ -1393,10 +1460,10 @@ function M.open_git_ui()
 
         -- Restore focus to the git picker window
         if
+          Ui.full_win
+          and vim.api.nvim_win_is_valid(
             Ui.full_win
-            and vim.api.nvim_win_is_valid(
-              Ui.full_win
-            )
+          )
         then
           vim.api.nvim_set_current_win(
             Ui.left_win
@@ -1424,16 +1491,16 @@ function M.open_git_ui()
         )
         vim.fn.system("git add -A")
         local cmd = "git commit -m "
-            .. vim.fn.shellescape(title)
+          .. vim.fn.shellescape(title)
         if body:match("%S") then
           cmd = cmd
-              .. " -m "
-              .. vim.fn.shellescape(body)
+            .. " -m "
+            .. vim.fn.shellescape(body)
         end
         vim.fn.system(cmd)
-        vim.notify(
+        show_centered_message(
           "Committed changes on branch: "
-          .. branch,
+            .. branch,
           vim.log.levels.INFO
         )
         close_commit_popup()
@@ -1546,79 +1613,185 @@ function M.open_git_ui()
     })
 
     -- Pull latest changes
-    vim.keymap.set("n", "p", function()
-      if Ui.mode ~= "branches" then return end
-      local branch = Ui.branches[Ui.selected_index]
-      if not branch or branch == "" then
-        vim.notify("No branch selected", vim.log.levels.WARN)
-        return
-      end
+    vim.keymap.set(
+      "n",
+      "p",
+      function()
+        if Ui.mode ~= "branches" then
+          return
+        end
+        local branch =
+          Ui.branches[Ui.selected_index]
+        if not branch or branch == "" then
+          show_centered_message(
+            "No branch selected",
+            vim.log.levels.WARN
+          )
+          return
+        end
 
-      local cmd = "git pull origin " .. branch
-      vim.fn.system(cmd)
-      vim.notify("Pulled latest changes for branch: " .. branch, vim.log.levels.INFO)
-      refresh_ui()
-    end, { buffer = buf, noremap = true, silent = true })
-
+        local cmd = "git pull origin " .. branch
+        vim.fn.system(cmd)
+        show_centered_message(
+          "Pulled latest changes for branch: "
+            .. branch,
+          vim.log.levels.INFO
+        )
+        refresh_ui()
+      end,
+      {
+        buffer = buf,
+        noremap = true,
+        silent = true,
+      }
+    )
 
     -- Push branch
-    vim.keymap.set("n", "P", function()
-      if Ui.mode ~= "branches" then return end
-      local branch = Ui.branches[Ui.selected_index]
-      if not branch or branch == "" then
-        vim.notify("No branch selected", vim.log.levels.WARN)
-        return
-      end
+    vim.keymap.set(
+      "n",
+      "P",
+      function()
+        if Ui.mode ~= "branches" then
+          return
+        end
+        local branch =
+          Ui.branches[Ui.selected_index]
+        if not branch or branch == "" then
+          show_centered_message(
+            "No branch selected",
+            vim.log.levels.WARN
+          )
+          return
+        end
 
-      local spinner_chars = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
-      local spinner_idx = 1
+        local spinner_chars = {
+          "⠋",
+          "⠙",
+          "⠹",
+          "⠸",
+          "⠼",
+          "⠴",
+          "⠦",
+          "⠧",
+          "⠇",
+          "⠏",
+        }
+        local spinner_idx = 1
 
-      local function update_spinner()
-        vim.api.nvim_echo({ { "Pushing to " .. branch .. " " .. spinner_chars[spinner_idx], "None" } }, false, {})
-        spinner_idx = spinner_idx % #spinner_chars + 1
-      end
+        local function update_spinner()
+          vim.api.nvim_echo(
+            {
+              {
+                "Pushing to "
+                  .. branch
+                  .. " "
+                  .. spinner_chars[spinner_idx],
+                "None",
+              },
+            },
+            false,
+            {}
+          )
+          spinner_idx = spinner_idx
+              % #spinner_chars
+            + 1
+        end
 
-      local spinner_timer = vim.loop.new_timer()
-      spinner_timer:start(100, 100, vim.schedule_wrap(update_spinner))
+        local spinner_timer = vim.loop.new_timer()
+        spinner_timer:start(
+          100,
+          100,
+          vim.schedule_wrap(update_spinner)
+        )
 
-      vim.fn.jobstart({ "git", "push", "origin", branch }, {
-        on_exit = function(_, exit_code)
-          spinner_timer:stop()
-          spinner_timer:close()
-          vim.schedule(function()
-            vim.api.nvim_echo({}, false, {}) -- clear spinner
-            if exit_code == 0 then
-              vim.notify("Successfully pushed branch: " .. branch, vim.log.levels.INFO)
-            else
-              vim.notify("Failed to push branch: " .. branch, vim.log.levels.ERROR)
-            end
-          end)
-        end,
-      })
+        vim.fn.jobstart(
+          { "git", "push", "origin", branch },
+          {
+            on_exit = function(_, exit_code)
+              spinner_timer:stop()
+              spinner_timer:close()
+              vim.schedule(function()
+                vim.api.nvim_echo({}, false, {}) -- clear spinner
+                if exit_code == 0 then
+                  show_centered_message(
+                    "Successfully pushed branch: "
+                      .. branch,
+                    vim.log.levels.INFO
+                  )
+                else
+                  show_centered_message(
+                    "Failed to push branch: "
+                      .. branch,
+                    vim.log.levels.ERROR
+                  )
+                end
+              end)
+            end,
+          }
+        )
 
-      refresh_ui()
-    end, { buffer = buf, noremap = true, silent = true })
-
+        refresh_ui()
+      end,
+      {
+        buffer = buf,
+        noremap = true,
+        silent = true,
+      }
+    )
 
     -- Delete branch
-    vim.keymap.set("n", "d", function()
-      if Ui.mode ~= "branches" then return end
-      local branch = Ui.branches[Ui.selected_index]
-      if not branch or branch == "" then return end
-
-      vim.ui.input({ prompt = "Delete branch '" .. branch .. "'? (y/N): " }, function(input)
-        if input and input:lower() == "y" then
-          vim.fn.system("git branch -D " .. branch)
-          vim.notify("Deleted branch: " .. branch, vim.log.levels.INFO)
-          table.remove(Ui.branches, Ui.selected_index)
-          Ui.selected_index = math.min(#Ui.branches, Ui.selected_index)
-          refresh_ui()
-        else
-          vim.notify("Branch deletion canceled", vim.log.levels.INFO)
+    vim.keymap.set(
+      "n",
+      "d",
+      function()
+        if Ui.mode ~= "branches" then
+          return
         end
-      end)
-    end, { buffer = buf, noremap = true, silent = true })
+        local branch =
+          Ui.branches[Ui.selected_index]
+        if not branch or branch == "" then
+          return
+        end
 
+        vim.ui.input(
+          {
+            prompt = "Delete branch '"
+              .. branch
+              .. "'? (y/N): ",
+          },
+          function(input)
+            if input and input:lower() == "y" then
+              vim.fn.system(
+                "git branch -D " .. branch
+              )
+              show_centered_message(
+                "Deleted branch: " .. branch,
+                vim.log.levels.INFO
+              )
+              table.remove(
+                Ui.branches,
+                Ui.selected_index
+              )
+              Ui.selected_index = math.min(
+                #Ui.branches,
+                Ui.selected_index
+              )
+              refresh_ui()
+            else
+              show_centered_message(
+                "Branch deletion canceled",
+                vim.log.levels.INFO
+              )
+            end
+          end
+        )
+      end,
+      {
+        buffer = buf,
+        noremap = true,
+        silent = true,
+      }
+    )
 
     -- Close UI
     vim.keymap.set("n", "q", close_ui, {
