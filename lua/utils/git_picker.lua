@@ -27,19 +27,37 @@ vim.api.nvim_set_hl(
 
 local function maintain_fullscreen_bg()
   if
-    full_win
-    and vim.api.nvim_win_is_valid(full_win)
+      full_win
+      and vim.api.nvim_win_is_valid(full_win)
   then
-    -- force redraw to keep the blank window in the back
+    local buf = vim.api.nvim_win_get_buf(full_win)
+    vim.api.nvim_buf_set_option(
+      buf,
+      "modifiable",
+      true
+    )
+    vim.api.nvim_buf_set_lines(
+      buf,
+      1,
+      0,
+      false,
+      {}
+    ) -- empty content
+    vim.api.nvim_buf_set_option(
+      buf,
+      "modifiable",
+      false
+    )
+
     vim.api.nvim_win_set_config(full_win, {
       relative = "editor",
       width = vim.o.columns,
       height = vim.o.lines,
-      row = 0,
-      col = 0,
+      row = 1,
+      col = 1,
       style = "minimal",
       border = "none",
-      zindex = 1,
+      zindex = 2,
       focusable = false,
     })
   end
