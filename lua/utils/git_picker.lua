@@ -749,7 +749,7 @@ local function checkout_branch()
     return
   end
 
-  -- Actually switch branch using 'git switch' (flicker-free)
+  -- Switch branch using 'git switch'
   print("DEBUG: Running git switch command")
   local cmd = "git switch " .. vim.fn.shellescape(branch)
   local result = vim.fn.system(cmd)
@@ -761,17 +761,27 @@ local function checkout_branch()
     return
   end
 
-  -- Update internal Ui state
+  -- Update internal state
   Ui.branch_selected = branch
   print("DEBUG: branch_selected updated to", Ui.branch_selected)
-
-  -- Optional: Notify user without triggering window redraw
   vim.notify("Switched to branch: " .. branch, vim.log.levels.INFO)
 
-  -- Optional: refresh any picker / buffer UI if needed
+  -- === Refresh branch window (flicker-free) ===
   if Ui.full_win and vim.api.nvim_win_is_valid(Ui.full_win) then
-    -- Example: refresh the entries without closing the window
-    -- Ui.refresh_picker() -- placeholder if you have a refresh function
+    local buf = vim.api.nvim_win_get_buf(Ui.full_win)
+    vim.api.nvim_buf_set_option(buf, "modifiable", true)
+
+    local lines = {}
+    for i, b in ipairs(Ui.branches) do
+      local prefix = (b == branch) and "* " or "  "
+      table.insert(lines, prefix .. b)
+    end
+
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+    vim.api.nvim_buf_set_option(buf, "modifiable", false)
+
+    -- Move cursor to the selected branch
+    vim.api.nvim_win_set_cursor(Ui.full_win, { Ui.selected_index, 0 })
   end
 
   print("DEBUG: checkout_branch() finished")
