@@ -1,12 +1,6 @@
 -- git_picker_no_telescope.lua
 ---@diagnostic disable: undefined-global
 local M = {}
-vim.o.termguicolors = true -- ensure truecolor
-vim.api.nvim_set_hl(
-  0,
-  "NormalFloat",
-  { bg = "NONE" }
-)
 
 -- Highlights
 vim.api.nvim_set_hl(
@@ -30,101 +24,6 @@ vim.api.nvim_set_hl(
   { fg = "#268bd3", bold = true }
 )
 
--- Maintain a full-screen blank background
-local function maintain_fullscreen_bg()
-  if not full_win then
-    print("DEBUG: full_win is nil")
-    return
-  end
-  if not vim.api.nvim_win_is_valid(full_win) then
-    print("DEBUG: full_win is invalid")
-    return
-  end
-
-  local buf = vim.api.nvim_win_get_buf(full_win)
-  print("DEBUG: full_win buf =", buf)
-
-  -- Check buffer options
-  local buftype =
-      vim.api.nvim_buf_get_option(buf, "buftype")
-  local modifiable =
-      vim.api.nvim_buf_get_option(buf, "modifiable")
-  print(
-    "DEBUG: buftype =",
-    buftype,
-    "modifiable =",
-    modifiable
-  )
-
-  -- Get terminal size
-  local ui = vim.api.nvim_list_uis()[1]
-  print(
-    "DEBUG: ui width/height =",
-    ui.width,
-    ui.height
-  )
-
-  local empty_lines = {}
-  for _ = 1, ui.height do
-    table.insert(
-      empty_lines,
-      string.rep(" ", ui.width)
-    )
-  end
-
-  -- Fill the buffer
-  vim.api.nvim_buf_set_option(
-    buf,
-    "modifiable",
-    true
-  )
-  vim.api.nvim_buf_set_lines(
-    buf,
-    0,
-    -1,
-    false,
-    empty_lines
-  )
-  vim.api.nvim_buf_set_option(
-    buf,
-    "modifiable",
-    false
-  )
-
-  -- Clear namespace and highlight all lines
-  vim.api.nvim_buf_clear_namespace(buf, -1, 0, -1)
-  for i = 0, ui.height - 1 do
-    vim.api.nvim_buf_add_highlight(
-      buf,
-      -1,
-      "NormalFloat",
-      i,
-      0,
-      -1
-    )
-    print(
-      "DEBUG: highlight NormalFloat applied to line",
-      i
-    )
-  end
-
-  -- Position behind other floating windows
-  vim.api.nvim_win_set_config(full_win, {
-    relative = "editor",
-    width = ui.width,
-    height = ui.height,
-    row = 0,
-    col = 0,
-    style = "minimal",
-    border = "none",
-    zindex = 1,
-    focusable = false,
-  })
-
-  -- Force a redraw
-  vim.cmd("redraw")
-  print("DEBUG: maintain_fullscreen_bg completed")
-end
 
 vim.cmd([[
 highlight GitStaged guifg=green
@@ -851,10 +750,6 @@ local function checkout_branch()
 
   -- Update internal state only
   Ui.branch_selected = branch
-
-  -- Do not call refresh_ui() or render_left()
-  -- Only maintain your full-screen background
-  maintain_fullscreen_bg()
 end
 
 
