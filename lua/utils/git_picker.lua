@@ -1119,6 +1119,15 @@ function M.open_git_ui()
       silent = true,
     })
 
+
+    vim.keymap.set("n", "c", function()
+
+    end, {
+      buffer = buf,
+      noremap = true,
+      silent = true,
+    })
+
     vim.keymap.set("n", "D", function()
       local win = vim.api.nvim_get_current_win()
       if win ~= Ui.left_win then
