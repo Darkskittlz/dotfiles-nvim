@@ -1531,9 +1531,9 @@ function M.open_git_ui()
         end
         vim.fn.system(cmd)
         show_centered_message(
-          "🌸 Committed changes on branch: "
+          "Committed changes on branch: "
             .. branch,
-          ""
+          "🌸"
         )
         close_commit_popup()
       end
