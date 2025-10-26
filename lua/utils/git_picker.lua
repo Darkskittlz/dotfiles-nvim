@@ -721,10 +721,11 @@ local function show_centered_error(msg)
   end, 2000)
 end
 
+print("DEBUG: full_win after =", full_win)
 -- Checkout the selected branch
 local function checkout_branch()
   print("DEBUG: Starting checkout_branch()")
-  
+
   if Ui.mode ~= "branches" then
     print("DEBUG: Not in branches mode, exiting")
     return
@@ -751,7 +752,7 @@ local function checkout_branch()
   -- Actually switch branch
   print("DEBUG: Running git checkout command")
   local result = vim.fn.system("git checkout " .. vim.fn.shellescape(branch))
-  print("DEBUG: git checkout result =", result:gsub("\n","\\n"))
+  print("DEBUG: git checkout result =", result:gsub("\n", "\\n"))
   print("DEBUG: vim.v.shell_error =", vim.v.shell_error)
   if vim.v.shell_error ~= 0 then
     vim.notify("Failed to checkout branch: " .. result, vim.log.levels.ERROR)
@@ -761,6 +762,14 @@ local function checkout_branch()
   -- Update internal state only
   Ui.branch_selected = branch
   print("DEBUG: branch_selected updated to", Ui.branch_selected)
+
+  -- === Debugging Neovim state ===
+  print("DEBUG: Namespaces:")
+  local ns = vim.api.nvim_get_namespaces()
+  print(vim.inspect(ns))
+
+  print("DEBUG: Autocmds:")
+  vim.cmd("autocmd") -- will print all active autocommands
 
   -- Inspect current buffers and windows to see if anything could trigger redraw
   local wins = vim.api.nvim_list_wins()
@@ -775,11 +784,15 @@ local function checkout_branch()
   local uis = vim.api.nvim_list_uis()
   print("DEBUG: Number of UIs =", #uis)
   for i, ui in ipairs(uis) do
-    print(string.format("DEBUG: ui %d -> width=%d, height=%d, termguicolors=%s", i, ui.width, ui.height, vim.o.termguicolors))
+    print(string.format("DEBUG: ui %d -> width=%d, height=%d, termguicolors=%s", i, ui.width, ui.height,
+      vim.o.termguicolors))
   end
 
   print("DEBUG: checkout_branch() finished")
 end
+
+print("DEBUG: full_win after =", full_win)
+
 
 
 -- Delete the selected branch
