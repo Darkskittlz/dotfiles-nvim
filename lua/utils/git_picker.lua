@@ -18,12 +18,12 @@ vim.api.nvim_set_hl(
   "GitUnstaged",
   { fg = "#e6db74", bold = true }
 )
-
 vim.api.nvim_set_hl(
   0,
   "GitPickerTitle",
   { fg = "#268bd3", bold = true }
 )
+vim.api.nvim_set_hl(0, "NormalFloat", { bg = "NONE" })
 
 -- Maintain a full-screen blank background
 local function maintain_fullscreen_bg()
@@ -33,19 +33,23 @@ local function maintain_fullscreen_bg()
 
   local buf = vim.api.nvim_win_get_buf(full_win)
 
-  -- Fill the buffer with spaces to prevent black background
+  -- Get terminal size
   local ui = vim.api.nvim_list_uis()[1]
   local empty_lines = {}
   for _ = 1, ui.height do
     table.insert(empty_lines, string.rep(" ", ui.width))
   end
 
+  -- Fill the buffer
   vim.api.nvim_buf_set_option(buf, "modifiable", true)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, empty_lines)
   vim.api.nvim_buf_set_option(buf, "modifiable", false)
 
-  -- Apply highlight to make it match background
-  vim.api.nvim_buf_add_highlight(buf, -1, "NormalFloat", 0, 0, -1)
+  -- Clear namespace and highlight all lines
+  vim.api.nvim_buf_clear_namespace(buf, -1, 0, -1)
+  for i = 0, ui.height - 1 do
+    vim.api.nvim_buf_add_highlight(buf, -1, "NormalFloat", i, 0, -1)
+  end
 
   -- Position behind other floating windows
   vim.api.nvim_win_set_config(full_win, {
