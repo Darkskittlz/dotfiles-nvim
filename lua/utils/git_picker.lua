@@ -772,8 +772,10 @@ local function checkout_branch()
   print("DEBUG: Autocmds:")
   vim.cmd("autocmd") -- will print all active autocommands
 
-  -- NOTE: Removed any explicit redraw or buffer manipulation for Ui.full_win
-  -- It will remain as-is, avoiding the black background flash
+  -- Option 1: Placeholder for Ui.full_win logic if needed in future
+  if Ui.full_win and vim.api.nvim_win_is_valid(Ui.full_win) then
+    -- do nothing, leave the full background intact
+  end
 
   -- Inspect current buffers and windows to see if anything could trigger redraw
   local wins = vim.api.nvim_list_wins()
@@ -794,7 +796,6 @@ local function checkout_branch()
 
   print("DEBUG: checkout_branch() finished")
 end
-
 
 
 
