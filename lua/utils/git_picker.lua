@@ -1,6 +1,7 @@
 -- git_picker_no_telescope.lua
 ---@diagnostic disable: undefined-global
 local M = {}
+local full_win = nil
 
 -- Highlights
 vim.api.nvim_set_hl(
@@ -721,7 +722,6 @@ local function show_centered_error(msg)
   end, 2000)
 end
 
-print("DEBUG: full_win after =", full_win)
 -- Checkout the selected branch
 local function checkout_branch()
   print("DEBUG: Starting checkout_branch()")
@@ -772,18 +772,8 @@ local function checkout_branch()
   print("DEBUG: Autocmds:")
   vim.cmd("autocmd") -- will print all active autocommands
 
-  -- Maintain fullscreen background if it exists
-  if Ui.full_win and vim.api.nvim_win_is_valid(Ui.full_win) then
-    vim.schedule(function()
-      if vim.api.nvim_win_is_valid(Ui.full_win) then
-        vim.api.nvim_win_set_buf(Ui.full_win, vim.api.nvim_win_get_buf(Ui.full_win))
-        vim.cmd("redraw")
-      end
-    end)
-  end
-
-
-
+  -- NOTE: Removed any explicit redraw or buffer manipulation for Ui.full_win
+  -- It will remain as-is, avoiding the black background flash
 
   -- Inspect current buffers and windows to see if anything could trigger redraw
   local wins = vim.api.nvim_list_wins()
@@ -805,7 +795,6 @@ local function checkout_branch()
   print("DEBUG: checkout_branch() finished")
 end
 
-print("DEBUG: full_win after =", full_win)
 
 
 
@@ -853,7 +842,6 @@ local function delete_branch()
   refresh_ui()
 end
 
-local full_win = nil
 -- Open UI
 function M.open_git_ui()
   -- Create buffers
