@@ -859,11 +859,9 @@ local function checkout_branch()
   Ui.branch_selected = branch
   refresh_ui()
   render_left()
+  maintain_fullscreen_bg()
 
-  -- Reapply background after UI changes
-  vim.schedule(function()
-    maintain_fullscreen_bg()
-  end)
+  vim.cmd("redraw")
 end
 
 -- Delete the selected branch
