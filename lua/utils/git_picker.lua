@@ -774,9 +774,14 @@ local function checkout_branch()
 
   -- Maintain fullscreen background if it exists
   if full_win and vim.api.nvim_win_is_valid(full_win) then
-    -- optional: force a redraw of blank buffer
-    vim.api.nvim_win_set_buf(full_win, vim.api.nvim_win_get_buf(full_win))
+    vim.schedule(function()
+      if vim.api.nvim_win_is_valid(full_win) then
+        vim.api.nvim_win_set_buf(full_win, vim.api.nvim_win_get_buf(full_win))
+        vim.cmd("redraw") -- force a redraw to restore the background
+      end
+    end)
   end
+
 
 
   -- Inspect current buffers and windows to see if anything could trigger redraw
