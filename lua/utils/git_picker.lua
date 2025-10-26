@@ -723,18 +723,25 @@ end
 
 -- Checkout the selected branch
 local function checkout_branch()
+  print("DEBUG: Starting checkout_branch()")
+  
   if Ui.mode ~= "branches" then
+    print("DEBUG: Not in branches mode, exiting")
     return
   end
 
   local branch = Ui.branches[Ui.selected_index]
   if not branch then
+    print("DEBUG: No branch selected, exiting")
     return
   end
+  print("DEBUG: Selected branch =", branch)
 
   -- Check for uncommitted changes
   local status = vim.fn.systemlist("git status --porcelain")
+  print("DEBUG: git status lines =", #status)
   if #status > 0 then
+    print("DEBUG: Uncommitted changes detected, showing error")
     show_centered_error(
       "🚨 You have uncommitted changes!\nCommit, stash, or discard them before switching branches."
     )
@@ -742,7 +749,10 @@ local function checkout_branch()
   end
 
   -- Actually switch branch
+  print("DEBUG: Running git checkout command")
   local result = vim.fn.system("git checkout " .. vim.fn.shellescape(branch))
+  print("DEBUG: git checkout result =", result:gsub("\n","\\n"))
+  print("DEBUG: vim.v.shell_error =", vim.v.shell_error)
   if vim.v.shell_error ~= 0 then
     vim.notify("Failed to checkout branch: " .. result, vim.log.levels.ERROR)
     return
@@ -750,6 +760,25 @@ local function checkout_branch()
 
   -- Update internal state only
   Ui.branch_selected = branch
+  print("DEBUG: branch_selected updated to", Ui.branch_selected)
+
+  -- Inspect current buffers and windows to see if anything could trigger redraw
+  local wins = vim.api.nvim_list_wins()
+  print("DEBUG: Number of windows =", #wins)
+  for i, w in ipairs(wins) do
+    local buf = vim.api.nvim_win_get_buf(w)
+    local buftype = vim.api.nvim_buf_get_option(buf, "buftype")
+    local bufname = vim.api.nvim_buf_get_name(buf)
+    print(string.format("DEBUG: win %d -> buf %d, buftype=%s, name=%s", i, buf, buftype, bufname))
+  end
+
+  local uis = vim.api.nvim_list_uis()
+  print("DEBUG: Number of UIs =", #uis)
+  for i, ui in ipairs(uis) do
+    print(string.format("DEBUG: ui %d -> width=%d, height=%d, termguicolors=%s", i, ui.width, ui.height, vim.o.termguicolors))
+  end
+
+  print("DEBUG: checkout_branch() finished")
 end
 
 
