@@ -1,6 +1,9 @@
 -- git_picker_no_telescope.lua
 ---@diagnostic disable: undefined-global
 local M = {}
+vim.o.termguicolors = true -- ensure truecolor
+vim.api.nvim_set_hl(0, "NormalFloat", { bg = "NONE" })
+
 
 -- Highlights
 vim.api.nvim_set_hl(
@@ -23,7 +26,6 @@ vim.api.nvim_set_hl(
   "GitPickerTitle",
   { fg = "#268bd3", bold = true }
 )
-vim.api.nvim_set_hl(0, "NormalFloat", { bg = "NONE" })
 
 -- Maintain a full-screen blank background
 local function maintain_fullscreen_bg()
@@ -808,23 +810,10 @@ local function checkout_branch()
   render_left()
 
   -- Reapply background after UI changes
-  maintain_fullscreen_bg()
+  vim.schedule(function()
+    maintain_fullscreen_bg()
+  end)
 end
-
--- Keymap for <Space>
-vim.keymap.set("n", "<Space>", function()
-  local win = vim.api.nvim_get_current_win()
-  if win ~= Ui.left_win then return end
-
-  if Ui.mode == "files" then
-    stage_unstage_selected()
-    render_left()
-  elseif Ui.mode == "branches" then
-    checkout_branch()
-    render_left()
-  end
-end, { buffer = buf, noremap = true, silent = true })
-
 
 -- Delete the selected branch
 local function delete_branch()
@@ -1137,7 +1126,10 @@ function M.open_git_ui()
       silent = true,
     })
 
+
     -- Actions
+
+    -- Keymap for <Space>
     vim.keymap.set("n", "<Space>", function()
       local win = vim.api.nvim_get_current_win()
       if win ~= Ui.left_win then
