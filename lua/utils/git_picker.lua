@@ -749,49 +749,29 @@ local function checkout_branch()
     return
   end
 
-  -- Actually switch branch
-  print("DEBUG: Running git checkout command")
-  local result = vim.fn.system("git checkout " .. vim.fn.shellescape(branch))
-
-  print("DEBUG: git checkout result =", result:gsub("\n", "\\n"))
+  -- Actually switch branch using 'git switch' (flicker-free)
+  print("DEBUG: Running git switch command")
+  local cmd = "git switch " .. vim.fn.shellescape(branch)
+  local result = vim.fn.system(cmd)
+  print("DEBUG: git switch result =", result:gsub("\n", "\\n"))
   print("DEBUG: vim.v.shell_error =", vim.v.shell_error)
+
   if vim.v.shell_error ~= 0 then
-    vim.notify("Failed to checkout branch: " .. result, vim.log.levels.ERROR)
+    vim.notify("Failed to switch branch:\n" .. result, vim.log.levels.ERROR)
     return
   end
 
-  -- Update internal state only
+  -- Update internal Ui state
   Ui.branch_selected = branch
   print("DEBUG: branch_selected updated to", Ui.branch_selected)
 
-  -- === Debugging Neovim state ===
-  print("DEBUG: Namespaces:")
-  local ns = vim.api.nvim_get_namespaces()
-  print(vim.inspect(ns))
+  -- Optional: Notify user without triggering window redraw
+  vim.notify("Switched to branch: " .. branch, vim.log.levels.INFO)
 
-  print("DEBUG: Autocmds:")
-  vim.cmd("autocmd") -- will print all active autocommands
-
-  -- Option 1: Placeholder for Ui.full_win logic if needed in future
+  -- Optional: refresh any picker / buffer UI if needed
   if Ui.full_win and vim.api.nvim_win_is_valid(Ui.full_win) then
-    -- do nothing, leave the full background intact
-  end
-
-  -- Inspect current buffers and windows to see if anything could trigger redraw
-  local wins = vim.api.nvim_list_wins()
-  print("DEBUG: Number of windows =", #wins)
-  for i, w in ipairs(wins) do
-    local buf = vim.api.nvim_win_get_buf(w)
-    local buftype = vim.api.nvim_buf_get_option(buf, "buftype")
-    local bufname = vim.api.nvim_buf_get_name(buf)
-    print(string.format("DEBUG: win %d -> buf %d, buftype=%s, name=%s", i, buf, buftype, bufname))
-  end
-
-  local uis = vim.api.nvim_list_uis()
-  print("DEBUG: Number of UIs =", #uis)
-  for i, ui in ipairs(uis) do
-    print(string.format("DEBUG: ui %d -> width=%d, height=%d, termguicolors=%s", i, ui.width, ui.height,
-      vim.o.termguicolors))
+    -- Example: refresh the entries without closing the window
+    -- Ui.refresh_picker() -- placeholder if you have a refresh function
   end
 
   print("DEBUG: checkout_branch() finished")
