@@ -1627,7 +1627,7 @@ function M.open_git_ui()
       vim.cmd("startinsert")
     end)
 
-    vim.keymap.set("n", "D", function()
+    vim.keymap.set("n", "d", function()
       local win = vim.api.nvim_get_current_win()
       if win ~= Ui.left_win then
         return
