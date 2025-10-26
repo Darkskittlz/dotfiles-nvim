@@ -100,6 +100,37 @@ local function load_branches()
     "git rev-parse --abbrev-ref HEAD"
   )[1] or ""
 
+  -- Store branch statuses separately
+  local branch_statuses = {}
+  local status = run_git("git status --porcelain")
+  for _, branch in ipairs(cleaned) do
+    if branch == current then
+      local staged = false
+      local unstaged = false
+      for _, line in ipairs(status) do
+        local x = line:sub(1, 1) -- staged
+        local y = line:sub(2, 2) -- unstaged
+
+        if x ~= " " then
+          staged = true
+        end
+        if y ~= " " then
+          unstaged = true
+        end
+      end
+
+      if unstaged then
+        branch_statuses[branch] = "⚠" -- unstaged changes exist
+      elseif staged then
+        branch_statuses[branch] = "✅" -- staged changes ready to commit
+      else
+        branch_statuses[branch] = "" -- clean
+      end
+    else
+      branch_statuses[branch] = "" -- other branches just blank
+    end
+  end
+
   -- Reorder so current branch is first
   table.sort(cleaned, function(a, b)
     if a == current then
@@ -108,12 +139,14 @@ local function load_branches()
     if b == current then
       return false
     end
-    return a < b -- optional: alphabetical for others
+    return a < b
   end)
 
+  -- Save pure branch names
   Ui.branches = cleaned
+  Ui.branch_statuses = branch_statuses
 
-  -- Default selected branch is the first one (current branch)
+  -- Default selected branch
   Ui.branch_selected = Ui.branch_selected
     or Ui.branches[1]
 end
@@ -268,17 +301,15 @@ local function render_left()
     -- )
     for i, b in ipairs(Ui.branches) do
       local marker = (b == current) and "*" or " "
-      -- print(
-      --   "render_left: branch",
-      --   i,
-      --   b,
-      --   "marker:",
-      --   marker
-      -- )
-      table.insert(
-        lines,
-        string.format("%2s %s", marker, b)
+      local status = Ui.branch_statuses[b] or "" -- fetch ⚠ if there are uncommitted changes
+      local line = string.format(
+        "%2s %s %s",
+        marker,
+        b,
+        status
       )
+      table.insert(lines, line)
+
       if b == current then
         table.insert(
           highlights,
