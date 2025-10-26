@@ -404,7 +404,7 @@ local function render_right()
   if Ui.mode == "branches" then
     local branch = Ui.branch_selected or "HEAD"
     out = run_git(
-      "git log --oneline --decorate "
+      [[git log --pretty=format:"%h %ad %s" --date=short ]]
         .. vim.fn.shellescape(branch)
     )
     if #out == 0 then
