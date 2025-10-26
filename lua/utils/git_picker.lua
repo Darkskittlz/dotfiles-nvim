@@ -877,9 +877,6 @@ local function checkout_branch()
     vim.fn.systemlist("git status --porcelain")
   -- print("DEBUG: git status lines =", #status)
   if #status > 0 then
-    print(
-      "DEBUG: Uncommitted changes detected, showing error"
-    )
     show_centered_error(
       "🚨 You have uncommitted changes!\nCommit, stash, or discard them before switching branches."
     )
@@ -1534,7 +1531,7 @@ function M.open_git_ui()
         end
         vim.fn.system(cmd)
         show_centered_message(
-          "Committed changes on branch: "
+          "🌸 Committed changes on branch: "
             .. branch,
           ""
         )
