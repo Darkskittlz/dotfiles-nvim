@@ -1678,7 +1678,7 @@ function M.open_git_ui()
         relative = "editor",
         width = 50,
         height = 1,
-        row = math.floor(ui.height / 2),
+        row = 1,
         col = math.floor((ui.width - 50) / 2),
         style = "minimal",
         border = "rounded",
