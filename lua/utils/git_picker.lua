@@ -1284,6 +1284,13 @@ function M.open_git_ui()
 
     -- Commit Keymap
     vim.keymap.set("n", "c", function()
+      if
+        Ui.mode ~= "branch"
+        and Ui.mode ~= "files"
+      then
+        return
+      end
+
       local branch =
         Ui.branches[Ui.selected_index]
       if not branch or branch == "" then
@@ -1658,6 +1665,10 @@ function M.open_git_ui()
 
     -- Push branch
     vim.keymap.set("n", "P", function()
+      local current_branch = branch
+        or Ui.branch_selected
+        or "HEAD"
+
       local spinner_chars = {
         "⠋",
         "⠙",
@@ -1676,7 +1687,7 @@ function M.open_git_ui()
         vim.api.nvim_echo({
           {
             "Pushing to "
-              .. branch
+              .. current_branch
               .. " "
               .. spinner_chars[spinner_idx],
             "None",
@@ -1713,12 +1724,12 @@ function M.open_git_ui()
             if exit_code == 0 then
               show_centered_message(
                 " Successfully pushed branch: "
-                  .. branch
+                  .. current_branch
               )
             else
               show_centered_message(
                 " Failed to push branch: "
-                  .. branch
+                  .. current_branch
               )
             end
           end)
