@@ -773,14 +773,15 @@ local function checkout_branch()
   vim.cmd("autocmd") -- will print all active autocommands
 
   -- Maintain fullscreen background if it exists
-  if full_win and vim.api.nvim_win_is_valid(full_win) then
+  if Ui.full_win and vim.api.nvim_win_is_valid(Ui.full_win) then
     vim.schedule(function()
-      if vim.api.nvim_win_is_valid(full_win) then
-        vim.api.nvim_win_set_buf(full_win, vim.api.nvim_win_get_buf(full_win))
-        vim.cmd("redraw") -- force a redraw to restore the background
+      if vim.api.nvim_win_is_valid(Ui.full_win) then
+        vim.api.nvim_win_set_buf(Ui.full_win, vim.api.nvim_win_get_buf(Ui.full_win))
+        vim.cmd("redraw")
       end
     end)
   end
+
 
 
 
@@ -899,18 +900,17 @@ function M.open_git_ui()
   ) -- empty content
 
   -- Fullscreen blank background (non-focusable)
-  full_win =
-      vim.api.nvim_open_win(blank_buf, false, {
-        relative = "editor",
-        width = ui.width,
-        height = ui.height,
-        row = 0,
-        col = 0,
-        style = "minimal",
-        border = "none",
-        zindex = 1,        -- LOW zindex
-        focusable = false, -- won't steal input
-      })
+  Ui.full_win = vim.api.nvim_open_win(blank_buf, false, {
+    relative = "editor",
+    width = ui.width,
+    height = ui.height,
+    row = 0,
+    col = 0,
+    style = "minimal",
+    border = "none",
+    zindex = 1,        -- LOW zindex
+    focusable = false, -- won't steal input
+  })
 
   -- Git picker left window
   Ui.left_win =
@@ -1000,12 +1000,11 @@ function M.open_git_ui()
     end
 
     -- Close full-screen blank window
-    if
-        full_win
-        and vim.api.nvim_win_is_valid(full_win)
-    then
-      vim.api.nvim_win_close(full_win, true)
+    if Ui.full_win and vim.api.nvim_win_is_valid(Ui.full_win) then
+      vim.api.nvim_win_close(Ui.full_win, true)
+      Ui.full_win = nil -- clear it after closing
     end
+
 
     -- Delete the buffers if they still exist
     for _, buf in ipairs({
