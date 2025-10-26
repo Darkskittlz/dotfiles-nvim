@@ -27,14 +27,27 @@ vim.api.nvim_set_hl(0, "NormalFloat", { bg = "NONE" })
 
 -- Maintain a full-screen blank background
 local function maintain_fullscreen_bg()
-  if not full_win or not vim.api.nvim_win_is_valid(full_win) then
+  if not full_win then
+    print("DEBUG: full_win is nil")
+    return
+  end
+  if not vim.api.nvim_win_is_valid(full_win) then
+    print("DEBUG: full_win is invalid")
     return
   end
 
   local buf = vim.api.nvim_win_get_buf(full_win)
+  print("DEBUG: full_win buf =", buf)
+
+  -- Check buffer options
+  local buftype = vim.api.nvim_buf_get_option(buf, "buftype")
+  local modifiable = vim.api.nvim_buf_get_option(buf, "modifiable")
+  print("DEBUG: buftype =", buftype, "modifiable =", modifiable)
 
   -- Get terminal size
   local ui = vim.api.nvim_list_uis()[1]
+  print("DEBUG: ui width/height =", ui.width, ui.height)
+
   local empty_lines = {}
   for _ = 1, ui.height do
     table.insert(empty_lines, string.rep(" ", ui.width))
@@ -49,6 +62,7 @@ local function maintain_fullscreen_bg()
   vim.api.nvim_buf_clear_namespace(buf, -1, 0, -1)
   for i = 0, ui.height - 1 do
     vim.api.nvim_buf_add_highlight(buf, -1, "NormalFloat", i, 0, -1)
+    print("DEBUG: highlight NormalFloat applied to line", i)
   end
 
   -- Position behind other floating windows
@@ -63,6 +77,10 @@ local function maintain_fullscreen_bg()
     zindex = 1,
     focusable = false,
   })
+
+  -- Force a redraw
+  vim.cmd("redraw")
+  print("DEBUG: maintain_fullscreen_bg completed")
 end
 
 vim.cmd([[
