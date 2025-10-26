@@ -5,6 +5,7 @@ local M = {}
 
 -- TODO: Make d keymap dynamic so that it can drop commits when in commit log view.
 -- TODO: Find some way to checkout branches without having the background default to black.
+-- TODO: Add force push confirm option if branch has diverged from remote.
 -- TODO: Maybe Find a way to make this an nvim plugin so other people can use it.
 
 -- Highlights
