@@ -25,33 +25,40 @@ vim.api.nvim_set_hl(
   { fg = "#268bd3", bold = true }
 )
 
+-- Maintain a full-screen blank background
 local function maintain_fullscreen_bg()
-  if full_win and vim.api.nvim_win_is_valid(full_win) then
-    local buf = vim.api.nvim_win_get_buf(full_win)
-
-    -- clear buffer properly
-    vim.api.nvim_buf_set_option(buf, "modifiable", true)
-    vim.api.nvim_buf_set_lines(buf, 0, -1, false, {}) -- fully empty
-    vim.api.nvim_buf_set_option(buf, "modifiable", false)
-
-    -- reposition the window to cover the whole editor
-    vim.api.nvim_win_set_config(full_win, {
-      relative = "editor",
-      width = vim.o.columns,
-      height = vim.o.lines,
-      row = 0,
-      col = 0,
-      style = "minimal",
-      border = "none",
-      zindex = 1, -- behind your main floating UI windows
-      focusable = false,
-    })
-
-    -- force redraw to prevent flicker/black
-    vim.api.nvim_win_call(full_win, function()
-      vim.cmd("redraw")
-    end)
+  if not full_win or not vim.api.nvim_win_is_valid(full_win) then
+    return
   end
+
+  local buf = vim.api.nvim_win_get_buf(full_win)
+
+  -- Fill the buffer with spaces to prevent black background
+  local ui = vim.api.nvim_list_uis()[1]
+  local empty_lines = {}
+  for _ = 1, ui.height do
+    table.insert(empty_lines, string.rep(" ", ui.width))
+  end
+
+  vim.api.nvim_buf_set_option(buf, "modifiable", true)
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, empty_lines)
+  vim.api.nvim_buf_set_option(buf, "modifiable", false)
+
+  -- Apply highlight to make it match background
+  vim.api.nvim_buf_add_highlight(buf, -1, "NormalFloat", 0, 0, -1)
+
+  -- Position behind other floating windows
+  vim.api.nvim_win_set_config(full_win, {
+    relative = "editor",
+    width = ui.width,
+    height = ui.height,
+    row = 0,
+    col = 0,
+    style = "minimal",
+    border = "none",
+    zindex = 1,
+    focusable = false,
+  })
 end
 
 vim.cmd([[
@@ -752,18 +759,13 @@ end
 
 -- Checkout the selected branch
 local function checkout_branch()
-  if Ui.mode ~= "branches" then
-    return
-  end
+  if Ui.mode ~= "branches" then return end
 
   local branch = Ui.branches[Ui.selected_index]
-  if not branch then
-    return
-  end
+  if not branch then return end
 
   -- Check for uncommitted changes
-  local status =
-      vim.fn.systemlist("git status --porcelain")
+  local status = vim.fn.systemlist("git status --porcelain")
   if #status > 0 then
     show_centered_error(
       "🚨 You have uncommitted changes!\nCommit, stash, or discard them before switching branches."
@@ -771,24 +773,36 @@ local function checkout_branch()
     return
   end
 
-  -- Actually switch the branch
-  local result = vim.fn.system(
-    "git checkout " .. vim.fn.shellescape(branch)
-  )
+  -- Actually switch branch
+  local result = vim.fn.system("git checkout " .. vim.fn.shellescape(branch))
   if vim.v.shell_error ~= 0 then
-    vim.notify(
-      "Failed to checkout branch: " .. result,
-      vim.log.levels.ERROR
-    )
+    vim.notify("Failed to checkout branch: " .. result, vim.log.levels.ERROR)
     return
   end
 
-  -- Update UI state
+  -- Update UI
   Ui.branch_selected = branch
   refresh_ui()
   render_left()
+
+  -- Reapply background after UI changes
   maintain_fullscreen_bg()
 end
+
+-- Keymap for <Space>
+vim.keymap.set("n", "<Space>", function()
+  local win = vim.api.nvim_get_current_win()
+  if win ~= Ui.left_win then return end
+
+  if Ui.mode == "files" then
+    stage_unstage_selected()
+    render_left()
+  elseif Ui.mode == "branches" then
+    checkout_branch()
+    render_left()
+  end
+end, { buffer = buf, noremap = true, silent = true })
+
 
 -- Delete the selected branch
 local function delete_branch()
