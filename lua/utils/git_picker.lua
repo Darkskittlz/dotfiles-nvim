@@ -24,40 +24,25 @@ vim.api.nvim_set_hl(
   "GitPickerTitle",
   { fg = "#268bd3", bold = true }
 )
-local function draw_fake_title(buf, title)
-  vim.api.nvim_buf_set_option(
-    buf,
-    "modifiable",
-    true
-  )
-  local w =
-    vim.api.nvim_win_get_width(Ui.left_win)
-  local pad = math.floor((w - #title) / 2)
-  local line = "┌"
-    .. string.rep("─", pad)
-    .. title
-    .. string.rep("─", pad)
-    .. "┐"
-  vim.api.nvim_buf_set_lines(
-    buf,
-    0,
-    0,
-    false,
-    { line }
-  )
-  vim.api.nvim_buf_add_highlight(
-    buf,
-    -1,
-    "GitPickerTitle",
-    0,
-    0,
-    -1
-  )
-  vim.api.nvim_buf_set_option(
-    buf,
-    "modifiable",
-    false
-  )
+
+local function maintain_fullscreen_bg()
+  if
+    full_win
+    and vim.api.nvim_win_is_valid(full_win)
+  then
+    -- force redraw to keep the blank window in the back
+    vim.api.nvim_win_set_config(full_win, {
+      relative = "editor",
+      width = vim.o.columns,
+      height = vim.o.lines,
+      row = 0,
+      col = 0,
+      style = "minimal",
+      border = "none",
+      zindex = 1,
+      focusable = false,
+    })
+  end
 end
 
 vim.cmd([[
@@ -668,26 +653,61 @@ local function discard_changes_selected()
   refresh_ui()
 end
 
-local function make_transparent_highlights()
-  local groups = {
-    "Normal",
-    "NormalNC",
-    "NormalFloat",
-    "FloatBorder",
-  }
+local function show_centered_error(msg)
+  local buf = vim.api.nvim_create_buf(false, true)
+  local lines = vim.split(msg, "\n")
+  vim.api.nvim_buf_set_lines(
+    buf,
+    0,
+    -1,
+    false,
+    vim.split(msg, "\n")
+  )
 
-  for _, group in ipairs(groups) do
-    local existing =
-      vim.api.nvim_get_hl(0, { name = group })
-    -- Preserve fg if it exists, just clear bg
-    vim.api.nvim_set_hl(0, group, {
-      fg = existing.fg,
-      bg = "none",
-      bold = existing.bold,
-      italic = existing.italic,
-      underline = existing.underline,
-    })
+  vim.api.nvim_set_hl(
+    0,
+    "CenteredError",
+    { fg = "#FF5555", bold = true }
+  )
+
+  -- Apply highlight to all lines
+  for i = 0, #lines - 1 do
+    vim.api.nvim_buf_add_highlight(
+      buf,
+      -1,
+      "CenteredError",
+      i,
+      0,
+      -1
+    )
   end
+
+  local width = 60
+  local height = #lines
+  local ui = vim.api.nvim_list_uis()[1]
+
+  local win = vim.api.nvim_open_win(buf, false, {
+    relative = "editor",
+    width = width,
+    height = height,
+    row = 2,
+    col = math.floor((ui.width - width) / 2),
+    style = "minimal",
+    border = "rounded",
+    zindex = 50,
+  })
+
+  vim.api.nvim_buf_set_option(
+    buf,
+    "modifiable",
+    false
+  )
+  -- Auto close after 3 seconds
+  vim.defer_fn(function()
+    if vim.api.nvim_win_is_valid(win) then
+      vim.api.nvim_win_close(win, true)
+    end
+  end, 2000)
 end
 
 -- Checkout the selected branch
@@ -700,15 +720,19 @@ local function checkout_branch()
     return
   end
 
-  -- print("Checking out branch:", branch)
-  vim.fn.system(
-    "git checkout " .. vim.fn.shellescape(branch)
-  )
+  -- Check for uncommitted changes
+  local status =
+    vim.fn.systemlist("git status --porcelain")
+  if #status > 0 then
+    show_centered_error(
+      "🚨 You have uncommitted changes!\nCommit, stash, or discard them before switching branches."
+    )
+    return
+  end
+
   Ui.branch_selected = branch
   refresh_ui()
-
-  -- Reapply transparency
-  vim.defer_fn(make_transparent_highlights, 50)
+  maintain_fullscreen_bg()
 end
 
 -- Delete the selected branch
@@ -753,11 +777,6 @@ local function delete_branch()
   -- reload branch list and refresh UI
   load_branches()
   refresh_ui()
-  draw_fake_title(
-    Ui.left_buf,
-    (Ui.mode == "branches") and " Git Branches "
-      or " Files Changed "
-  )
 end
 
 -- Open UI
@@ -1104,7 +1123,6 @@ function M.open_git_ui()
   set_keymaps(Ui.left_buf)
   set_keymaps(Ui.right_buf)
   refresh_ui()
-  draw_header(Ui.left_buf)
 end
 
 return M
