@@ -664,12 +664,12 @@ local function discard_changes_selected()
 end
 
 local function show_centered_message(msg, icon)
-  print(
-    "[DEBUG] show_centered_message called with msg:",
-    msg or "nil",
-    "icon:",
-    icon or "nil"
-  )
+  -- print(
+  --   "[DEBUG] show_centered_message called with msg:",
+  --   msg or "nil",
+  --   "icon:",
+  --   icon or "nil"
+  -- )
 
   icon = icon or "💬" -- default icon
   local buf = vim.api.nvim_create_buf(false, true)
@@ -677,7 +677,7 @@ local function show_centered_message(msg, icon)
     print("[DEBUG] Failed to create buffer")
     return
   end
-  print("[DEBUG] Created buffer:", buf)
+  -- print("[DEBUG] Created buffer:", buf)
 
   local lines = vim.split(msg or "", "\n")
   if #lines > 0 then
@@ -698,7 +698,7 @@ local function show_centered_message(msg, icon)
     false,
     lines
   )
-  print("[DEBUG] Lines set in buffer")
+  -- print("[DEBUG] Lines set in buffer")
 
   -- Create highlight
   vim.api.nvim_set_hl(
@@ -706,9 +706,9 @@ local function show_centered_message(msg, icon)
     "CenteredMessage",
     { fg = "#FFFFFF", bold = true }
   )
-  print(
-    "[DEBUG] Highlight defined: CenteredMessage"
-  )
+  -- print(
+  --   "[DEBUG] Highlight defined: CenteredMessage"
+  -- )
 
   for i = 0, #lines - 1 do
     vim.api.nvim_buf_add_highlight(
@@ -720,7 +720,7 @@ local function show_centered_message(msg, icon)
       -1
     )
   end
-  print("[DEBUG] Highlights applied")
+  -- print("[DEBUG] Highlights applied")
 
   -- Get UI info
   local ui_list = vim.api.nvim_list_uis()
@@ -731,22 +731,22 @@ local function show_centered_message(msg, icon)
     return
   end
   local ui = ui_list[1]
-  print(
-    "[DEBUG] UI info — width:",
-    ui.width,
-    "height:",
-    ui.height
-  )
+  -- print(
+  --   "[DEBUG] UI info — width:",
+  --   ui.width,
+  --   "height:",
+  --   ui.height
+  -- )
 
   local width =
-    math.max(60, math.min(80, #lines[1] + 4))
+      math.max(60, math.min(80, #lines[1] + 4))
   local height = #lines
-  print(
-    "[DEBUG] Calculated window size:",
-    width,
-    "x",
-    height
-  )
+  -- print(
+  --   "[DEBUG] Calculated window size:",
+  --   width,
+  --   "x",
+  --   height
+  -- )
 
   local win = vim.api.nvim_open_win(buf, false, {
     relative = "editor",
@@ -763,17 +763,17 @@ local function show_centered_message(msg, icon)
     print("[DEBUG] Failed to open window")
     return
   end
-  print(
-    "[DEBUG] Window opened successfully:",
-    win
-  )
+  -- print(
+  --   "[DEBUG] Window opened successfully:",
+  --   win
+  -- )
 
   vim.api.nvim_buf_set_option(
     buf,
     "modifiable",
     false
   )
-  print("[DEBUG] Buffer made unmodifiable")
+  -- print("[DEBUG] Buffer made unmodifiable")
 
   vim.defer_fn(function()
     print("[DEBUG] Auto-close timer triggered")
@@ -1050,7 +1050,7 @@ function M.open_git_ui()
         col = 0,
         style = "minimal",
         border = "none",
-        zindex = 1,      -- LOW zindex
+        zindex = 1,        -- LOW zindex
         focusable = false, -- won't steal input
       })
 
@@ -1293,21 +1293,10 @@ function M.open_git_ui()
       local width =
           math.floor(vim.o.columns * 0.9)
       local height_title = 1
-      local height_desc = 3
+      local height_desc = 4
       local height_diff =
-          math.floor(vim.o.lines * 0.7)
+          math.floor(vim.o.lines * 0.72) -- taller diff
       local spacing = 1
-      local row = math.floor(
-        (
-          vim.o.lines
-          - (
-            height_title
-            + height_desc
-            + height_diff
-            + spacing * 2
-          )
-        ) / 2
-      )
       local col =
           math.floor((vim.o.columns - width) / 2)
 
@@ -1334,11 +1323,54 @@ function M.open_git_ui()
           col = 0,
           style = "minimal",
           border = "none",
-          zindex = 200, -- below popup windows
+          zindex = 200,
         }
       )
 
-      -- Buffers for popup
+      -- =========================
+      -- Buffers
+      -- =========================
+      local buf_diff =
+          vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_option(
+        buf_diff,
+        "buftype",
+        "nofile"
+      )
+      vim.api.nvim_buf_set_option(
+        buf_diff,
+        "bufhidden",
+        "wipe"
+      )
+      vim.api.nvim_buf_set_option(
+        buf_diff,
+        "filetype",
+        "diff"
+      )
+
+      local diff_cmd = "git diff --cached "
+          .. vim.fn.shellescape(branch)
+      local diff_lines =
+          vim.fn.systemlist(diff_cmd)
+      if
+          vim.v.shell_error ~= 0
+          or #diff_lines == 0
+      then
+        diff_lines = { "[No staged changes]" }
+      end
+      vim.api.nvim_buf_set_lines(
+        buf_diff,
+        0,
+        -1,
+        false,
+        diff_lines
+      )
+      vim.api.nvim_buf_set_option(
+        buf_diff,
+        "modifiable",
+        false
+      )
+
       local buf_title =
           vim.api.nvim_create_buf(false, true)
       vim.api.nvim_buf_set_option(
@@ -1379,132 +1411,55 @@ function M.open_git_ui()
         { "", "", "" }
       )
 
-      local buf_label =
-          vim.api.nvim_create_buf(false, true)
-      vim.api.nvim_buf_set_option(
-        buf_label,
-        "buftype",
-        "nofile"
-      )
-      vim.api.nvim_buf_set_option(
-        buf_label,
-        "bufhidden",
-        "wipe"
-      )
-      local commit_label = "Commit Message"
-      local padding =
-          math.floor((width - #commit_label) / 2)
-      vim.api.nvim_buf_set_lines(
-        buf_label,
-        0,
-        -1,
-        false,
-        {
-          string.rep(" ", padding)
-          .. commit_label,
-        }
-      )
-
-      local buf_diff =
-          vim.api.nvim_create_buf(false, true)
-      vim.api.nvim_buf_set_option(
-        buf_diff,
-        "buftype",
-        "nofile"
-      )
-      vim.api.nvim_buf_set_option(
-        buf_diff,
-        "bufhidden",
-        "wipe"
-      )
-      vim.api.nvim_buf_set_option(
-        buf_diff,
-        "filetype",
-        "diff"
-      )
-
-      vim.api.nvim_buf_set_option(
-        buf_diff,
-        "modifiable",
-        true
-      )
-      local diff_cmd = "git diff --cached "
-          .. vim.fn.shellescape(branch)
-      local diff_lines =
-          vim.fn.systemlist(diff_cmd)
-      if
-          vim.v.shell_error ~= 0
-          or #diff_lines == 0
-      then
-        diff_lines = { "[No staged changes]" }
-      end
-      vim.api.nvim_buf_set_lines(
-        buf_diff,
-        0,
-        -1,
-        false,
-        diff_lines
-      )
-      vim.api.nvim_buf_set_option(
-        buf_diff,
-        "modifiable",
-        false
-      )
-
-      -- Windows
-      local win_label =
-          vim.api.nvim_open_win(buf_label, false, {
-            relative = "editor",
-            width = width,
-            height = height_title,
-            row = row,
-            col = col,
-            style = "minimal",
-            border = "none",
-            zindex = 300,
-          })
-      local win_title =
-          vim.api.nvim_open_win(buf_title, true, {
-            relative = "editor",
-            width = width,
-            height = height_title,
-            row = row + height_title,
-            col = col,
-            style = "minimal",
-            border = "rounded",
-            zindex = 300,
-          })
-      local win_desc =
-          vim.api.nvim_open_win(buf_desc, true, {
-            relative = "editor",
-            width = width,
-            height = height_desc,
-            row = row + height_title * 2 + 2,
-            col = col,
-            style = "minimal",
-            border = "rounded",
-            zindex = 300,
-          })
+      -- =========================
+      -- Windows (diff top, commit bottom)
+      -- =========================
       local win_diff =
           vim.api.nvim_open_win(buf_diff, false, {
             relative = "editor",
             width = width,
             height = height_diff,
-            row = row
-                + height_title * 2
-                + height_desc
-                + 4,
+            row = 1,
             col = col,
             style = "minimal",
             border = "rounded",
             zindex = 300,
             focusable = true,
+            title = " GIT DIFF ",
+            title_pos = "center",
           })
 
+      local win_title =
+          vim.api.nvim_open_win(buf_title, true, {
+            relative = "editor",
+            width = width,
+            height = height_title,
+            row = height_diff + 3,
+            col = col,
+            style = "minimal",
+            border = "rounded",
+            zindex = 300,
+            title = " Commit Message ",
+            title_pos = "center",
+          })
+
+      local win_desc =
+          vim.api.nvim_open_win(buf_desc, true, {
+            relative = "editor",
+            width = width,
+            height = height_desc,
+            row = row + height_diff,
+            col = col,
+            style = "minimal",
+            border = "rounded",
+            zindex = 300,
+          })
+
+      -- =========================
       -- Close popup helper
+      -- =========================
       local function close_commit_popup()
         for _, w in ipairs({
-          win_label,
           win_title,
           win_desc,
           win_diff,
@@ -1514,8 +1469,6 @@ function M.open_git_ui()
             vim.api.nvim_win_close(w, true)
           end
         end
-
-        -- Restore focus to the git picker window
         if
             Ui.full_win
             and vim.api.nvim_win_is_valid(
@@ -1529,7 +1482,9 @@ function M.open_git_ui()
         end
       end
 
+      -- =========================
       -- Commit logic
+      -- =========================
       local function commit_changes()
         local title = vim.api.nvim_buf_get_lines(
           buf_title,
@@ -1546,6 +1501,7 @@ function M.open_git_ui()
           ),
           "\n"
         )
+
         vim.fn.system("git add -A")
         local cmd = "git commit -m "
             .. vim.fn.shellescape(title)
@@ -1558,12 +1514,14 @@ function M.open_git_ui()
         show_centered_message(
           "Committed changes on branch: "
           .. branch,
-          vim.log.levels.INFO
+          ""
         )
         close_commit_popup()
       end
 
-      -- Keymaps inside popup
+      -- =========================
+      -- Keymaps
+      -- =========================
       for _, b in ipairs({
         buf_title,
         buf_desc,
@@ -1589,6 +1547,7 @@ function M.open_git_ui()
             silent = true,
           }
         )
+
         vim.keymap.set("n", "<Tab>", function()
           vim.api.nvim_set_current_win(win_desc)
         end, { buffer = b })
@@ -1644,13 +1603,10 @@ function M.open_git_ui()
         }
       )
 
+      -- Start typing in title
       vim.api.nvim_set_current_win(win_title)
       vim.cmd("startinsert")
-    end, {
-      buffer = buf,
-      noremap = true,
-      silent = true,
-    })
+    end)
 
     vim.keymap.set("n", "D", function()
       local win = vim.api.nvim_get_current_win()
@@ -1675,7 +1631,7 @@ function M.open_git_ui()
         return
       end
       local branch =
-        Ui.branches[Ui.selected_index]
+          Ui.branches[Ui.selected_index]
       if not branch or branch == "" then
         show_centered_message(
           "No branch selected",
@@ -1688,7 +1644,7 @@ function M.open_git_ui()
       vim.fn.system(cmd)
       show_centered_message(
         "Pulled latest changes for branch: "
-          .. branch,
+        .. branch,
         vim.log.levels.INFO
       )
       refresh_ui()
@@ -1704,7 +1660,7 @@ function M.open_git_ui()
         return
       end
       local branch =
-        Ui.branches[Ui.selected_index]
+          Ui.branches[Ui.selected_index]
       if not branch or branch == "" then
         show_centered_message(
           "No branch selected",
@@ -1731,14 +1687,14 @@ function M.open_git_ui()
         vim.api.nvim_echo({
           {
             "Pushing to "
-              .. branch
-              .. " "
-              .. spinner_chars[spinner_idx],
+            .. branch
+            .. " "
+            .. spinner_chars[spinner_idx],
             "None",
           },
         }, false, {})
         spinner_idx = spinner_idx % #spinner_chars
-          + 1
+            + 1
       end
 
       local spinner_timer = vim.loop.new_timer()
@@ -1759,13 +1715,13 @@ function M.open_git_ui()
               if exit_code == 0 then
                 show_centered_message(
                   "Successfully pushed branch: "
-                    .. branch,
+                  .. branch,
                   vim.log.levels.INFO
                 )
               else
                 show_centered_message(
                   "Failed to push branch: "
-                    .. branch,
+                  .. branch,
                   vim.log.levels.ERROR
                 )
               end
@@ -1787,15 +1743,15 @@ function M.open_git_ui()
         return
       end
       local branch =
-        Ui.branches[Ui.selected_index]
+          Ui.branches[Ui.selected_index]
       if not branch or branch == "" then
         return
       end
 
       vim.ui.input({
         prompt = "Delete branch '"
-          .. branch
-          .. "'? (y/N): ",
+            .. branch
+            .. "'? (y/N): ",
       }, function(input)
         if input and input:lower() == "y" then
           vim.fn.system(
