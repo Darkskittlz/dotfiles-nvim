@@ -746,6 +746,7 @@ local function checkout_branch()
   if Ui.mode ~= "branches" then
     return
   end
+
   local branch = Ui.branches[Ui.selected_index]
   if not branch then
     return
@@ -761,8 +762,22 @@ local function checkout_branch()
     return
   end
 
+  -- Actually switch the branch
+  local result = vim.fn.system(
+    "git checkout " .. vim.fn.shellescape(branch)
+  )
+  if vim.v.shell_error ~= 0 then
+    vim.notify(
+      "Failed to checkout branch: " .. result,
+      vim.log.levels.ERROR
+    )
+    return
+  end
+
+  -- Update UI state
   Ui.branch_selected = branch
   refresh_ui()
+  render_left()
   maintain_fullscreen_bg()
 end
 
