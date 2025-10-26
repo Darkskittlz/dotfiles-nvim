@@ -752,6 +752,7 @@ local function checkout_branch()
   -- Actually switch branch
   print("DEBUG: Running git checkout command")
   local result = vim.fn.system("git checkout " .. vim.fn.shellescape(branch))
+
   print("DEBUG: git checkout result =", result:gsub("\n", "\\n"))
   print("DEBUG: vim.v.shell_error =", vim.v.shell_error)
   if vim.v.shell_error ~= 0 then
@@ -770,6 +771,13 @@ local function checkout_branch()
 
   print("DEBUG: Autocmds:")
   vim.cmd("autocmd") -- will print all active autocommands
+
+  -- Maintain fullscreen background if it exists
+  if full_win and vim.api.nvim_win_is_valid(full_win) then
+    -- optional: force a redraw of blank buffer
+    vim.api.nvim_win_set_buf(full_win, vim.api.nvim_win_get_buf(full_win))
+  end
+
 
   -- Inspect current buffers and windows to see if anything could trigger redraw
   local wins = vim.api.nvim_list_wins()
@@ -839,6 +847,7 @@ local function delete_branch()
   refresh_ui()
 end
 
+local full_win = nil
 -- Open UI
 function M.open_git_ui()
   -- Create buffers
