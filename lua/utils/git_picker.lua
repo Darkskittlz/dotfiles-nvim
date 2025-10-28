@@ -2,7 +2,6 @@
 ---@diagnostic disable: undefined-global
 local M = {}
 
-
 -- TODO: Make d keymap dynamic so that it can drop commits when in commit log view.
 -- TODO: Find some way to checkout branches without having the background default to black.
 -- TODO: Add force push confirm option if branch has diverged from remote.
@@ -314,19 +313,11 @@ local function render_left()
     --   #Ui.changed_files
     -- )
     for i, f in ipairs(Ui.changed_files) do
-      -- print(
-      --   string.format(
-      --     "render_left: file[%d] = %s staged=%s",
-      --     i,
-      --     f.value,
-      --     tostring(f.staged)
-      --   )
-      -- )
       local prefix = f.staged and "✅"
           or "⚠️"
       -- print("render_left: prefix =", prefix)
       local line = string.format(
-        "%s %s %s",
+        " %s %s %s",
         prefix,
         f.status or "",
         f.value
@@ -1095,7 +1086,7 @@ function M.open_git_ui()
         col = 0,
         style = "minimal",
         border = "none",
-        zindex = 1,        -- LOW zindex
+        zindex = 1,      -- LOW zindex
         focusable = false, -- won't steal input
       })
 
@@ -1121,7 +1112,7 @@ function M.open_git_ui()
       vim.api.nvim_open_win(Ui.left_buf, true, {
         relative = "editor",
         width = w,
-        height = bottom_h + 2,         -- now the bigger panel is on bottom
+        height = bottom_h + 2,       -- now the bigger panel is on bottom
         row = editor_h - bottom_h - 6, -- move it below the top window
         col = col,
         style = "minimal",
