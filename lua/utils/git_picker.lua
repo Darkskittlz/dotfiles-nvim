@@ -104,7 +104,7 @@ local function load_branches()
       end
 
       if unstaged then
-        branch_statuses[branch] = "⚠" -- unstaged changes exist
+        branch_statuses[branch] = "💣" -- unstaged changes exist
       elseif staged then
         branch_statuses[branch] = "✅" -- staged changes ready to commit
       else
@@ -314,7 +314,7 @@ local function render_left()
     -- )
     for i, f in ipairs(Ui.changed_files) do
       local prefix = f.staged and "✅"
-          or "⚠️"
+          or "💣"
       -- print("render_left: prefix =", prefix)
       local line = string.format(
         " %s %s %s",
@@ -1086,7 +1086,7 @@ function M.open_git_ui()
         col = 0,
         style = "minimal",
         border = "none",
-        zindex = 1,      -- LOW zindex
+        zindex = 1,        -- LOW zindex
         focusable = false, -- won't steal input
       })
 
@@ -1112,7 +1112,7 @@ function M.open_git_ui()
       vim.api.nvim_open_win(Ui.left_buf, true, {
         relative = "editor",
         width = w,
-        height = bottom_h + 2,       -- now the bigger panel is on bottom
+        height = bottom_h + 2,         -- now the bigger panel is on bottom
         row = editor_h - bottom_h - 6, -- move it below the top window
         col = col,
         style = "minimal",

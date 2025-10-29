@@ -1249,34 +1249,6 @@ return {
     --   end
     -- },
     {
-      "L3MON4D3/LuaSnip",
-      config = function()
-        local ls = require("luasnip")
-
-        -- Set up the snippet engine for completion (you can customize this)
-        ls.config.set_config({
-          history = true,
-          updateevents = "TextChanged,TextChangedI",
-        })
-
-
-        -- Create a simple snippet manually
-        ls.snippets = {
-          javascript = {
-            ls.parser.parse_snippet("jl", "console.log('${1:message}');")
-          },
-          jsx = {
-            ls.parser.parse_snippet("jl", "console.log('${1:message}');") -- This is for JSX files
-          },
-          lua = {
-            ls.parser.parse_snippet("jl", "print('${1:message}')") -- This is for Lua files
-          },
-        }
-
-        require("luasnip.loaders.from_vscode").lazy_load() -- If you want to use VSCode snippets
-      end
-    },
-    {
       'honza/vim-snippets', -- Optional snippets collection
       config = function()
         -- You can configure additional snippets here
