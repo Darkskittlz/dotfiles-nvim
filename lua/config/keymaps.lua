@@ -5,10 +5,15 @@ vim.g.maplocalleader = " "
 keymap.set("n", "-", "<C-a>")
 keymap.set("n", "+", "<C-x>")
 
-keymap.set("n", "<leader>rl", function()
-  vim.cmd("source $MYVIMRC") -- reload your init.lua / init.vim
-  require("lazy").sync()     -- reload LazyVim plugins
-end, { desc = "Reload Neovim config and plugins" })
+keymap.set(
+  "n",
+  "<leader>rl",
+  function()
+    vim.cmd("source $MYVIMRC") -- reload your init.lua / init.vim
+    require("lazy").sync() -- reload LazyVim plugins
+  end,
+  { desc = "Reload Neovim config and plugins" }
+)
 
 -- Mason --
 vim.api.nvim_set_keymap(
@@ -18,15 +23,26 @@ vim.api.nvim_set_keymap(
   { noremap = true, silent = true }
 )
 
-keymap.set('n', '<leader>gb', function()
+keymap.set("n", "<leader>gb", function()
   -- require('gitsigns').blame_line({ full = true })
-  require('gitsigns').blame_line()
-end, { desc = "Git blameline" }
-)
+  require("gitsigns").blame_line()
+end, { desc = "Git blameline" })
 
 keymap.set("n", "<leader>gh", function()
   require("utils.git_picker").open_git_ui()
 end, { desc = "Git branch picker" })
+
+keymap.set("n", "<leader>cc", function()
+  vim.cmd("colorscheme catppuccin-latte")
+end, {
+  desc = "Switch to Catppuccin Latte colorscheme",
+})
+
+keymap.set("n", "<leader>cs", function()
+  vim.cmd("colorscheme solarized-osaka")
+end, {
+  desc = "Switch to solarized-osaka colorscheme",
+})
 
 -- Neogit Keymap
 -- keymap.set('n', '<leader>gg', function()
@@ -68,7 +84,6 @@ keymap.set("n", "<C-w><down>", "<C-w>-")
 keymap.set("n", "<C-j>", function()
   vim.diagnostic.goto_next()
 end, opts)
-
 
 -- Press jk fast to exit insert mode
 keymap.set("i", "jk", "<ESC>", opts)
@@ -224,4 +239,9 @@ keymap.set(
   "<Cmd>BufferMoveNext<CR>",
   { silent = true }
 )
-keymap.set("n", "<A-p>", "<Cmd>BufferPin<CR>", { silent = true })
+keymap.set(
+  "n",
+  "<A-p>",
+  "<Cmd>BufferPin<CR>",
+  { silent = true }
+)

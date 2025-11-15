@@ -9,7 +9,8 @@ vim.g.lazygit = {
 
 vim.g.transparent_enabled = true
 
-vim.g.python3_host_prog = '/home/darkskittlz/.neovim-python/bin/python'
+vim.g.python3_host_prog =
+"/home/darkskittlz/.neovim-python/bin/python"
 
 vim.opt.wrap = false
 
@@ -33,7 +34,6 @@ vim.api.nvim_set_keymap(
   ":normal! v/<CR>{<CR>",
   { noremap = true, silent = true }
 )
-
 
 vim.opt.termguicolors = true -- Enable 25-bit RGB color in the TUI,
 local capabilities =
@@ -468,7 +468,6 @@ nvim_lsp.jsonls.setup({
   end,
 })
 
-
 return {
   { "alvan/vim-closetag" },
   { "windwp/nvim-autopairs" },
@@ -489,7 +488,7 @@ return {
           diffview = true, -- enable if you installed diffview.nvim
         },
       })
-    end
+    end,
   },
   {
     "lewis6991/gitsigns.nvim",
@@ -830,25 +829,81 @@ return {
         bg = "none",
         bold = true,
       })
-      vim.api.nvim_set_hl(0, "BufferCurrentSign", { fg = "#ffffff" })
+      vim.api.nvim_set_hl(
+        0,
+        "BufferCurrentSign",
+        { fg = "#ffffff" }
+      )
 
       -- Inactive buffer highlights
-      vim.api.nvim_set_hl(0, "BufferInactive", { fg = "#555555", bg = "none" })
-      vim.api.nvim_set_hl(0, "BufferInactiveSign", { fg = "#555555", bg = "none" })
-      vim.api.nvim_set_hl(0, "BufferInactiveMod", { fg = "#aaaa55", bg = "none" })
-      vim.api.nvim_set_hl(0, "BufferInactiveIcon", { fg = "#555555", bg = "NONE" })
+      vim.api.nvim_set_hl(
+        0,
+        "BufferInactive",
+        { fg = "#555555", bg = "none" }
+      )
+      vim.api.nvim_set_hl(
+        0,
+        "BufferInactiveSign",
+        { fg = "#555555", bg = "none" }
+      )
+      vim.api.nvim_set_hl(
+        0,
+        "BufferInactiveMod",
+        { fg = "#aaaa55", bg = "none" }
+      )
+      vim.api.nvim_set_hl(
+        0,
+        "BufferInactiveIcon",
+        { fg = "#555555", bg = "NONE" }
+      )
 
-      vim.api.nvim_set_hl(0, "BufferTabpageFill", { bg = "NONE" })
+      vim.api.nvim_set_hl(
+        0,
+        "BufferTabpageFill",
+        { bg = "NONE" }
+      )
 
       vim.api.nvim_create_autocmd("ColorScheme", {
         callback = function()
-          vim.api.nvim_set_hl(0, "BufferCurrent", { fg = "#ffffff", bg = "NONE", bold = true })
-          vim.api.nvim_set_hl(0, "BufferCurrentSign", { fg = "#ffffff", bg = "NONE" })
-          vim.api.nvim_set_hl(0, "BufferInactive", { fg = "#555555", bg = "NONE" })
-          vim.api.nvim_set_hl(0, "BufferInactiveSign", { fg = "#555555", bg = "NONE" })
-          vim.api.nvim_set_hl(0, "BufferInactiveMod", { fg = "#aaaa55", bg = "NONE" })
-          vim.api.nvim_set_hl(0, "BufferInactiveIcon", { fg = "#555555", bg = "NONE" })
-          vim.api.nvim_set_hl(0, "BufferTabpageFill", { bg = "NONE" })
+          vim.api.nvim_set_hl(
+            0,
+            "BufferCurrent",
+            {
+              fg = "#ffffff",
+              bg = "NONE",
+              bold = true,
+            }
+          )
+          vim.api.nvim_set_hl(
+            0,
+            "BufferCurrentSign",
+            { fg = "#ffffff", bg = "NONE" }
+          )
+          vim.api.nvim_set_hl(
+            0,
+            "BufferInactive",
+            { fg = "#555555", bg = "NONE" }
+          )
+          vim.api.nvim_set_hl(
+            0,
+            "BufferInactiveSign",
+            { fg = "#555555", bg = "NONE" }
+          )
+          vim.api.nvim_set_hl(
+            0,
+            "BufferInactiveMod",
+            { fg = "#aaaa55", bg = "NONE" }
+          )
+          vim.api.nvim_set_hl(
+            0,
+            "BufferInactiveIcon",
+            { fg = "#555555", bg = "NONE" }
+          )
+          vim.api.nvim_set_hl(
+            0,
+            "BufferTabpageFill",
+            { bg = "NONE" }
+          )
         end,
       })
     end,
@@ -915,18 +970,25 @@ return {
           lualine_bold = false,
 
           on_highlights = function(hl, c)
-            local util = require("solarized-osaka.util")
+            local util =
+                require("solarized-osaka.util")
 
             -- Ensure floating windows are transparent
             hl.NormalFloat = { bg = "NONE" }
-            hl.FloatBorder = { bg = "NONE", fg = c.blue }
+            hl.FloatBorder =
+            { bg = "NONE", fg = c.blue }
 
             -- Syntax Highlighting for Keywords
-            local keyword_color = util.darken("#00ff00", 0.85)
-            hl["keyword.tsx"] = { fg = keyword_color }
-            hl["keyword.return.tsx"] = { fg = keyword_color }
-            hl["keyword.javascript"] = { fg = keyword_color }
-            hl["keyword.return.javascript"] = { fg = keyword_color }
+            local keyword_color =
+                util.darken("#00ff00", 0.85)
+            hl["keyword.tsx"] =
+            { fg = keyword_color }
+            hl["keyword.return.tsx"] =
+            { fg = keyword_color }
+            hl["keyword.javascript"] =
+            { fg = keyword_color }
+            hl["keyword.return.javascript"] =
+            { fg = keyword_color }
 
             -- Telescope UI Customization
             local telescope_groups = {
@@ -942,14 +1004,31 @@ return {
             }
 
             for _, g in ipairs(telescope_groups) do
-              hl[g] = { bg = "NONE", fg = hl[g] and hl[g].fg or c.blue }
+              hl[g] = {
+                bg = "NONE",
+                fg = hl[g] and hl[g].fg or c.blue,
+              }
             end
-          end
+          end,
         }
 
         require("solarized-osaka").setup(
           osakaConfig
         )
+      end,
+    },
+    {
+      "catppuccin/nvim",
+      name = "catppuccin",
+      opts = {
+        flavour = "latte",
+        background = {
+          light = "latte",
+          dark = "mocha",
+        },
+      },
+      config = function()
+        vim.cmd("colorscheme catppuccin")
       end,
     },
     -- {
@@ -1031,6 +1110,22 @@ return {
         options = {
           show_buffer_close_icons = true,
           show_close_icon = true,
+        },
+        highlights = {
+          fill = { bg = "NONE" },
+          background = { bg = "NONE" },
+
+          tab = { bg = "NONE" },
+          tab_selected = { bg = "NONE" },
+          tab_close = { bg = "NONE" },
+
+          close_button = { bg = "NONE" },
+          close_button_visible = { bg = "NONE" },
+          close_button_selected = { bg = "NONE" },
+
+          buffer_visible = { bg = "NONE" },
+          buffer_selected = { bg = "NONE" },
+          buffer = { bg = "NONE" },
         },
       },
     },
@@ -1221,11 +1316,11 @@ return {
         telescope.setup(opts)
 
         -- Load the luasnip extension
-        telescope.load_extension('luasnip')
+        telescope.load_extension("luasnip")
 
         -- Optionally load other extensions like fzf or file_browser
-        telescope.load_extension('fzf')
-        telescope.load_extension('file_browser')
+        telescope.load_extension("fzf")
+        telescope.load_extension("file_browser")
       end,
     },
     -- {
@@ -1249,10 +1344,10 @@ return {
     --   end
     -- },
     {
-      'honza/vim-snippets', -- Optional snippets collection
+      "honza/vim-snippets", -- Optional snippets collection
       config = function()
         -- You can configure additional snippets here
-      end
+      end,
     },
     {
       "hrsh8th/nvim-cmp",
@@ -1274,21 +1369,32 @@ return {
           mapping = cmp.mapping.preset.insert({
             ["<C-p>"] = cmp.mapping.select_prev_item(),
             ["<C-n>"] = cmp.mapping.select_next_item(),
-            ["<C-d>"] = cmp.mapping.scroll_docs(-3),
-            ["<C-f>"] = cmp.mapping.scroll_docs(5),
+            ["<C-d>"] = cmp.mapping.scroll_docs(
+              -3
+            ),
+            ["<C-f>"] = cmp.mapping.scroll_docs(
+              5
+            ),
             ["<C-Space>"] = cmp.mapping.complete(),
             ["<C-e>"] = cmp.mapping.close(),
-            ["<Tab>"] = cmp.mapping(function(fallback)
-              if luasnip.expand_or_jumpable() then
-                luasnip.expand_or_jump()
-              elseif cmp.visible() then
-                cmp.select_next_item()
-              else
-                fallback()
-              end
-            end, { "i", "s" }), -- insert and select mode
+            ["<Tab>"] = cmp.mapping(
+              function(fallback)
+                if
+                    luasnip.expand_or_jumpable()
+                then
+                  luasnip.expand_or_jump()
+                elseif cmp.visible() then
+                  cmp.select_next_item()
+                else
+                  fallback()
+                end
+              end,
+              { "i", "s" }
+            ), -- insert and select mode
             -- Expand or jump through snippet placeholders
-            ['<CR>'] = cmp.mapping.confirm({ select = true }),
+            ["<CR>"] = cmp.mapping.confirm({
+              select = true,
+            }),
           }),
           sources = {
             { name = "nvim_lsp" },
@@ -1301,11 +1407,16 @@ return {
         })
 
         -- Common capabilities for LSP
-        local capabilities = vim.lsp.protocol.make_client_capabilities()
+        local capabilities =
+            vim.lsp.protocol.make_client_capabilities()
 
         -- Use the default capabilities from cmp_nvim_lsp
-        local cmp_nvim_lsp = require("cmp_nvim_lsp")
-        capabilities = cmp_nvim_lsp.default_capabilities(capabilities)
+        local cmp_nvim_lsp =
+            require("cmp_nvim_lsp")
+        capabilities =
+            cmp_nvim_lsp.default_capabilities(
+              capabilities
+            )
 
         -- Example LSP server setup with capabilities
         require("lspconfig").pyright.setup({
