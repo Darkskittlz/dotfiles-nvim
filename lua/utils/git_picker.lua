@@ -44,6 +44,7 @@ local Ui = {
   right_win = nil,
   mode = "branches",
   branches = {},
+  stashes = {},
   changed_files = {},
   selected_index = 1,
   branch_selected = nil,
@@ -133,6 +134,19 @@ local function load_branches()
   -- Default selected branch
   Ui.branch_selected = Ui.branch_selected
       or Ui.branches[1]
+end
+
+---------------------------------------------------------------------------
+-- 🕵️ Load list of Git stashes
+---------------------------------------------------------------------------
+local function load_stashes()
+  local raw = run_git(
+    "git stash list --pretty='%gd: %s'"
+  ) or {}
+  UiStash.stashes = vim.tbl_filter(function(s)
+    return s and #s > 0
+  end, raw)
+  UiStash.selected_index = 1
 end
 
 ---------------------------------------------------------------------------
@@ -313,8 +327,7 @@ local function render_left()
     --   #Ui.changed_files
     -- )
     for i, f in ipairs(Ui.changed_files) do
-      local prefix = f.staged and "✅"
-          or "💣"
+      local prefix = f.staged and "✅" or "💣"
       -- print("render_left: prefix =", prefix)
       local line = string.format(
         " %s %s %s",
@@ -1241,43 +1254,370 @@ function M.open_git_ui()
       noremap = true,
       silent = true,
     })
-    vim.keymap.set("n", "j", function()
-      local max_items = (
-        Ui.mode == "branches" and #Ui.branches
-        or #Ui.changed_files
+
+    vim.keymap.set("n", "s", function()
+      -- Load stashes
+      UiStash = UiStash
+          or { stashes = {}, selected_index = 1 }
+
+      load_stashes()
+
+      if #UiStash.stashes == 0 then
+        vim.notify(
+          "No stashes available",
+          vim.log.levels.INFO
+        )
+        return
+      end
+
+      local width =
+          math.floor(vim.o.columns * 0.9)
+      local height_title = 1
+      local height_desc = 4
+      local height_diff =
+          math.floor(vim.o.lines * 0.72)
+      local spacing = 1
+      local col =
+          math.floor((vim.o.columns - width) / 2)
+
+      -- =========================
+      -- Background overlay
+      -- =========================
+      local buf_overlay =
+          vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_lines(
+        buf_overlay,
+        0,
+        -1,
+        false,
+        { string.rep(" ", width) }
       )
-      Ui.selected_index =
-          math.min(max_items, Ui.selected_index + 1)
-      refresh_ui()
+      local win_overlay = vim.api.nvim_open_win(
+        buf_overlay,
+        false,
+        {
+          relative = "editor",
+          width = vim.o.columns,
+          height = vim.o.lines,
+          row = 0,
+          col = 0,
+          style = "minimal",
+          border = "none",
+          zindex = 200,
+        }
+      )
+
+      -- =========================
+      -- Buffers
+      -- =========================
+      local buf_diff =
+          vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_option(
+        buf_diff,
+        "buftype",
+        "nofile"
+      )
+      vim.api.nvim_buf_set_option(
+        buf_diff,
+        "bufhidden",
+        "wipe"
+      )
+      vim.api.nvim_buf_set_option(
+        buf_diff,
+        "filetype",
+        "diff"
+      )
+
+      local stash_entry =
+          UiStash.stashes[UiStash.selected_index]
+      local ref = stash_entry:match("stash@{%d+}")
+      local diff_lines =
+          run_git("git stash show -p " .. ref)
+      vim.api.nvim_buf_set_lines(
+        buf_diff,
+        0,
+        -1,
+        false,
+        diff_lines
+      )
+      vim.api.nvim_buf_set_option(
+        buf_diff,
+        "modifiable",
+        false
+      )
+
+      local buf_title =
+          vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_option(
+        buf_title,
+        "buftype",
+        "acwrite"
+      )
+      vim.api.nvim_buf_set_option(
+        buf_title,
+        "bufhidden",
+        "wipe"
+      )
+      vim.api.nvim_buf_set_lines(
+        buf_title,
+        0,
+        -1,
+        false,
+        { "" }
+      )
+
+      local buf_desc =
+          vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_option(
+        buf_desc,
+        "buftype",
+        "acwrite"
+      )
+      vim.api.nvim_buf_set_option(
+        buf_desc,
+        "bufhidden",
+        "wipe"
+      )
+      vim.api.nvim_buf_set_lines(
+        buf_desc,
+        0,
+        -1,
+        false,
+        { "", "", "" }
+      )
+
+      -- =========================
+      -- Windows
+      -- =========================
+      local win_diff =
+          vim.api.nvim_open_win(buf_diff, false, {
+            relative = "editor",
+            width = width,
+            height = height_diff - 3,
+            row = 4,
+            col = col,
+            style = "minimal",
+            border = "rounded",
+            zindex = 300,
+            focusable = true,
+            title = " Stash Diff ",
+            title_pos = "center",
+          })
+
+      local win_title =
+          vim.api.nvim_open_win(buf_title, true, {
+            relative = "editor",
+            width = width,
+            height = height_title,
+            row = 2 + height_diff + spacing,
+            col = col,
+            style = "minimal",
+            border = "rounded",
+            zindex = 300,
+            title = " Stash Message ",
+            title_pos = "center",
+          })
+
+      vim.api.nvim_buf_set_option(
+        buf_desc,
+        "buftype",
+        "nofile"
+      )
+      vim.api.nvim_buf_set_option(
+        buf_desc,
+        "modifiable",
+        false
+      )
+      vim.api.nvim_buf_set_option(
+        buf_desc,
+        "bufhidden",
+        "wipe"
+      )
+      vim.api.nvim_buf_set_option(
+        buf_desc,
+        "swapfile",
+        false
+      )
+      vim.api.nvim_buf_set_lines(
+        buf_desc,
+        0,
+        -1,
+        false,
+        UiStash.stashes
+      )
+
+      local win_desc =
+          vim.api.nvim_open_win(buf_desc, true, {
+            relative = "editor",
+            width = width,
+            height = height_desc - 1,
+            row = height_diff + height_title + 5,
+            col = col,
+            style = "minimal",
+            border = "rounded",
+            zindex = 300,
+            title = " Stash List ",
+            title_pos = "center",
+            focusable = true,
+          })
+
+      -- =========================
+      -- Close helper
+      -- =========================
+      local function close_stash_popup()
+        for _, w in ipairs({
+          win_title,
+          win_desc,
+          win_diff,
+          win_overlay,
+        }) do
+          if vim.api.nvim_win_is_valid(w) then
+            vim.api.nvim_win_close(w, true)
+          end
+        end
+        -- Reset to branches/files UI
+        Ui.mode = "branches"
+        Ui.selected_index = 1
+        refresh_ui()
+        focus_left()
+      end
+
+      -- =========================
+      -- Keymaps
+      -- =========================
+      for _, b in ipairs({
+        buf_title,
+        buf_desc,
+        buf_diff,
+      }) do
+        --=============================
+        --  Enter key for Stash Message
+        --=============================
+        vim.keymap.set("n", "<CR>", function()
+          local msg = vim.api.nvim_buf_get_lines(buf_title, 0, -1, false)[1] or ""
+          if msg:match("%S") then
+            -- Run stash command with message
+            vim.fn.system("git stash push -m " .. vim.fn.shellescape(msg))
+            -- Reload stashes after pushing
+            load_stashes()
+            vim.api.nvim_buf_set_lines(buf_desc, 0, -1, false, UiStash.stashes)
+            -- Refresh diff to the new stash
+            UiStash.selected_index = 1
+            local entry = UiStash.stashes[1]
+            local ref = entry:match("stash@{%d+}")
+            local diff_lines = run_git("git stash show -p " .. ref)
+            vim.api.nvim_buf_set_lines(buf_diff, 0, -1, false, diff_lines)
+            -- Clear Stash Message
+            vim.api.nvim_buf_set_lines(buf_title, 0, -1, false, { "" })
+          else
+            vim.notify("Please enter a stash message first", vim.log.levels.INFO)
+          end
+        end, { buffer = buf_title, noremap = true, silent = true })
+        vim.keymap.set(
+          "n",
+          "q",
+          close_stash_popup,
+          {
+            buffer = b,
+            noremap = true,
+            silent = true,
+          }
+        )
+        vim.keymap.set(
+          "n",
+          "<Esc>",
+          close_stash_popup,
+          {
+            buffer = b,
+            noremap = true,
+            silent = true,
+          }
+        )
+
+        vim.keymap.set("n", "<Tab>", function()
+          vim.api.nvim_set_current_win(win_desc)
+        end, { buffer = b })
+        vim.keymap.set("n", "<S-Tab>", function()
+          vim.api.nvim_set_current_win(win_title)
+        end, { buffer = b })
+
+        vim.keymap.set("n", "j", function()
+          local max_items = #UiStash.stashes
+          UiStash.selected_index = math.min(
+            max_items,
+            UiStash.selected_index + 1
+          )
+          local entry =
+              UiStash.stashes[UiStash.selected_index]
+          local ref = entry:match("stash@{%d+}")
+          local diff_lines =
+              run_git("git stash show -p " .. ref)
+          vim.api.nvim_buf_set_lines(
+            buf_diff,
+            0,
+            -1,
+            false,
+            diff_lines
+          )
+          vim.api.nvim_win_set_cursor(
+            win_desc,
+            { UiStash.selected_index, 0 }
+          )
+        end, { buffer = buf_diff })
+
+        vim.keymap.set("n", "k", function()
+          UiStash.selected_index = math.max(
+            1,
+            UiStash.selected_index - 1
+          )
+          local entry =
+              UiStash.stashes[UiStash.selected_index]
+          local ref = entry:match("stash@{%d+}")
+          local diff_lines =
+              run_git("git stash show -p " .. ref)
+          vim.api.nvim_buf_set_lines(
+            buf_diff,
+            0,
+            -1,
+            false,
+            diff_lines
+          )
+          vim.api.nvim_win_set_cursor(
+            win_desc,
+            { UiStash.selected_index, 0 }
+          )
+        end, { buffer = buf_diff })
+      end
+
+      -- Focus on title window by default
+      vim.api.nvim_set_current_win(win_title)
+      vim.cmd("startinsert")
     end, {
       buffer = buf,
       noremap = true,
       silent = true,
     })
-    vim.keymap.set("n", "k", function()
-      Ui.selected_index =
-          math.max(1, Ui.selected_index - 1)
-      refresh_ui()
-    end, {
-      buffer = buf,
-      noremap = true,
-      silent = true,
-    })
+
     vim.keymap.set("n", "j", function()
       local win = vim.api.nvim_get_current_win()
+
+      -- If cursor is in the right window, scroll preview instead of moving selection
       if win == Ui.right_win then
-        -- Scroll preview window down
         vim.cmd("normal! j")
         return
       end
 
-      -- Scroll selection in left panel
+      -- Compute max items for current mode (branches, files, stashes)
       local max_items = (
-        Ui.mode == "branches" and #Ui.branches
-        or #Ui.changed_files
-      )
+            Ui.mode == "branches" and #Ui.branches
+          )
+          or (Ui.mode == "files" and #Ui.changed_files)
+          or (Ui.mode == "stashes" and #Ui.stashes)
+          or 0
+
       Ui.selected_index =
           math.min(max_items, Ui.selected_index + 1)
+
       refresh_ui()
     end, {
       buffer = buf,
@@ -1287,15 +1627,17 @@ function M.open_git_ui()
 
     vim.keymap.set("n", "k", function()
       local win = vim.api.nvim_get_current_win()
+
+      -- If cursor is in the right window, scroll preview instead of moving selection
       if win == Ui.right_win then
-        -- Scroll preview window up
         vim.cmd("normal! k")
         return
       end
 
-      -- Scroll selection in left panel
+      -- Move selection up
       Ui.selected_index =
           math.max(1, Ui.selected_index - 1)
+
       refresh_ui()
     end, {
       buffer = buf,
