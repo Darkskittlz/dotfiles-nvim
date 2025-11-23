@@ -2089,6 +2089,64 @@ function M.open_git_ui()
       silent = true,
     })
 
+    local function has_worktree_changes()
+      -- returns >0 when there are changes
+      return vim.fn.system(
+        "git status --porcelain"
+      ) ~= ""
+    end
+
+    local function make_show_error(
+        row,
+        height,
+        ui
+    )
+      return function(msg)
+        local buf_err =
+            vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_lines(
+          buf_err,
+          0,
+          -1,
+          false,
+          { msg }
+        )
+        vim.api.nvim_buf_add_highlight(
+          buf_err,
+          -1,
+          "ErrorMsg",
+          0,
+          0,
+          -1
+        )
+
+        local w = #msg + 4
+        local error_row = row + height
+        local error_col =
+            math.floor((ui.width - w) / 2)
+
+        local win_err =
+            vim.api.nvim_open_win(buf_err, false, {
+              relative = "editor",
+              width = w,
+              height = 1,
+              row = error_row - 10,
+              col = error_col,
+              style = "minimal",
+              border = "rounded",
+              zindex = 600,
+            })
+
+        vim.defer_fn(function()
+          if
+              vim.api.nvim_win_is_valid(win_err)
+          then
+            vim.api.nvim_win_close(win_err, true)
+          end
+        end, 1800)
+      end
+    end
+
     -- G keymap for reset/rebase options on commits
     vim.keymap.set("n", "g", function()
       if Ui.mode ~= "branches" then
@@ -2321,30 +2379,57 @@ function M.open_git_ui()
           return
         end
 
-        -- run reset
+        -- block reset if worktree is dirty
+        local show_error =
+            make_show_error(row, height, ui)
+
+        if has_worktree_changes() then
+          show_error(
+            "Cannot reset: work tree has uncommitted changes"
+          )
+          return
+        end
+
         vim.fn.system(opt.cmd)
 
         -- success popup
-        local buf_ok = vim.api.nvim_create_buf(false, true)
+        local buf_ok =
+            vim.api.nvim_create_buf(false, true)
         local msg = opt.label .. " → " .. hash
-        vim.api.nvim_buf_set_lines(buf_ok, 0, -1, false, { msg })
-        vim.api.nvim_buf_add_highlight(buf_ok, -1, opt.hl, 0, 0, -1)
+        vim.api.nvim_buf_set_lines(
+          buf_ok,
+          0,
+          -1,
+          false,
+          { msg }
+        )
+        vim.api.nvim_buf_add_highlight(
+          buf_ok,
+          -1,
+          opt.hl,
+          0,
+          0,
+          -1
+        )
 
         local w = #msg + 4
         local c = math.floor((ui.width - w) / 2)
-        local win_ok = vim.api.nvim_open_win(buf_ok, false, {
-          relative = "editor",
-          width = w,
-          height = 1,
-          row = row - 2,
-          col = c,
-          style = "minimal",
-          border = "rounded",
-          zindex = 600,
-        })
+        local win_ok =
+            vim.api.nvim_open_win(buf_ok, false, {
+              relative = "editor",
+              width = w,
+              height = 1,
+              row = row - 2,
+              col = c,
+              style = "minimal",
+              border = "rounded",
+              zindex = 600,
+            })
 
         vim.defer_fn(function()
-          if vim.api.nvim_win_is_valid(win_ok) then
+          if
+              vim.api.nvim_win_is_valid(win_ok)
+          then
             vim.api.nvim_win_close(win_ok, true)
           end
         end, 1500)
