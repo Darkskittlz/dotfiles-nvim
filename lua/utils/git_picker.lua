@@ -1418,34 +1418,6 @@ function M.open_git_ui()
             title_pos = "center",
           })
 
-      vim.api.nvim_buf_set_option(
-        buf_desc,
-        "buftype",
-        "nofile"
-      )
-      vim.api.nvim_buf_set_option(
-        buf_desc,
-        "modifiable",
-        false
-      )
-      vim.api.nvim_buf_set_option(
-        buf_desc,
-        "bufhidden",
-        "wipe"
-      )
-      vim.api.nvim_buf_set_option(
-        buf_desc,
-        "swapfile",
-        false
-      )
-      vim.api.nvim_buf_set_lines(
-        buf_desc,
-        0,
-        -1,
-        false,
-        UiStash.stashes
-      )
-
       local win_desc =
           vim.api.nvim_open_win(buf_desc, true, {
             relative = "editor",
@@ -1456,9 +1428,8 @@ function M.open_git_ui()
             style = "minimal",
             border = "rounded",
             zindex = 300,
-            title = " Stash List ",
+            title = " Stash Notes ",
             title_pos = "center",
-            focusable = true,
           })
 
       -- =========================
@@ -1490,29 +1461,6 @@ function M.open_git_ui()
         buf_desc,
         buf_diff,
       }) do
-        --=============================
-        --  Enter key for Stash Message
-        --=============================
-        vim.keymap.set("n", "<CR>", function()
-          local msg = vim.api.nvim_buf_get_lines(buf_title, 0, -1, false)[1] or ""
-          if msg:match("%S") then
-            -- Run stash command with message
-            vim.fn.system("git stash push -m " .. vim.fn.shellescape(msg))
-            -- Reload stashes after pushing
-            load_stashes()
-            vim.api.nvim_buf_set_lines(buf_desc, 0, -1, false, UiStash.stashes)
-            -- Refresh diff to the new stash
-            UiStash.selected_index = 1
-            local entry = UiStash.stashes[1]
-            local ref = entry:match("stash@{%d+}")
-            local diff_lines = run_git("git stash show -p " .. ref)
-            vim.api.nvim_buf_set_lines(buf_diff, 0, -1, false, diff_lines)
-            -- Clear Stash Message
-            vim.api.nvim_buf_set_lines(buf_title, 0, -1, false, { "" })
-          else
-            vim.notify("Please enter a stash message first", vim.log.levels.INFO)
-          end
-        end, { buffer = buf_title, noremap = true, silent = true })
         vim.keymap.set(
           "n",
           "q",
@@ -1559,11 +1507,7 @@ function M.open_git_ui()
             false,
             diff_lines
           )
-          vim.api.nvim_win_set_cursor(
-            win_desc,
-            { UiStash.selected_index, 0 }
-          )
-        end, { buffer = buf_diff })
+        end, { buffer = b })
 
         vim.keymap.set("n", "k", function()
           UiStash.selected_index = math.max(
@@ -1582,11 +1526,7 @@ function M.open_git_ui()
             false,
             diff_lines
           )
-          vim.api.nvim_win_set_cursor(
-            win_desc,
-            { UiStash.selected_index, 0 }
-          )
-        end, { buffer = buf_diff })
+        end, { buffer = b })
       end
 
       -- Focus on title window by default
