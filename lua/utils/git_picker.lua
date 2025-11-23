@@ -1099,7 +1099,7 @@ function M.open_git_ui()
         col = 0,
         style = "minimal",
         border = "none",
-        zindex = 1,        -- LOW zindex
+        zindex = 1,      -- LOW zindex
         focusable = false, -- won't steal input
       })
 
@@ -1125,7 +1125,7 @@ function M.open_git_ui()
       vim.api.nvim_open_win(Ui.left_buf, true, {
         relative = "editor",
         width = w,
-        height = bottom_h + 2,         -- now the bigger panel is on bottom
+        height = bottom_h + 2,       -- now the bigger panel is on bottom
         row = editor_h - bottom_h - 6, -- move it below the top window
         col = col,
         style = "minimal",
@@ -1436,7 +1436,7 @@ function M.open_git_ui()
             vim.api.nvim_win_close(w, true)
           end
         end
-        Ui.mode = "branches"
+        Ui.mode = "files"
         Ui.selected_index = 1
         refresh_ui()
         focus_left()
@@ -1602,15 +1602,75 @@ function M.open_git_ui()
           if msg == "" then
             msg = "WIP"
           end
+
           vim.fn.system(
             "git stash push -m "
             .. vim.fn.shellescape(msg)
           )
           load_stashes()
           update_diff()
-          vim.notify("Stash created: " .. msg)
 
-          -- Clear the message field
+          -------------------------------------------------------------------
+          -- Floating success popup
+          -------------------------------------------------------------------
+          local buf_success =
+              vim.api.nvim_create_buf(false, true)
+          local msg_success = "Stash created: "
+              .. msg
+
+          vim.api.nvim_buf_set_lines(
+            buf_success,
+            0,
+            -1,
+            false,
+            { msg_success }
+          )
+          vim.api.nvim_buf_add_highlight(
+            buf_success,
+            -1,
+            "String",
+            0,
+            0,
+            -1
+          )
+
+          local ui = vim.api.nvim_list_uis()[1]
+          local width = #msg_success
+          local col =
+              math.floor((ui.width - width) / 2)
+
+          local win_success =
+              vim.api.nvim_open_win(
+                buf_success,
+                false,
+                {
+                  relative = "editor",
+                  width = width,
+                  height = 1,
+                  row = 1,
+                  col = col,
+                  style = "minimal",
+                  border = "rounded",
+                  zindex = 450,
+                }
+              )
+
+          vim.defer_fn(function()
+            if
+                vim.api.nvim_win_is_valid(
+                  win_success
+                )
+            then
+              vim.api.nvim_win_close(
+                win_success,
+                true
+              )
+            end
+          end, 1500)
+
+          -------------------------------------------------------------------
+          -- Reset input buffer
+          -------------------------------------------------------------------
           vim.api.nvim_buf_set_lines(
             buf_title,
             0,
@@ -1618,8 +1678,7 @@ function M.open_git_ui()
             false,
             { "" }
           )
-          vim.api.nvim_set_current_win(win_title) -- focus back on title
-          vim.cmd("startinsert")                  -- enter insert mode again
+          vim.api.nvim_set_current_win(win_list) -- focus stash list
         end, {
           buffer = buf_title,
           noremap = true,
@@ -1642,27 +1701,126 @@ function M.open_git_ui()
             return
           end
 
-          -- Extract staged files for title (basename)
-          local staged_files = vim.fn.systemlist("git diff --name-only " .. ref)
-          local last_file = staged_files[#staged_files] or "unknown"
-          local file_name = vim.fn.fnamemodify(last_file, ":t")
+          -- File name used in confirmation message
+          local staged_files = vim.fn.systemlist(
+            "git diff --name-only " .. ref
+          )
+          local last_file = staged_files[#staged_files]
+              or "unknown"
+          local file_name =
+              vim.fn.fnamemodify(last_file, ":t")
 
-          -- Ask for confirmation
-          local title =
-              entry:gsub("^stash@{%d+}:%s*", "")
-          local answer = vim.fn.input(
-            "Are you sure you want to pop stashed changes: "
-            .. file_name
-            .. " ? (y/n/c): "
+          -------------------------------------------------------------------
+          -- Floating confirmation window
+          -------------------------------------------------------------------
+          local buf_conf =
+              vim.api.nvim_create_buf(false, true)
+          local prompt = "Pop stash: "
+              .. file_name
+              .. " ? (y/n/c)"
+          vim.api.nvim_buf_set_lines(
+            buf_conf,
+            0,
+            -1,
+            false,
+            { prompt }
           )
 
-          if answer:lower() == "y" then
-            -- Pop the stash
+          local ui = vim.api.nvim_list_uis()[1]
+          local width = #prompt
+          local col =
+              math.floor((ui.width - width) / 2)
+          local win_conf = vim.api.nvim_open_win(
+            buf_conf,
+            true,
+            {
+              relative = "editor",
+              width = width,
+              height = 1,
+              row = 1,
+              col = col,
+              style = "minimal",
+              border = "rounded",
+              zindex = 300,
+            }
+          )
+
+          -------------------------------------------------------------------
+          -- Confirmation input
+          -------------------------------------------------------------------
+          vim.keymap.set("n", "y", function()
+            if
+                vim.api.nvim_win_is_valid(win_conf)
+            then
+              vim.api.nvim_win_close(
+                win_conf,
+                true
+              )
+            end
+
             local result = vim.fn.system(
               "git stash pop " .. ref
             )
+
             if vim.v.shell_error == 0 then
-              vim.notify("Stash popped: " .. ref)
+              -------------------------------------------------------------------
+              -- Floating success message
+              -------------------------------------------------------------------
+              local msg = "Popped stash: "
+                  .. file_name
+              local buf_success =
+                  vim.api.nvim_create_buf(
+                    false,
+                    true
+                  )
+              vim.api.nvim_buf_set_lines(
+                buf_success,
+                0,
+                -1,
+                false,
+                { msg }
+              )
+              vim.api.nvim_buf_add_highlight(
+                buf_success,
+                -1,
+                "String",
+                0,
+                0,
+                -1
+              )
+
+              local w = #msg
+              local c =
+                  math.floor((ui.width - w) / 2)
+
+              local win_success =
+                  vim.api.nvim_open_win(
+                    buf_success,
+                    false,
+                    {
+                      relative = "editor",
+                      width = w,
+                      height = 1,
+                      row = 1,
+                      col = c,
+                      style = "minimal",
+                      border = "rounded",
+                      zindex = 450,
+                    }
+                  )
+
+              vim.defer_fn(function()
+                if
+                    vim.api.nvim_win_is_valid(
+                      win_success
+                    )
+                then
+                  vim.api.nvim_win_close(
+                    win_success,
+                    true
+                  )
+                end
+              end, 1500)
             else
               vim.notify(
                 "Failed to pop stash: " .. result,
@@ -1670,25 +1828,189 @@ function M.open_git_ui()
               )
             end
 
-            -- Refresh the stash list and diff
             load_stashes()
             update_diff()
-          elseif
-              answer:lower() == "n"
-              or answer:lower() == "c"
-          then
-            vim.notify("Cancelled stash pop")
-          else
+          end, { buffer = buf_conf })
+
+          vim.keymap.set("n", "n", function()
+            if
+                vim.api.nvim_win_is_valid(win_conf)
+            then
+              vim.api.nvim_win_close(
+                win_conf,
+                true
+              )
+            end
+          end, { buffer = buf_conf })
+
+          vim.keymap.set("n", "c", function()
+            if
+                vim.api.nvim_win_is_valid(win_conf)
+            then
+              vim.api.nvim_win_close(
+                win_conf,
+                true
+              )
+            end
+          end, { buffer = buf_conf })
+        end, { buffer = buf_list })
+
+        vim.keymap.set("n", "d", function()
+          local index = Ui.selected_index
+          local stash = stashes[index]
+
+          if not stash then
             vim.notify(
-              "Invalid input, cancelled",
+              "No stash selected",
               vim.log.levels.WARN
             )
+            return
           end
-        end, {
-          buffer = buf_list,
-          noremap = true,
-          silent = true,
-        })
+
+          -------------------------------------------------------------------
+          -- Create floating confirmation window
+          -------------------------------------------------------------------
+          local buf_conf =
+              vim.api.nvim_create_buf(false, true)
+          if not buf_conf then
+            vim.notify(
+              "Failed to create buffer",
+              vim.log.levels.ERROR
+            )
+            return
+          end
+
+          local confirm_msg = "Drop stash: "
+              .. stash.name
+              .. " ? (y/n)"
+          vim.api.nvim_buf_set_lines(
+            buf_conf,
+            0,
+            -1,
+            false,
+            { confirm_msg }
+          )
+
+          local ui = vim.api.nvim_list_uis()[1]
+          local width = #confirm_msg
+          local row = 3
+          local col =
+              math.floor((ui.width - width) / 2)
+
+          local win_conf = vim.api.nvim_open_win(
+            buf_conf,
+            true,
+            {
+              relative = "editor",
+              width = width,
+              height = 1,
+              row = row,
+              col = col,
+              style = "minimal",
+              border = "rounded",
+              zindex = 300,
+            }
+          )
+
+          -------------------------------------------------------------------
+          -- Map y/n for confirmation
+          -------------------------------------------------------------------
+          vim.keymap.set("n", "y", function()
+            if
+                not vim.api.nvim_win_is_valid(
+                  win_conf
+                )
+            then
+              return
+            end
+            vim.api.nvim_win_close(win_conf, true)
+
+            ---------------------------------------------------------------
+            -- Perform drop
+            ---------------------------------------------------------------
+            vim.fn.system(
+              "git stash drop " .. stash.ref
+            )
+            load_stashes()
+
+            if Ui.selected_index > #stashes then
+              Ui.selected_index = #stashes
+            end
+
+            update_diff()
+            refresh_ui()
+
+            ---------------------------------------------------------------
+            -- Floating success popup: green text
+            ---------------------------------------------------------------
+            local file_name =
+                vim.fn.fnamemodify(stash.name, ":t")
+            local msg_success = "Dropped stash: "
+                .. file_name
+
+            local buf_success =
+                vim.api.nvim_create_buf(false, true)
+            vim.api.nvim_buf_set_lines(
+              buf_success,
+              0,
+              -1,
+              false,
+              { msg_success }
+            )
+            vim.api.nvim_buf_add_highlight(
+              buf_success,
+              -1,
+              "String",
+              0,
+              0,
+              -1
+            )
+
+            local width_s = #msg_success
+            local col_s =
+                math.floor((ui.width - width_s) / 2)
+
+            local win_success =
+                vim.api.nvim_open_win(
+                  buf_success,
+                  false,
+                  {
+                    relative = "editor",
+                    width = width_s,
+                    height = 1,
+                    row = 1,
+                    col = col_s,
+                    style = "minimal",
+                    border = "rounded",
+                    zindex = 450,
+                  }
+                )
+
+            vim.defer_fn(function()
+              if
+                  vim.api.nvim_win_is_valid(
+                    win_success
+                  )
+              then
+                vim.api.nvim_win_close(
+                  win_success,
+                  true
+                )
+              end
+            end, 1500)
+          end, { buffer = buf_conf })
+
+          vim.keymap.set("n", "n", function()
+            if
+                vim.api.nvim_win_is_valid(win_conf)
+            then
+              vim.api.nvim_win_close(
+                win_conf,
+                true
+              )
+            end
+          end, { buffer = buf_conf })
+        end, { buffer = buf_list })
 
         vim.keymap.set("n", "H", function()
           if
