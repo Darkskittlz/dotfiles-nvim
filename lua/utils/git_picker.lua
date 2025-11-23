@@ -1893,7 +1893,7 @@ function M.open_git_ui()
 
           local ui = vim.api.nvim_list_uis()[1]
           local width = #confirm_msg
-          local row = 3
+          local row = 1
           local col =
               math.floor((ui.width - width) / 2)
 
