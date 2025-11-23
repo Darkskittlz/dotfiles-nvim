@@ -1099,7 +1099,7 @@ function M.open_git_ui()
         col = 0,
         style = "minimal",
         border = "none",
-        zindex = 1,        -- LOW zindex
+        zindex = 1,      -- LOW zindex
         focusable = false, -- won't steal input
       })
 
@@ -1125,7 +1125,7 @@ function M.open_git_ui()
       vim.api.nvim_open_win(Ui.left_buf, true, {
         relative = "editor",
         width = w,
-        height = bottom_h + 2,         -- now the bigger panel is on bottom
+        height = bottom_h + 2,       -- now the bigger panel is on bottom
         row = editor_h - bottom_h - 6, -- move it below the top window
         col = col,
         style = "minimal",
@@ -2088,6 +2088,344 @@ function M.open_git_ui()
       noremap = true,
       silent = true,
     })
+
+    -- G keymap for reset/rebase options on commits
+    vim.keymap.set("n", "g", function()
+      if Ui.mode ~= "branches" then
+        return
+      end
+
+      local win = vim.api.nvim_get_current_win()
+      if win ~= Ui.right_win then
+        return
+      end
+
+      local cursor =
+          vim.api.nvim_win_get_cursor(Ui.right_win)
+      local line = vim.api.nvim_buf_get_lines(
+        Ui.right_buf,
+        cursor[1] - 1,
+        cursor[1],
+        false
+      )[1] or ""
+      local hash = line:match("^(%S+)")
+      if not hash then
+        return
+      end
+
+      ---------------------------------------------------------------------------
+      -- COLOR HIGHLIGHTS
+      ---------------------------------------------------------------------------
+      vim.api.nvim_set_hl(
+        0,
+        "ResetBlue",
+        { fg = "#4da3ff", bold = true }
+      ) -- mixed
+      vim.api.nvim_set_hl(
+        0,
+        "ResetGreen",
+        { fg = "#32cd32", bold = true }
+      ) -- soft
+      vim.api.nvim_set_hl(
+        0,
+        "ResetRed",
+        { fg = "#ff4444", bold = true }
+      ) -- hard
+      vim.api.nvim_set_hl(
+        0,
+        "ResetWhite",
+        { fg = "#bbbbbb", bold = true }
+      ) -- cancel
+
+      ---------------------------------------------------------------------------
+      -- OPTIONS
+      ---------------------------------------------------------------------------
+      local options = {
+        {
+          key = "m",
+          label = "Mixed reset",
+          hl = "ResetBlue",
+          desc = "Reset HEAD to this commit, keeping changes unstaged.",
+          cmd = "git reset --mixed " .. hash,
+        },
+        {
+          key = "s",
+          label = "Soft reset",
+          hl = "ResetGreen",
+          desc = "Reset HEAD to this commit, keeping all changes staged.",
+          cmd = "git reset --soft " .. hash,
+        },
+        {
+          key = "h",
+          label = "Hard reset",
+          hl = "ResetRed",
+          desc = "Fully reset working tree & index to this commit.",
+          cmd = "git reset --hard " .. hash,
+        },
+        {
+          key = "c",
+          label = "Cancel",
+          hl = "ResetWhite",
+          desc = "Exit without doing anything.",
+          cmd = nil,
+        },
+      }
+
+      local selected = 1
+
+      ---------------------------------------------------------------------------
+      -- BUILD POPUP WINDOWS
+      ---------------------------------------------------------------------------
+      local ui = vim.api.nvim_list_uis()[1]
+      local width = 52
+      local height = #options + 3
+      local row =
+          math.floor((ui.height - height) / 2)
+      local col =
+          math.floor((ui.width - width) / 2)
+
+      -- main popup
+      local buf =
+          vim.api.nvim_create_buf(false, true)
+      local win =
+          vim.api.nvim_open_win(buf, true, {
+            relative = "editor",
+            width = width,
+            height = height,
+            row = row,
+            col = col,
+            style = "minimal",
+            border = "rounded",
+            title = " Reset to " .. hash .. " ",
+            title_pos = "center",
+            zindex = 500,
+          })
+
+      -- info box
+      local buf_desc =
+          vim.api.nvim_create_buf(false, true)
+      local win_desc =
+          vim.api.nvim_open_win(buf_desc, false, {
+            relative = "editor",
+            width = width,
+            height = 3,
+            row = row + height + 2,
+            col = col,
+            style = "minimal",
+            border = "rounded",
+            title = " Info ",
+            title_pos = "center",
+            zindex = 500,
+          })
+
+      ---------------------------------------------------------------------------
+      -- RENDER OPTIONS + INFO
+      ---------------------------------------------------------------------------
+      local function render()
+        local lines = { "" }
+        for i, opt in ipairs(options) do
+          local prefix = (i == selected)
+              and " "
+              or "  "
+          lines[#lines + 1] = prefix .. opt.label
+        end
+
+        vim.api.nvim_buf_set_lines(
+          buf,
+          0,
+          -1,
+          false,
+          lines
+        )
+
+        -- highlight selection
+        vim.api.nvim_buf_clear_namespace(
+          buf,
+          -1,
+          0,
+          -1
+        )
+        vim.api.nvim_buf_add_highlight(
+          buf,
+          -1,
+          options[selected].hl,
+          selected,
+          0,
+          -1
+        )
+
+        -- update info
+        vim.api.nvim_buf_set_lines(
+          buf_desc,
+          0,
+          -1,
+          false,
+          { options[selected].desc }
+        )
+        vim.api.nvim_buf_clear_namespace(
+          buf_desc,
+          -1,
+          0,
+          -1
+        )
+        vim.api.nvim_buf_add_highlight(
+          buf_desc,
+          -1,
+          options[selected].hl,
+          0,
+          0,
+          -1
+        )
+      end
+
+      render()
+
+      ---------------------------------------------------------------------------
+      -- CLOSE HELPERS
+      ---------------------------------------------------------------------------
+      local function close_all()
+        if
+            vim.api.nvim_win_is_valid(win_desc)
+        then
+          vim.api.nvim_win_close(win_desc, true)
+        end
+        if vim.api.nvim_win_is_valid(win) then
+          vim.api.nvim_win_close(win, true)
+        end
+        Ui.mode = "branches"
+        refresh_ui()
+      end
+
+      ---------------------------------------------------------------------------
+      -- MOVEMENT (j/k update selection + info correctly)
+      ---------------------------------------------------------------------------
+      vim.keymap.set("n", "j", function()
+        selected =
+            math.min(#options, selected + 1)
+        render()
+      end, { buffer = buf })
+
+      vim.keymap.set("n", "k", function()
+        selected = math.max(1, selected - 1)
+        render()
+      end, { buffer = buf })
+
+      ---------------------------------------------------------------------------
+      -- Pressing enter works the same way as m,s,h for reset options
+      ---------------------------------------------------------------------------
+      vim.keymap.set("n", "<CR>", function()
+        local opt = options[selected]
+
+        if opt.cmd == nil then
+          close_all()
+          return
+        end
+
+        -- run reset
+        vim.fn.system(opt.cmd)
+
+        -- success popup
+        local buf_ok = vim.api.nvim_create_buf(false, true)
+        local msg = opt.label .. " → " .. hash
+        vim.api.nvim_buf_set_lines(buf_ok, 0, -1, false, { msg })
+        vim.api.nvim_buf_add_highlight(buf_ok, -1, opt.hl, 0, 0, -1)
+
+        local w = #msg + 4
+        local c = math.floor((ui.width - w) / 2)
+        local win_ok = vim.api.nvim_open_win(buf_ok, false, {
+          relative = "editor",
+          width = w,
+          height = 1,
+          row = row - 2,
+          col = c,
+          style = "minimal",
+          border = "rounded",
+          zindex = 600,
+        })
+
+        vim.defer_fn(function()
+          if vim.api.nvim_win_is_valid(win_ok) then
+            vim.api.nvim_win_close(win_ok, true)
+          end
+        end, 1500)
+
+        close_all()
+      end, { buffer = buf })
+      ---------------------------------------------------------------------------
+      -- APPLY RESET ON KEY
+      ---------------------------------------------------------------------------
+      for _, opt in ipairs(options) do
+        vim.keymap.set("n", opt.key, function()
+          if opt.cmd == nil then
+            close_all()
+            return
+          end
+
+          -- run reset
+          vim.fn.system(opt.cmd)
+
+          -- success popup
+          local buf_ok =
+              vim.api.nvim_create_buf(false, true)
+          local msg = opt.label .. " → " .. hash
+          vim.api.nvim_buf_set_lines(
+            buf_ok,
+            0,
+            -1,
+            false,
+            { msg }
+          )
+          vim.api.nvim_buf_add_highlight(
+            buf_ok,
+            -1,
+            opt.hl,
+            0,
+            0,
+            -1
+          )
+
+          local w = #msg + 4
+          local c = math.floor((ui.width - w) / 2)
+          local win_ok =
+              vim.api.nvim_open_win(buf_ok, false, {
+                relative = "editor",
+                width = w,
+                height = 1,
+                row = row - 2,
+                col = c,
+                style = "minimal",
+                border = "rounded",
+                zindex = 600,
+              })
+
+          vim.defer_fn(function()
+            if
+                vim.api.nvim_win_is_valid(win_ok)
+            then
+              vim.api.nvim_win_close(win_ok, true)
+            end
+          end, 1500)
+
+          close_all()
+        end, { buffer = buf })
+      end
+
+      ---------------------------------------------------------------------------
+      -- EXIT
+      ---------------------------------------------------------------------------
+      vim.keymap.set(
+        "n",
+        "q",
+        close_all,
+        { buffer = buf }
+      )
+      vim.keymap.set(
+        "n",
+        "<Esc>",
+        close_all,
+        { buffer = buf }
+      )
+    end, { noremap = true, silent = true })
 
     vim.keymap.set("n", "j", function()
       local win = vim.api.nvim_get_current_win()
