@@ -1259,7 +1259,6 @@ function M.open_git_ui()
       -- Load stashes
       UiStash = UiStash
         or { stashes = {}, selected_index = 1 }
-
       load_stashes()
 
       if #UiStash.stashes == 0 then
@@ -1327,19 +1326,6 @@ function M.open_git_ui()
         "filetype",
         "diff"
       )
-
-      local stash_entry =
-        UiStash.stashes[UiStash.selected_index]
-      local ref = stash_entry:match("stash@{%d+}")
-      local diff_lines =
-        run_git("git stash show -p " .. ref)
-      vim.api.nvim_buf_set_lines(
-        buf_diff,
-        0,
-        -1,
-        false,
-        diff_lines
-      )
       vim.api.nvim_buf_set_option(
         buf_diff,
         "modifiable",
@@ -1366,24 +1352,24 @@ function M.open_git_ui()
         { "" }
       )
 
-      local buf_desc =
+      local buf_list =
         vim.api.nvim_create_buf(false, true)
       vim.api.nvim_buf_set_option(
-        buf_desc,
+        buf_list,
         "buftype",
-        "acwrite"
+        "nofile"
       )
       vim.api.nvim_buf_set_option(
-        buf_desc,
+        buf_list,
         "bufhidden",
         "wipe"
       )
       vim.api.nvim_buf_set_lines(
-        buf_desc,
+        buf_list,
         0,
         -1,
         false,
-        { "", "", "" }
+        UiStash.stashes
       )
 
       -- =========================
@@ -1418,11 +1404,14 @@ function M.open_git_ui()
           title_pos = "center",
         })
 
-      local win_desc =
-        vim.api.nvim_open_win(buf_desc, true, {
+      local win_list =
+        vim.api.nvim_open_win(buf_list, true, {
           relative = "editor",
           width = width,
-          height = height_desc - 1,
+          height = math.min(
+            #UiStash.stashes,
+            height_desc
+          ),
           row = height_diff + height_title + 5,
           col = col,
           style = "minimal",
@@ -1430,6 +1419,7 @@ function M.open_git_ui()
           zindex = 300,
           title = " Stash List ",
           title_pos = "center",
+          focusable = true,
         })
 
       -- =========================
@@ -1438,7 +1428,7 @@ function M.open_git_ui()
       local function close_stash_popup()
         for _, w in ipairs({
           win_title,
-          win_desc,
+          win_list,
           win_diff,
           win_overlay,
         }) do
@@ -1446,7 +1436,6 @@ function M.open_git_ui()
             vim.api.nvim_win_close(w, true)
           end
         end
-        -- Reset to branches/files UI
         Ui.mode = "branches"
         Ui.selected_index = 1
         refresh_ui()
@@ -1454,11 +1443,67 @@ function M.open_git_ui()
       end
 
       -- =========================
+      -- Update diff & cursor
+      -- =========================
+      local function update_diff()
+        local entry =
+          UiStash.stashes[UiStash.selected_index]
+        local ref = entry:match("stash@{%d+}")
+        local diff_lines =
+          run_git("git stash show -p " .. ref)
+        vim.api.nvim_buf_set_option(
+          buf_diff,
+          "modifiable",
+          true
+        )
+        vim.api.nvim_buf_set_lines(
+          buf_diff,
+          0,
+          -1,
+          false,
+          diff_lines
+        )
+        vim.api.nvim_buf_set_option(
+          buf_diff,
+          "modifiable",
+          false
+        )
+
+        -- update the list highlighting
+        local lines = {}
+        for i, s in ipairs(UiStash.stashes) do
+          if i == UiStash.selected_index then
+            lines[i] = "> " .. s
+          else
+            lines[i] = "  " .. s
+          end
+        end
+        vim.api.nvim_buf_set_lines(
+          buf_list,
+          0,
+          -1,
+          false,
+          lines
+        )
+
+        -- make sure the cursor is on the selected stash
+        vim.api.nvim_win_set_cursor(
+          win_list,
+          { UiStash.selected_index, 0 }
+        )
+
+        -- force redraw
+        vim.api.nvim_win_call(win_diff, function()
+          vim.cmd("redraw")
+        end)
+      end
+
+      -- =========================
       -- Keymaps
       -- =========================
       for _, b in ipairs({
         buf_title,
-        buf_desc,
+        buf_list,
         buf_diff,
       }) do
         vim.keymap.set(
@@ -1483,30 +1528,20 @@ function M.open_git_ui()
         )
 
         vim.keymap.set("n", "<Tab>", function()
-          vim.api.nvim_set_current_win(win_desc)
+          vim.api.nvim_set_current_win(win_list)
+          vim.cmd("stopinsert") -- exit insert mode so j/k works
         end, { buffer = b })
         vim.keymap.set("n", "<S-Tab>", function()
           vim.api.nvim_set_current_win(win_title)
+          vim.cmd("startinsert") -- exit insert mode so j/k works
         end, { buffer = b })
 
         vim.keymap.set("n", "j", function()
-          local max_items = #UiStash.stashes
           UiStash.selected_index = math.min(
-            max_items,
+            #UiStash.stashes,
             UiStash.selected_index + 1
           )
-          local entry =
-            UiStash.stashes[UiStash.selected_index]
-          local ref = entry:match("stash@{%d+}")
-          local diff_lines =
-            run_git("git stash show -p " .. ref)
-          vim.api.nvim_buf_set_lines(
-            buf_diff,
-            0,
-            -1,
-            false,
-            diff_lines
-          )
+          update_diff()
         end, { buffer = b })
 
         vim.keymap.set("n", "k", function()
@@ -1514,24 +1549,15 @@ function M.open_git_ui()
             1,
             UiStash.selected_index - 1
           )
-          local entry =
-            UiStash.stashes[UiStash.selected_index]
-          local ref = entry:match("stash@{%d+}")
-          local diff_lines =
-            run_git("git stash show -p " .. ref)
-          vim.api.nvim_buf_set_lines(
-            buf_diff,
-            0,
-            -1,
-            false,
-            diff_lines
-          )
+          update_diff()
         end, { buffer = b })
       end
 
-      -- Focus on title window by default
+      -- Start in insert mode on title
       vim.api.nvim_set_current_win(win_title)
-      vim.cmd("startinsert")
+
+      -- Initialize diff & highlight
+      update_diff()
     end, {
       buffer = buf,
       noremap = true,
