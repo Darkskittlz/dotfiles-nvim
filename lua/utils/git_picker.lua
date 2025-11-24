@@ -2,10 +2,13 @@
 ---@diagnostic disable: undefined-global
 local M = {}
 
--- TODO: Make g keymap dynamic so that it can rebase commits back to working file tree as staged changes.
--- TODO: Find some way to checkout branches without having the background default to black.
+-- TODO: Make g keymap work so it performs the reset/rebase.
 -- TODO: Add force push confirm option if branch has diverged from remote.
--- TODO: Maybe Find a way to make this an nvim plugin so other people can use it.
+-- TODO: Update prettier config so there aren't massive changes every time i save a file in nvim
+-- TODO: Find an easier way to reset nvim so i don't have to exit out and come back in every time
+-- TODO: add d for drop commits keymap functionality on git log
+-- TODO: add l keymap to show pretty git graph
+-- TODO: Add M to show options for merging branch into another branch.
 
 -- Highlights
 vim.api.nvim_set_hl(
@@ -1099,7 +1102,7 @@ function M.open_git_ui()
         col = 0,
         style = "minimal",
         border = "none",
-        zindex = 1,      -- LOW zindex
+        zindex = 1,        -- LOW zindex
         focusable = false, -- won't steal input
       })
 
@@ -1125,7 +1128,7 @@ function M.open_git_ui()
       vim.api.nvim_open_win(Ui.left_buf, true, {
         relative = "editor",
         width = w,
-        height = bottom_h + 2,       -- now the bigger panel is on bottom
+        height = bottom_h + 2,         -- now the bigger panel is on bottom
         row = editor_h - bottom_h - 6, -- move it below the top window
         col = col,
         style = "minimal",
