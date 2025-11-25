@@ -19,6 +19,12 @@ vim.api.nvim_set_hl(0, "MergeGreen", { fg = "#32cd32", bold = true })
 vim.api.nvim_set_hl(0, "MergeRed", { fg = "#ff4444", bold = true })
 vim.api.nvim_set_hl(0, "MergeWhite", { fg = "#bbbbbb", bold = true })
 
+vim.api.nvim_set_hl(0, "ResetBlue", { fg = "#4da3ff", bold = true })
+vim.api.nvim_set_hl(0, "ResetGreen", { fg = "#32cd32", bold = true })
+vim.api.nvim_set_hl(0, "ResetRed", { fg = "#ff4444", bold = true })
+vim.api.nvim_set_hl(0, "ResetWhite", { fg = "#bbbbbb", bold = true })
+
+
 vim.api.nvim_set_hl(0, "GitHash", { fg = "#ff007f", bold = true, italic = false }) -- Electric pink
 vim.api.nvim_set_hl(0, "GitDate", { fg = "#00d2ff", bold = false, italic = true }) -- Electric green
 vim.api.nvim_set_hl(0, "GitMsg", { fg = "#4e4e4e", bold = false, italic = false }) -- Dark grey for readability
@@ -2347,14 +2353,6 @@ function M.open_git_ui()
       end
 
       ---------------------------------------------------------------------------
-      -- COLOR HIGHLIGHTS
-      ---------------------------------------------------------------------------
-      vim.api.nvim_set_hl(0, "ResetBlue", { fg = "#4da3ff", bold = true })
-      vim.api.nvim_set_hl(0, "ResetGreen", { fg = "#32cd32", bold = true })
-      vim.api.nvim_set_hl(0, "ResetRed", { fg = "#ff4444", bold = true })
-      vim.api.nvim_set_hl(0, "ResetWhite", { fg = "#bbbbbb", bold = true })
-
-      ---------------------------------------------------------------------------
       -- OPTIONS
       ---------------------------------------------------------------------------
       local options = {
@@ -2542,6 +2540,60 @@ function M.open_git_ui()
       ---------------------------------------------------------------------------
       vim.keymap.set("n", "q", close_all, { buffer = buf })
       vim.keymap.set("n", "<Esc>", close_all, { buffer = buf })
+    end, { buffer = Ui.right_buf, noremap = true, silent = true })
+
+    -- keymap for dropping commits
+    vim.keymap.set("n", "d", function()
+      if Ui.mode ~= "branches" then return end -- Ensure we are in the commits view
+
+      local win = vim.api.nvim_get_current_win()
+      if win ~= Ui.right_win then return end -- Ensure we are in the right window
+
+      local cursor = vim.api.nvim_win_get_cursor(Ui.right_win)
+      local line = vim.api.nvim_buf_get_lines(Ui.right_buf, cursor[1] - 1, cursor[1], false)[1] or ""
+      local hash = line:match("^(%S+)") -- Get the commit hash
+      if not hash then return end       -- No hash found, exit
+
+      -- Get the next commit hash (after the current one)
+      local next_commit_hash = vim.fn.trim(vim.fn.system("git log --format='%H' --skip=1 " .. hash .. " -n 1"))
+      if not next_commit_hash or next_commit_hash == "" then
+        vim.notify("No next commit found", vim.log.levels.ERROR)
+        return
+      end
+
+      -- Perform the reset to the next commit
+      local reset_command = "git reset --hard " .. next_commit_hash
+      vim.fn.system(reset_command)
+
+      -- Show a message indicating the reset was successful
+      local ui = vim.api.nvim_list_uis()[1]
+      local msg = "Reset to commit: " .. next_commit_hash
+      local buf_ok = vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_lines(buf_ok, 0, -1, false, { msg })
+      vim.api.nvim_buf_add_highlight(buf_ok, -1, "ResetGreen", 0, 0, -1)
+
+      local w = #msg + 4
+      local c = math.floor((ui.width - w) / 2)
+      local win_ok = vim.api.nvim_open_win(buf_ok, false, {
+        relative = "editor",
+        width = w,
+        height = 1,
+        row = 2,
+        col = c,
+        style = "minimal",
+        border = "rounded",
+        zindex = 600,
+      })
+
+      vim.defer_fn(function()
+        if vim.api.nvim_win_is_valid(win_ok) then
+          vim.api.nvim_win_close(win_ok, true)
+        end
+      end, 1500)
+
+      -- Refresh UI to reflect the reset state (go back to branches view or whatever logic applies)
+      Ui.mode = "branches"
+      refresh_ui()
     end, { buffer = Ui.right_buf, noremap = true, silent = true })
 
 
@@ -3383,6 +3435,8 @@ function M.open_git_ui()
         Ui.mode = "branches"
         refresh_ui()
       end
+
+      -- test
 
       local function apply_selected()
         local opt = options[selected]
