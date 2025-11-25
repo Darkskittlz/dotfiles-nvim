@@ -3402,12 +3402,19 @@ function M.open_git_ui()
         render()
       end, { buffer = buf_win })
 
+<<<<<<< Updated upstream
       local function show_output(title, lines)
         -- create buffer
+=======
+      local floating_windows = {}
+
+      local function show_floating(title, lines, row_offset, id)
+>>>>>>> Stashed changes
         local buf = vim.api.nvim_create_buf(false, true)
         vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines or {})
         vim.api.nvim_buf_set_option(buf, "modifiable", false)
 
+<<<<<<< Updated upstream
         -- calculate window size
         local ui = vim.api.nvim_list_uis()[1]
         local width = math.min(80, ui.width - 4)
@@ -3416,6 +3423,14 @@ function M.open_git_ui()
         local col = math.floor((ui.width - width) / 2)
 
         -- create floating window
+=======
+        local ui = vim.api.nvim_list_uis()[1]
+        local width = math.min(80, ui.width - 4)
+        local height = math.min(#lines + 2, ui.height - 4)
+        local row = math.floor((ui.height - height) / 2) + (row_offset or 0)
+        local col = math.floor((ui.width - width) / 2)
+
+>>>>>>> Stashed changes
         local win = vim.api.nvim_open_win(buf, true, {
           relative = "editor",
           width = width,
@@ -3429,6 +3444,11 @@ function M.open_git_ui()
           zindex = 600,
         })
 
+<<<<<<< Updated upstream
+=======
+        floating_windows[id] = win
+
+>>>>>>> Stashed changes
         -- close window on 'q'
         vim.keymap.set("n", "q", function()
           if vim.api.nvim_win_is_valid(win) then
@@ -3438,7 +3458,10 @@ function M.open_git_ui()
       end
 
 
+<<<<<<< Updated upstream
       -- APPLY SELECTED
+=======
+>>>>>>> Stashed changes
       local function apply_selected()
         local opt = options[selected]
         if not opt.cmd then
@@ -3446,24 +3469,55 @@ function M.open_git_ui()
           return
         end
 
+<<<<<<< Updated upstream
         close_all() -- close the merge popup first
+=======
+        close_all()
+>>>>>>> Stashed changes
 
         vim.fn.jobstart(opt.cmd, {
           stdout_buffered = true,
           stderr_buffered = true,
           on_stdout = function(_, data)
             if data then
+<<<<<<< Updated upstream
               show_output("Git Output", data)
+=======
+              show_floating("Git Output", data, -5, "stdout")
+>>>>>>> Stashed changes
             end
           end,
           on_stderr = function(_, data)
             if data then
+<<<<<<< Updated upstream
               show_output("Git Errors", data)
             end
           end,
         })
       end
 
+=======
+              show_floating("Git Errors", data, 5, "stderr")
+            end
+          end,
+        })
+
+        -- navigate between windows
+        vim.keymap.set("n", "H", function()
+          if floating_windows.stdout and vim.api.nvim_win_is_valid(floating_windows.stdout) then
+            vim.api.nvim_set_current_win(floating_windows.stdout)
+          end
+        end, { nowait = true, silent = true })
+
+        vim.keymap.set("n", "L", function()
+          if floating_windows.stderr and vim.api.nvim_win_is_valid(floating_windows.stderr) then
+            vim.api.nvim_set_current_win(floating_windows.stderr)
+          end
+        end, { nowait = true, silent = true })
+      end
+
+
+>>>>>>> Stashed changes
       vim.keymap.set("n", "<CR>", apply_selected, { buffer = buf_win })
       for _, opt in ipairs(options) do
         vim.keymap.set("n", opt.key, function()
