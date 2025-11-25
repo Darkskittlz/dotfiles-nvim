@@ -1,3 +1,6 @@
 indent_type = "Spaces"
 indent_width = 2
-column_width = 50
+line_width = 9999
+quote_style = "AutoPreferSingle"  # optional, keeps single quotes if you want
+column_width = 9999
+
