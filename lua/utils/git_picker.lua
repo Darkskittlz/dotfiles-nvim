@@ -2964,6 +2964,8 @@ function M.open_git_ui()
       silent = true,
     })
 
+    -- test comment
+
     -- Pull latest changes
     vim.keymap.set("n", "p", function()
       if Ui.mode ~= "branches" then
