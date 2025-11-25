@@ -3430,11 +3430,13 @@ function M.open_git_ui()
 
         floating_windows[id] = { win = win, buf = buf, height = height, row = row }
 
+        -- random test
         -- close window on 'q'
         vim.keymap.set("n", "q", function()
           if vim.api.nvim_win_is_valid(win) then
             vim.api.nvim_win_close(win, true)
           end
+
           Ui.mode = "branches"
           refresh_ui()
         end, { buffer = buf, nowait = true, silent = true })
