@@ -1102,7 +1102,7 @@ function M.open_git_ui()
         col = 0,
         style = "minimal",
         border = "none",
-        zindex = 1,        -- LOW zindex
+        zindex = 1,      -- LOW zindex
         focusable = false, -- won't steal input
       })
 
@@ -1128,7 +1128,7 @@ function M.open_git_ui()
       vim.api.nvim_open_win(Ui.left_buf, true, {
         relative = "editor",
         width = w,
-        height = bottom_h + 2,         -- now the bigger panel is on bottom
+        height = bottom_h + 2,       -- now the bigger panel is on bottom
         row = editor_h - bottom_h - 6, -- move it below the top window
         col = col,
         style = "minimal",
@@ -2107,7 +2107,11 @@ function M.open_git_ui()
       return function(msg)
         local buf_err =
             vim.api.nvim_create_buf(false, true)
-        vim.api.nvim_set_hl(0, "ResetError", { fg = "#ff4444", bg = "NONE", bold = true })
+        vim.api.nvim_set_hl(0, "ResetError", {
+          fg = "#ff4444",
+          bg = "NONE",
+          bold = true,
+        })
         vim.api.nvim_buf_set_lines(
           buf_err,
           0,
@@ -2170,7 +2174,6 @@ function M.open_git_ui()
         cursor[1],
         false
       )[1] or ""
-
 
       local hash = line:match("^(%S+)")
       if not hash then
@@ -2394,7 +2397,6 @@ function M.open_git_ui()
 
         vim.fn.system(opt.cmd)
 
-
         local buf_ok =
             vim.api.nvim_create_buf(false, true)
         local msg = opt.label .. " → " .. hash
@@ -2428,7 +2430,6 @@ function M.open_git_ui()
               zindex = 600,
             })
 
-
         vim.defer_fn(function()
           if
               vim.api.nvim_win_is_valid(win_ok)
@@ -2456,7 +2457,6 @@ function M.open_git_ui()
             close_all()
             return
           end
-
 
           local show_error =
               make_show_error(row, height, ui)

@@ -96,6 +96,32 @@ keymap.set("x", "K", ":m '<-2<CR>gv=gv")
 keymap.set("x", "<A-j>", ":m '>+1<CR>gv=gv")
 keymap.set("x", "<A-k>", ":m '<-2<CR>gv=gv")
 
+-- Surround selection with parentheses
+keymap.set(
+  "v",
+  "<leader>(",
+  'c(<C-R>")<Esc>',
+  { noremap = true, silent = true }
+)
+
+-- Surround selection with single quotes
+keymap.set(
+  "v",
+  "<leader>'",
+  "c'<C-R>\"'<Esc>",
+  { noremap = true, silent = true }
+)
+
+-- Surround selection with double quotes
+keymap.set(
+  "v",
+  '<leader>"',
+  'c"<C-R>\""<Esc>',
+  { noremap = true, silent = true }
+)
+
+
+
 keymap.set("n", "<leader>cn", function()
   if vim.wo.number then
     -- hide both absolute and relative numbers
@@ -107,8 +133,6 @@ keymap.set("n", "<leader>cn", function()
     vim.wo.relativenumber = false
   end
 end, { desc = "Toggle line numbers" })
-
-
 
 -- ChatGPT Keymaps --
 -- GpChatNew Mappings
