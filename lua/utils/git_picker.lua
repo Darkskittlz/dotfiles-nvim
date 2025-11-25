@@ -2544,6 +2544,7 @@ function M.open_git_ui()
 
     -- keymap for dropping commits
     vim.keymap.set("n", "d", function()
+      print("Current Ui.mode:", Ui.mode)
       print("D keymap triggered") -- Confirm that the keymap is reached
 
       -- Check if we're in the correct mode
@@ -2663,7 +2664,7 @@ function M.open_git_ui()
         vim.notify("Reset aborted.", vim.log.levels.INFO)
         close_confirm_win()
       end, { buffer = buf, noremap = true, silent = true })
-    end, { noremap = true, silent = true })
+    end, { buffer = Ui.right_buf, noremap = true, silent = true })
 
 
 
@@ -3081,7 +3082,7 @@ function M.open_git_ui()
         delete_branch()
       end
     end, {
-      buffer = buf,
+      buffer = Ui.left_buf,
       noremap = true,
       silent = true,
     })
