@@ -2549,7 +2549,7 @@ function M.open_git_ui()
       vim.keymap.set("n", "<Esc>", function()
         close_all()
       end, { buffer = buf })
-    end, { noremap = true, silent = true })
+    end, { buffer = Ui.right_buf, noremap = true, silent = true })
 
     vim.keymap.set("n", "j", function()
       local win = vim.api.nvim_get_current_win()
@@ -3083,14 +3083,8 @@ function M.open_git_ui()
     -- n keymap to create new branches off of selected branch
     vim.keymap.set("n", "n", function()
       local buf = Ui.left_buf
-      local win = Ui.left_win
-      if not buf or not vim.api.nvim_buf_is_valid(buf) then
-        return
-      end
-
-      if vim.api.nvim_get_current_buf() ~= buf then
-        return -- don't override normal 'n' in other buffers
-      end
+      if not buf or not vim.api.nvim_buf_is_valid(buf) then return end
+      if vim.api.nvim_get_current_buf() ~= buf then return end
 
       local current_branch = Ui.branch_selected
       if not current_branch or current_branch == "" then
@@ -3251,6 +3245,7 @@ function M.open_git_ui()
         { noremap = true, silent = true }
       )
     end, {
+      buffer = Ui.left_buf,
       noremap = true,
       silent = true,
       desc = "Create new branch from selected",
