@@ -3058,13 +3058,11 @@ function M.open_git_ui()
             vim.schedule(function()
               if vim.api.nvim_win_is_valid(win) then vim.api.nvim_win_close(win, true) end
               if exit_code == 0 then
-                -- print("DEBUG: push succeeded")
                 show_centered_message("✅ Successfully pushed branch: " .. current_branch)
-                show_floating_pair({"Push to " .. current_branch .. " succeeded!"}, {})
+                -- show_floating_pair({ "Push to " .. current_branch .. " succeeded!" }, {})
               else
-                -- print("DEBUG: push failed for other reason")
                 show_centered_message(" Failed to push branch: " .. current_branch)
-                show_floating_pair({}, {"Failed to push to " .. current_branch})
+                -- show_floating_pair({}, { "Failed to push to " .. current_branch })
               end
             end)
           end,
