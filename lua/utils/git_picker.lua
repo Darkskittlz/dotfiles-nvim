@@ -5,26 +5,10 @@ local M = {}
 -- TODO: add l keymap to show pretty git graph
 
 -- Highlights
-vim.api.nvim_set_hl(
-  0,
-  "GitBranchCurrent",
-  { fg = "#549afc", bold = true }
-)
-vim.api.nvim_set_hl(
-  0,
-  "GitStaged",
-  { fg = "#a6e22e", bold = true }
-)
-vim.api.nvim_set_hl(
-  0,
-  "GitUnstaged",
-  { fg = "#e6db74", bold = true }
-)
-vim.api.nvim_set_hl(
-  0,
-  "GitPickerTitle",
-  { fg = "#268bd3", bold = true }
-)
+vim.api.nvim_set_hl(0, "GitBranchCurrent", { fg = "#549afc", bold = true })
+vim.api.nvim_set_hl(0, "GitUnstaged", { fg = "#f99c67", bold = false, italic = false })
+vim.api.nvim_set_hl(0, "GitStaged", { fg = "#a6e22e", bold = true })
+vim.api.nvim_set_hl(0, "GitPickerTitle", { fg = "#268bd3", bold = true })
 
 vim.api.nvim_set_hl(0, "DiffAdd", { fg = "#00aa00", bg = "", bold = false })    -- green
 vim.api.nvim_set_hl(0, "DiffDelete", { fg = "#f92672", bg = "", bold = false }) -- red/pink
@@ -34,6 +18,10 @@ vim.api.nvim_set_hl(0, "DiffChange", { fg = "#fd971f", bg = "", bold = false }) 
 vim.api.nvim_set_hl(0, "GitHash", { fg = "#ff007f", bold = true, italic = false }) -- Electric pink
 vim.api.nvim_set_hl(0, "GitDate", { fg = "#00d2ff", bold = false, italic = true }) -- Electric green
 vim.api.nvim_set_hl(0, "GitMsg", { fg = "#4e4e4e", bold = false, italic = false }) -- Dark grey for readability
+
+-- Light Mode Colors
+vim.api.nvim_set_hl(0, "GitOutput", { fg = "#40a02b", bold = false, italic = false }) -- Light green for stdout (success)
+vim.api.nvim_set_hl(0, "GitError", { fg = "#FF6F69", bold = false, italic = false })  -- Red for stderr (error)
 
 -- Dark Mode Colors
 -- vim.api.nvim_set_hl(0, "GitHash", { fg = "#11518c", bold = true, italic = false })
@@ -46,9 +34,9 @@ vim.api.nvim_set_hl(0, "GitMsg", { fg = "#4e4e4e", bold = false, italic = false 
 vim.cmd([[
 highlight GitStaged guifg=green
 highlight GitStagedFile guifg=green
-highlight GitUnstaged guifg=yellow
-highlight GitUnstagedFile guifg=yellow
-highlight GitBranchCurrent guifg=cyan gui=bold
+highlight GitUnstaged guifg=orange gui=bold
+highlight GitUnstagedFile guifg=orange gui=bold
+highlight GitBranchCurrent guifg=cyan
 ]])
 
 local Ui = {
@@ -567,6 +555,9 @@ local function show_floating_pair(stdout_lines, stderr_lines)
   vim.api.nvim_buf_set_lines(buf_out, 0, -1, false, stdout_lines)
   vim.api.nvim_buf_set_option(buf_out, "modifiable", false)
 
+  -- Apply a highlight group to colorize the output window (stdout)
+  vim.api.nvim_buf_add_highlight(buf_out, -1, "GitOutput", 0, 0, -1)
+
   local win_out = vim.api.nvim_open_win(buf_out, true, {
     relative = "editor",
     width = width,
@@ -586,6 +577,8 @@ local function show_floating_pair(stdout_lines, stderr_lines)
   local buf_err = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_buf_set_lines(buf_err, 0, -1, false, stderr_lines)
   vim.api.nvim_buf_set_option(buf_err, "modifiable", false)
+
+  vim.api.nvim_buf_add_highlight(buf_err, -1, "GitError", 0, 0, -1)
 
   local win_err = vim.api.nvim_open_win(buf_err, false, {
     relative = "editor",
