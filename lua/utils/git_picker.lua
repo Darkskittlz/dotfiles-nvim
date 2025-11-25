@@ -2617,15 +2617,18 @@ function M.open_git_ui()
         vim.api.nvim_buf_set_lines(buf_ok, 0, -1, false, { msg })
         vim.api.nvim_buf_add_highlight(buf_ok, -1, "ResetGreen", 0, 0, -1)
 
+        local width = #msg + 4
+        local ui = vim.api.nvim_list_uis()[1]
+        local col = math.floor((ui.width - width) / 2)
 
+        -- Position for the success message: Place it 2 rows below the confirmation
+        local success_row = row + 2 -- This will move it 2 rows below the confirmation message
 
-        local w = #msg + 4
-        local c = math.floor((ui.width - w) / 2)
         local win_ok = vim.api.nvim_open_win(buf_ok, false, {
           relative = "editor",
           width = w,
           height = 1,
-          row = row + 4,
+          row = success_row,
           col = c,
           style = "minimal",
           border = "rounded",
