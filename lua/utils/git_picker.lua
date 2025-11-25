@@ -19,6 +19,12 @@ vim.api.nvim_set_hl(0, "MergeGreen", { fg = "#32cd32", bold = true })
 vim.api.nvim_set_hl(0, "MergeRed", { fg = "#ff4444", bold = true })
 vim.api.nvim_set_hl(0, "MergeWhite", { fg = "#bbbbbb", bold = true })
 
+vim.api.nvim_set_hl(0, "ResetBlue", { fg = "#4da3ff", bold = true })
+vim.api.nvim_set_hl(0, "ResetGreen", { fg = "#32cd32", bold = true })
+vim.api.nvim_set_hl(0, "ResetRed", { fg = "#ff4444", bold = true })
+vim.api.nvim_set_hl(0, "ResetWhite", { fg = "#bbbbbb", bold = true })
+
+
 vim.api.nvim_set_hl(0, "GitHash", { fg = "#ff007f", bold = true, italic = false }) -- Electric pink
 vim.api.nvim_set_hl(0, "GitDate", { fg = "#00d2ff", bold = false, italic = true }) -- Electric green
 vim.api.nvim_set_hl(0, "GitMsg", { fg = "#4e4e4e", bold = false, italic = false }) -- Dark grey for readability
@@ -2347,14 +2353,6 @@ function M.open_git_ui()
       end
 
       ---------------------------------------------------------------------------
-      -- COLOR HIGHLIGHTS
-      ---------------------------------------------------------------------------
-      vim.api.nvim_set_hl(0, "ResetBlue", { fg = "#4da3ff", bold = true })
-      vim.api.nvim_set_hl(0, "ResetGreen", { fg = "#32cd32", bold = true })
-      vim.api.nvim_set_hl(0, "ResetRed", { fg = "#ff4444", bold = true })
-      vim.api.nvim_set_hl(0, "ResetWhite", { fg = "#bbbbbb", bold = true })
-
-      ---------------------------------------------------------------------------
       -- OPTIONS
       ---------------------------------------------------------------------------
       local options = {
@@ -2543,6 +2541,124 @@ function M.open_git_ui()
       vim.keymap.set("n", "q", close_all, { buffer = buf })
       vim.keymap.set("n", "<Esc>", close_all, { buffer = buf })
     end, { buffer = Ui.right_buf, noremap = true, silent = true })
+
+
+    -- keymap for dropping commits
+    vim.keymap.set("n", "d", function()
+      -- Check if we're in the correct mode
+      if Ui.mode ~= "branches" then
+        return
+      end
+
+      -- Check if we're in the right window
+      local win = vim.api.nvim_get_current_win()
+      if win ~= Ui.right_win then
+        return
+      end
+
+      -- Get the cursor position and the commit hash
+      local cursor = vim.api.nvim_win_get_cursor(Ui.right_win)
+      local line = vim.api.nvim_buf_get_lines(Ui.right_buf, cursor[1] - 1, cursor[1], false)[1] or ""
+
+      -- Extract the commit hash from the line
+      local hash = line:match("^(%S+)") -- Get the commit hash
+      if not hash then
+        return
+      end
+
+      -- Get the next commit hash
+      local next_commit_hash = vim.fn.trim(vim.fn.system("git log --format='%H' --skip=1 " .. hash .. " -n 1"))
+      if not next_commit_hash or next_commit_hash == "" then
+        vim.notify("No next commit found", vim.log.levels.ERROR)
+        return
+      end
+
+      -- Ask for user confirmation before discarding the commit
+      local ui = vim.api.nvim_list_uis()[1]
+      local width = 51
+      local height = 1
+      local row = 3
+      local col = math.floor((ui.width - width) / 2)
+
+      local buf = vim.api.nvim_create_buf(false, true)
+      local win_confirm = vim.api.nvim_open_win(buf, true, {
+        relative = "editor",
+        width = width,
+        height = height,
+        row = row,
+        col = col,
+        style = "minimal",
+        border = "rounded",
+        title = " Confirmation ",
+        title_pos = "center",
+        zindex = 500,
+      })
+
+      local confirm_message = "Are you sure you want to discard this commit? (y/N)"
+      vim.api.nvim_buf_set_lines(buf, 0, -1, false, { confirm_message })
+
+      local function close_confirm_win()
+        if vim.api.nvim_win_is_valid(win_confirm) then
+          vim.api.nvim_win_close(win_confirm, true)
+        end
+      end
+
+      -- Confirm keymap for 'y' and 'n'
+      vim.keymap.set("n", "y", function()
+        -- Perform the reset to the next commit
+        local reset_command = "git reset --hard " .. next_commit_hash
+        print("Running git reset command:", reset_command)
+        vim.fn.system(reset_command)
+
+        -- Show a success message
+        local msg = "Reset to commit: " .. next_commit_hash
+        local buf_ok = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_lines(buf_ok, 0, -1, false, { msg })
+        vim.api.nvim_buf_add_highlight(buf_ok, -1, "ResetGreen", 0, 0, -1)
+
+        local w = #msg + 4
+        local c = math.floor((ui.width - w) / 2)
+        local win_ok = vim.api.nvim_open_win(buf_ok, false, {
+          relative = "editor",
+          width = w,
+          height = 1,
+          row = row - 2,
+          col = c,
+          style = "minimal",
+          border = "rounded",
+          zindex = 600,
+        })
+
+        vim.defer_fn(function()
+          if vim.api.nvim_win_is_valid(win_ok) then
+            vim.api.nvim_win_close(win_ok, true)
+          end
+        end, 1500)
+
+        -- Refresh UI to reflect the reset state
+        Ui.mode = "branches" -- Stay in branches mode after reset
+        refresh_ui()
+
+        close_confirm_win()
+      end, { buffer = buf, noremap = true, silent = true })
+
+      -- Cancel reset if user presses 'n' or Esc
+      vim.keymap.set("n", "n", function()
+        vim.notify("Drop Aborted", vim.log.levels.INFO)
+        close_confirm_win()
+      end, { buffer = buf, noremap = true, silent = true })
+
+      vim.keymap.set("n", "q", function()
+        vim.notify("Drop Aborted", vim.log.levels.INFO)
+        close_confirm_win()
+      end, { buffer = buf, noremap = true, silent = true })
+
+      vim.keymap.set("n", "<Esc>", function()
+        vim.notify("Drop Aborted", vim.log.levels.INFO)
+        close_confirm_win()
+      end, { buffer = buf, noremap = true, silent = true })
+    end, { buffer = Ui.right_buf, noremap = true, silent = true })
+
 
 
     vim.keymap.set("n", "j", function()
@@ -2959,10 +3075,12 @@ function M.open_git_ui()
         delete_branch()
       end
     end, {
-      buffer = buf,
+      buffer = Ui.left_buf,
       noremap = true,
       silent = true,
     })
+
+    -- test comment
 
     -- Pull latest changes
     vim.keymap.set("n", "p", function()
@@ -3381,6 +3499,8 @@ function M.open_git_ui()
         Ui.mode = "branches"
         refresh_ui()
       end
+
+      -- test
 
       local function apply_selected()
         local opt = options[selected]
