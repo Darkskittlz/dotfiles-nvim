@@ -3251,6 +3251,74 @@ function M.open_git_ui()
       desc = "Create new branch from selected",
     })
 
+    vim.keymap.set("n", "m", function()
+      -- Get the selected branch
+      local target_branch = Ui.branch_selected
+      if not target_branch or target_branch == "" then
+        vim.notify("No branch selected!", vim.log.levels.ERROR)
+        return
+      end
+
+      local current_branch = vim.fn.trim(vim.fn.system("git branch --show-current"))
+      if current_branch == target_branch then
+        vim.notify("Cannot merge a branch into itself!", vim.log.levels.ERROR)
+        return
+      end
+
+      -- Merge options
+      local options = {
+        { label = "Regular merge",                   cmd = { "git", "merge", target_branch },           desc = "Merge target branch into HEAD (creates a merge commit if needed)" },
+        { label = "Squash merge, leave uncommitted", cmd = { "git", "merge", "--squash", target_branch }, desc = "Squash commits from target branch into working tree, do not commit automatically" },
+        { label = "Squash merge and commit",         cmd = { "git", "merge", "--squash", target_branch }, desc = "Squash commits from target branch and create a commit automatically" },
+      }
+
+      -- Floating window UI
+      local win_width = 50
+      local win_height = #options * 2 + 1 -- space for labels + descriptions
+      local ui = vim.api.nvim_list_uis()[1]
+      local merge_buf = vim.api.nvim_create_buf(false, true)
+      local merge_win = vim.api.nvim_open_win(merge_buf, true, {
+        relative = "editor",
+        width = win_width,
+        height = win_height,
+        row = 3,
+        col = math.floor((ui.width - win_width) / 2),
+        style = "minimal",
+        border = "rounded",
+        title = " Merge branch: " .. target_branch .. " into " .. current_branch,
+        title_pos = "center",
+        zindex = 50,
+      })
+
+      -- Fill buffer with options
+      local lines = {}
+      for _, opt in ipairs(options) do
+        table.insert(lines, opt.label)
+        table.insert(lines, "  → " .. opt.desc)
+      end
+      vim.api.nvim_buf_set_lines(merge_buf, 0, -1, false, lines)
+      vim.api.nvim_buf_set_option(merge_buf, "modifiable", false)
+
+      -- Move cursor to first option
+      vim.api.nvim_win_set_cursor(merge_win, { 1, 0 })
+
+      -- Keymaps for selecting an option
+      for i, opt in ipairs(options) do
+        -- Map Enter on the label line
+        vim.api.nvim_buf_set_keymap(merge_buf, "n", tostring(i), string.format(
+          [[<Cmd>lua vim.api.nvim_win_close(%d, true); vim.fn.jobstart(%s)<CR>]],
+          merge_win,
+          vim.inspect(opt.cmd)
+        ), { noremap = true, silent = true })
+
+        -- Optional: highlight label line
+        vim.api.nvim_buf_add_highlight(merge_buf, -1, "Visual", (i - 1) * 2, 0, -1)
+      end
+
+      -- Quit floating window
+      vim.api.nvim_buf_set_keymap(merge_buf, "n", "q", [[<Cmd>lua vim.api.nvim_win_close(0, true)<CR>]],
+        { noremap = true, silent = true })
+    end, { buffer = buf, noremap = true, silent = true })
 
     -- Close UI
     vim.keymap.set("n", "q", close_ui, {
