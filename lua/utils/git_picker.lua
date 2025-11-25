@@ -636,17 +636,43 @@ end
 ---------------------------------------------------------------------------
 -- Function to reload the current file buffer after exiting git picker
 ---------------------------------------------------------------------------
+local function file_differs_from_disk(bufnr)
+  local path = vim.api.nvim_buf_get_name(bufnr)
+  if path == "" then return false end
+
+  -- Read disk version
+  local ok, disk = pcall(vim.fn.readfile, path)
+  if not ok then return false end
+
+  -- Read buffer version
+  local buf = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+
+  return table.concat(disk, "\n") ~= table.concat(buf, "\n")
+end
+
 local function reload_file_buffer()
-  local current_buf = vim.api.nvim_get_current_buf()
-  if vim.api.nvim_buf_is_valid(current_buf) then
-    -- Check if the file has actually been modified
-    local modified = vim.api.nvim_buf_get_option(current_buf, 'modified')
-    if not modified then
-      -- Only reload if the file hasn't been modified
-      vim.cmd("e!")
-    end
+  local bufnr = vim.api.nvim_get_current_buf()
+  if not vim.api.nvim_buf_is_valid(bufnr) then return end
+
+  -- Skip if user has unsaved changes
+  if vim.api.nvim_buf_get_option(bufnr, "modified") then
+    return
+  end
+
+  -- Compare with on-disk version
+  if file_differs_from_disk(bufnr) then
+    vim.ui.select(
+      { "Yes", "No" },
+      { prompt = "File changed on disk. Reload?" },
+      function(choice)
+        if choice == "Yes" then
+          vim.cmd("e!")
+        end
+      end
+    )
   end
 end
+
 
 ---------------------------------------------------------------------------
 -- Focus helpers
