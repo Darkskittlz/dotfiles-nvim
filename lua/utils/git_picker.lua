@@ -164,90 +164,6 @@ local function load_stashes()
 end
 
 ---------------------------------------------------------------------------
--- 🌸 Floating window functions to display git output after an operation
----------------------------------------------------------------------------
-local floating_windows = {}
-
-local function close_floating()
-  print("Closing floating windows...")
-  for _, w in pairs(floating_windows) do
-    if vim.api.nvim_win_is_valid(w) then
-      print("Closing window:", w)
-      vim.api.nvim_win_close(w, true)
-    else
-      print("Window is not valid:", w)
-    end
-  end
-  floating_windows = {} -- Reset floating windows table
-end
-
-local function show_floating_pair(stdout_lines, stderr_lines)
-  print("show_floating_pair called")
-  print("stdout_lines:", vim.inspect(stdout_lines))
-  print("stderr_lines:", vim.inspect(stderr_lines))
-
-  local ui = vim.api.nvim_list_uis()[1]
-  local width = math.min(80, ui.width - 4)
-
-  -- Calculate window heights
-  local h_out = math.max(#stdout_lines + 2, 3)
-  local h_err = math.max(#stderr_lines + 2, 3)
-  local total_h = h_out + h_err + 1 -- Total height with separator
-  print("total_h:", total_h)
-
-  -- Calculate top row and column for centering
-  local top = math.floor((ui.height - total_h) / 2)
-  local col = math.floor((ui.width - width) / 2)
-
-  -- Create and show the output window
-  local buf_out = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_buf_set_lines(buf_out, 0, -1, false, stdout_lines)
-  vim.api.nvim_buf_set_option(buf_out, "modifiable", false)
-
-  local win_out = vim.api.nvim_open_win(buf_out, true, {
-    relative = "editor",
-    width = width,
-    height = h_out,
-    row = top,
-    col = col,
-    style = "minimal",
-    border = "rounded",
-    title = " Git Output ",
-    title_pos = "center",
-    zindex = 600
-  })
-
-  floating_windows.stdout = win_out -- Store reference to output window
-
-  -- Bind 'q' key to close floating windows and return to branches view
-  vim.keymap.set("n", "q", function()
-    close_floating()
-    Ui.mode = "branches"
-    refresh_ui()
-  end, { buffer = buf_out, nowait = true, silent = true })
-
-  -- Create and show the error window
-  local buf_err = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_buf_set_lines(buf_err, 0, -1, false, stderr_lines)
-  vim.api.nvim_buf_set_option(buf_err, "modifiable", false)
-
-  local win_err = vim.api.nvim_open_win(buf_err, false, {
-    relative = "editor",
-    width = width,
-    height = h_err,
-    row = top + h_out + 2, -- Right below output window
-    col = col,
-    style = "minimal",
-    border = "rounded",
-    title = " Git Errors ",
-    title_pos = "center",
-    zindex = 600
-  })
-
-  floating_windows.stderr = win_err -- Store reference to error window
-end
-
----------------------------------------------------------------------------
 -- 🧩 Load list of changed files (staged + unstaged)
 --  branch: optional branch or commit ref (defaults to HEAD)
 ---------------------------------------------------------------------------
@@ -552,37 +468,169 @@ end
 
 
 local function refresh_ui()
+  -- Ensure Ui.selected_index is valid after switching to branches view
   if Ui.mode == "branches" then
-    Ui.branch_selected =
-        Ui.branches[Ui.selected_index]
+    -- Ensure the selected branch is within the valid range
+    local total_branches = #Ui.branches
+    Ui.selected_index = math.min(Ui.selected_index, total_branches) -- Clamp to the number of branches
+
+    -- Set the branch_selected based on the new index
+    Ui.branch_selected = Ui.branches[Ui.selected_index]
   end
 
+  -- Render the left and right panes (branches or changed files)
   render_left()
   render_right()
 
-  local total = (Ui.mode == "branches")
-      and #Ui.branches
-      or #Ui.changed_files
-  Ui.selected_index = math.max(
-    1,
-    math.min(
-      Ui.selected_index,
-      math.max(1, total)
-    )
-  )
+  -- Handle any edge case where Ui.selected_index might be out of bounds
+  local total = (Ui.mode == "branches") and #Ui.branches or #Ui.changed_files
+  Ui.selected_index = math.max(1, math.min(Ui.selected_index, total)) -- Ensure the selected index is within bounds
 
-  if
-      Ui.left_win
-      and vim.api.nvim_win_is_valid(Ui.left_win)
-  then
-    vim.api.nvim_win_set_cursor(
-      Ui.left_win,
-      { Ui.selected_index, 0 }
-    )
+  -- If the left window is valid, update the cursor to the selected index
+  if Ui.left_win and vim.api.nvim_win_is_valid(Ui.left_win) then
+    vim.api.nvim_win_set_cursor(Ui.left_win, { Ui.selected_index, 0 })
   end
 end
 
+---------------------------------------------------------------------------
+-- 🌸 Floating window functions to display git output after an operation
+---------------------------------------------------------------------------
+local floating_windows = {}
+
+-- Store the current active window
+local current_win = nil
+local current_buf = nil
+
+-- Function to save the current active window
+local function save_active_window()
+  current_win = vim.api.nvim_get_current_win()
+  current_buf = vim.api.nvim_win_get_buf(current_win)
+end
+
+-- Function to restore the active window after closing floating windows
+local function restore_active_window()
+  if current_win and vim.api.nvim_win_is_valid(current_win) then
+    vim.api.nvim_set_current_win(current_win) -- Restore the previously active window
+  elseif current_buf and vim.api.nvim_buf_is_valid(current_buf) then
+    -- If the previous window is no longer valid, set the buffer in the current window
+    vim.api.nvim_win_set_buf(vim.api.nvim_get_current_win(), current_buf)
+  end
+end
+
+-- Function to close floating windows and return to branches view
+local function close_floating()
+  print("Closing floating windows...")
+  for _, w in pairs(floating_windows) do
+    if vim.api.nvim_win_is_valid(w) then
+      print("Closing window:", w)
+      vim.api.nvim_win_close(w, true)
+    else
+      print("Window is not valid:", w)
+    end
+  end
+  floating_windows = {} -- Reset floating windows table
+
+  -- After closing floating windows, restore the active window and return to branches view
+  Ui.mode = "branches"
+  refresh_ui()
+  restore_active_window() -- Restore the last active window
+end
+
+-- Keybinding to close floating windows and go back to branches view
+vim.keymap.set("n", "q", function()
+  close_floating()
+end, { buffer = buf_out, nowait = true, silent = true })
+
+-- Keybinding to close error window as well
+vim.keymap.set("n", "q", function()
+  close_floating()
+end, { buffer = buf_err, nowait = true, silent = true })
+
+-- Show output and error windows in floating style
+local function show_floating_pair(stdout_lines, stderr_lines)
+  save_active_window()
+
+  local ui = vim.api.nvim_list_uis()[1]
+  local width = math.min(80, ui.width - 4)
+
+  -- Calculate window heights
+  local h_out = math.max(#stdout_lines + 2, 3)
+  local h_err = math.max(#stderr_lines + 2, 3)
+  local total_h = h_out + h_err + 1 -- Total height with separator
+
+  -- Calculate top row and column for centering
+  local top = math.floor((ui.height - total_h) / 2)
+  local col = math.floor((ui.width - width) / 2)
+
+  -- Create and show the output window (stdout)
+  local buf_out = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_lines(buf_out, 0, -1, false, stdout_lines)
+  vim.api.nvim_buf_set_option(buf_out, "modifiable", false)
+
+  local win_out = vim.api.nvim_open_win(buf_out, true, {
+    relative = "editor",
+    width = width,
+    height = h_out,
+    row = top,
+    col = col,
+    style = "minimal",
+    border = "rounded",
+    title = " Git Output ",
+    title_pos = "center",
+    zindex = 600
+  })
+
+  floating_windows.stdout = win_out -- Store reference to output window
+
+  -- Create and show the error window (stderr)
+  local buf_err = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_lines(buf_err, 0, -1, false, stderr_lines)
+  vim.api.nvim_buf_set_option(buf_err, "modifiable", false)
+
+  local win_err = vim.api.nvim_open_win(buf_err, false, {
+    relative = "editor",
+    width = width,
+    height = h_err,
+    row = top + h_out + 2, -- Right below output window
+    col = col,
+    style = "minimal",
+    border = "rounded",
+    title = " Git Errors ",
+    title_pos = "center",
+    zindex = 600
+  })
+
+  floating_windows.stderr = win_err -- Store reference to error window
+
+  -- H/L navigation between floating windows
+  -- We only set the keymap once for both windows
+  vim.keymap.set("n", "H", function()
+    if floating_windows.stdout and vim.api.nvim_win_is_valid(floating_windows.stdout) then
+      vim.api.nvim_set_current_win(floating_windows.stdout)
+    elseif floating_windows.stderr and vim.api.nvim_win_is_valid(floating_windows.stderr) then
+      vim.api.nvim_set_current_win(floating_windows.stderr)
+    end
+  end, { nowait = true, silent = true })
+
+  vim.keymap.set("n", "L", function()
+    if floating_windows.stderr and vim.api.nvim_win_is_valid(floating_windows.stderr) then
+      vim.api.nvim_set_current_win(floating_windows.stderr)
+    elseif floating_windows.stdout and vim.api.nvim_win_is_valid(floating_windows.stdout) then
+      vim.api.nvim_set_current_win(floating_windows.stdout)
+    end
+  end, { nowait = true, silent = true })
+
+  -- Bind 'q' to close floating windows and return to branches view
+  vim.keymap.set("n", "q", function()
+    close_floating()
+    Ui.mode = "branches" -- Return to branches view after closing
+    refresh_ui()
+  end, { nowait = true, silent = true })
+end
+
+---------------------------------------------------------------------------
 -- Focus helpers
+---------------------------------------------------------------------------
 local function focus_left()
   if
       Ui.left_win
@@ -3000,7 +3048,6 @@ function M.open_git_ui()
       local function do_push(force)
         local args = { "git", "push", "-u", remote, current_branch }
         if force then table.insert(args, 3, "--force") end
-        -- print("DEBUG: running git args", vim.inspect(args))
 
         vim.fn.jobstart(args, {
           stdout_buffered = true,
@@ -3013,9 +3060,11 @@ function M.open_git_ui()
               if exit_code == 0 then
                 -- print("DEBUG: push succeeded")
                 show_centered_message("✅ Successfully pushed branch: " .. current_branch)
+                show_floating_pair({"Push to " .. current_branch .. " succeeded!"}, {})
               else
                 -- print("DEBUG: push failed for other reason")
                 show_centered_message(" Failed to push branch: " .. current_branch)
+                show_floating_pair({}, {"Failed to push to " .. current_branch})
               end
             end)
           end,
