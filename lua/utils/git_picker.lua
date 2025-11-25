@@ -2582,6 +2582,7 @@ function M.open_git_ui()
         zindex = 500,
       })
 
+      
       local confirm_message = "Are you sure you want to discard this commit? (y/N)"
       vim.api.nvim_buf_set_lines(buf, 0, -1, false, { confirm_message })
 
