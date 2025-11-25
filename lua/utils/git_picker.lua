@@ -2992,108 +2992,79 @@ function M.open_git_ui()
 
     -- Push branch
     vim.keymap.set("n", "P", function()
-      local current_branch = branch
-          or Ui.branch_selected
-          or "HEAD"
-
+      local current_branch = branch or Ui.branch_selected or "HEAD"
       local remote = "origin"
 
-      local spinner_chars = {
-        "⠋",
-        "⠙",
-        "⠹",
-        "⠸",
-        "⠼",
-        "⠴",
-        "⠦",
-        "⠧",
-        "⠇",
-        "⠏",
-      }
+      local spinner_chars = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
       local spinner_idx = 1
 
       -- Create a buffer and floating window for the spinner
       local buf = vim.api.nvim_create_buf(false, true)
-      vim.api.nvim_buf_set_lines(
-        buf,
-        0,
-        -1,
-        false,
-        {
-          "Pushing to "
-          .. current_branch
-          .. " "
-          .. spinner_chars[spinner_idx],
-        }
-      )
+      vim.api.nvim_buf_set_lines(buf, 0, -1, false,
+        { "Pushing to " .. current_branch .. " " .. spinner_chars[spinner_idx] })
       local ui = vim.api.nvim_list_uis()[1]
-      local win =
-          vim.api.nvim_open_win(buf, false, {
-            relative = "editor",
-            width = 50,
-            height = 1,
-            row = 2,
-            col = math.floor((ui.width - 50) / 2),
-            style = "minimal",
-            border = "rounded",
-            zindex = 50,
-          })
-
-      -- Timer to update spinner
-      local spinner_timer = vim.loop.new_timer()
-      spinner_timer:start(
-        100,
-        100,
-        vim.schedule_wrap(function()
-          if
-              not vim.api.nvim_win_is_valid(win)
-          then
-            spinner_timer:stop()
-            spinner_timer:close()
-            return
-          end
-          spinner_idx = spinner_idx
-              % #spinner_chars
-              + 1
-          vim.api.nvim_buf_set_lines(
-            buf,
-            0,
-            -1,
-            false,
-            {
-              "✨ Pushing To "
-              .. current_branch
-              .. " "
-              .. spinner_chars[spinner_idx],
-            }
-          )
-        end)
-      )
-
-      -- Run git push
-      vim.fn.jobstart({ "git", "push", "-u", remote, current_branch }, {
-        on_exit = function(_, exit_code)
-          spinner_timer:stop()
-          spinner_timer:close()
-          vim.schedule(function()
-            if vim.api.nvim_win_is_valid(win) then
-              vim.api.nvim_win_close(win, true)
-            end
-            if exit_code == 0 then
-              show_centered_message(
-                "Successfully pushed branch: "
-                .. current_branch
-              )
-            else
-              show_centered_message(
-                " Failed to push branch: "
-                .. current_branch
-              )
-            end
-          end)
-        end,
+      local win = vim.api.nvim_open_win(buf, false, {
+        relative = "editor",
+        width = 50,
+        height = 1,
+        row = 2,
+        col = math.floor((ui.width - 50) / 2),
+        style = "minimal",
+        border = "rounded",
+        zindex = 50,
       })
 
+      -- Spinner timer
+      local spinner_timer = vim.loop.new_timer()
+      spinner_timer:start(100, 100, vim.schedule_wrap(function()
+        if not vim.api.nvim_win_is_valid(win) then
+          spinner_timer:stop()
+          spinner_timer:close()
+          return
+        end
+        spinner_idx = spinner_idx % #spinner_chars + 1
+        vim.api.nvim_buf_set_lines(buf, 0, -1, false,
+          { "✨ Pushing To " .. current_branch .. " " .. spinner_chars[spinner_idx] })
+      end))
+
+      -- Function to push (with optional force)
+      local function do_push(force)
+        local args = { "git", "push", "-u", remote, current_branch }
+        if force then table.insert(args, 3, "--force") end
+
+        vim.fn.jobstart(args, {
+          stdout_buffered = true,
+          stderr_buffered = true,
+          on_exit = function(_, exit_code, _)
+            spinner_timer:stop()
+            spinner_timer:close()
+            vim.schedule(function()
+              if vim.api.nvim_win_is_valid(win) then
+                vim.api.nvim_win_close(win, true)
+              end
+              if exit_code == 0 then
+                show_centered_message("✅ Successfully pushed branch: " .. current_branch)
+              else
+                local output = vim.fn.system("git push -u " .. remote .. " " .. current_branch .. " 2>&1")
+                if output:match("rejected") then
+                  -- Prompt to force push
+                  local answer = vim.fn.input("Branch has diverged. Force push? (y/N): ")
+                  if answer:lower() == "y" then
+                    do_push(true)
+                  else
+                    show_centered_message("Push aborted.")
+                  end
+                else
+                  show_centered_message(" Failed to push branch: " .. current_branch)
+                end
+              end
+            end)
+          end,
+        })
+      end
+
+      -- Start initial push
+      do_push(false)
       refresh_ui()
     end, {
       noremap = true,
