@@ -3326,6 +3326,8 @@ function M.open_git_ui()
         refresh_ui()
       end
 
+      -- test
+
 
       -- MOVEMENT
       vim.keymap.set("n", "j", function()
