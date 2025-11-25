@@ -652,25 +652,21 @@ local function reload_file_buffer()
   local bufnr = vim.api.nvim_get_current_buf()
   if not vim.api.nvim_buf_is_valid(bufnr) then return end
 
-  -- If you made edits, don't auto-reload
   if vim.api.nvim_buf_get_option(bufnr, "modified") then
     return
   end
 
   if file_differs_from_disk(bufnr) then
-    vim.ui.input(
-      { prompt = "File changed on disk. Reload? (y/N): " },
-      function(input)
-        if input and input:lower() == "y" then
-          vim.cmd("e!")
-        end
-      end
-    )
+    -- This creates a true Yes/No prompt in the cmdline (always focused)
+    local choice = vim.fn.confirm("File changed on disk. Reload?", "&Yes\n&No", 2)
+
+    if choice == 1 then
+      vim.cmd("e!")
+    end
   end
 end
 
 
----------------------------------------------------------------------------
 -- Focus helpers
 ---------------------------------------------------------------------------
 local function focus_left()
