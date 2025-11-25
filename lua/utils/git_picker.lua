@@ -3052,6 +3052,9 @@ function M.open_git_ui()
               if vim.api.nvim_win_is_valid(win) then vim.api.nvim_win_close(win, true) end
               if exit_code == 0 then
                 show_centered_message("✅ Successfully pushed branch: " .. current_branch)
+                Ui.mode = "branches"
+                refresh_ui()
+
                 -- show_floating_pair({ "Push to " .. current_branch .. " succeeded!" }, {})
               else
                 show_centered_message(" Failed to push branch: " .. current_branch)
