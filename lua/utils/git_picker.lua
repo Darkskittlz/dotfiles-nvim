@@ -3405,7 +3405,7 @@ function M.open_git_ui()
           relative = "editor",
           width = width,
           height = h_err,
-          row = top + h_out, -- RIGHT BELOW OUTPUT WINDOW
+          row = top + h_out + 2, -- RIGHT BELOW OUTPUT WINDOW
           col = col,
           style = "minimal",
           border = "rounded",
@@ -3418,10 +3418,8 @@ function M.open_git_ui()
       end
 
       local function close_floating()
-        for _, w in pairs(floating_windows) do
-          if vim.api.nvim_win_is_valid(w) then vim.api.nvim_win_close(w, true) end
-        end
-        floating_windows = {}
+        Ui.mode = "branches"
+        refresh_ui()
       end
 
       local function close_all()
@@ -3492,6 +3490,7 @@ function M.open_git_ui()
           apply_selected()
         end, { buffer = buf_win })
       end
+
       -- q in branches closes branches popup completely
       vim.keymap.set("n", "q", close_all, { buffer = buf_win })
       vim.keymap.set("n", "<Esc>", close_all, { buffer = buf_win })
