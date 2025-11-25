@@ -2549,6 +2549,7 @@ function M.open_git_ui()
       local win = vim.api.nvim_get_current_win()
       if win ~= Ui.right_win then return end -- Ensure we are in the right window
 
+
       local cursor = vim.api.nvim_win_get_cursor(Ui.right_win)
       local line = vim.api.nvim_buf_get_lines(Ui.right_buf, cursor[1] - 1, cursor[1], false)[1] or ""
       local hash = line:match("^(%S+)") -- Get the commit hash
