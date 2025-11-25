@@ -884,7 +884,7 @@ local function show_centered_message(msg, icon)
   --   icon or "nil"
   -- )
 
-  icon = icon or "🈯" -- default icon
+  icon = icon or "❄️" -- default icon
   local buf = vim.api.nvim_create_buf(false, true)
   if not buf or buf == 0 then
     -- print("[DEBUG] Failed to create buffer")
