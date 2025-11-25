@@ -2107,6 +2107,7 @@ function M.open_git_ui()
       return function(msg)
         local buf_err =
             vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_set_hl(0, "ResetError", { fg = "#ff4444", bg = "NONE", bold = true })
         vim.api.nvim_buf_set_lines(
           buf_err,
           0,
@@ -2117,7 +2118,7 @@ function M.open_git_ui()
         vim.api.nvim_buf_add_highlight(
           buf_err,
           -1,
-          "ErrorMsg",
+          "ResetError",
           0,
           0,
           -1
