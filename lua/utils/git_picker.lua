@@ -3293,18 +3293,39 @@ function M.open_git_ui()
 
       -- OPTIONS
       local options = {
-        { key = "m", label = "Regular merge",                   hl = "MergeBlue",  desc = "Merge '" .. target_branch .. "' into '" .. current_branch .. "'. Creates a merge commit if needed.", cmd = "git merge " .. target_branch },
-        { key = "s", label = "Squash merge, leave uncommitted", hl = "MergeGreen", desc = "Squash commits from '" .. target_branch .. "' into working tree, do not commit automatically.",      cmd = "git merge --squash " .. target_branch },
-        { key = "S", label = "Squash merge and commit",         hl = "MergeRed",   desc = "Squash commits from '" .. target_branch .. "' and commit automatically.",                            cmd = string.format("git merge --squash %s && git commit -m 'Merge %s into %s'", target_branch, target_branch, current_branch) },
-        { key = "q", label = "Cancel",                          hl = "MergeWhite", desc = "Exit without merging.",                                                                              cmd = nil },
+        {
+          key = "m",
+          label = "Regular merge",
+          hl = "MergeBlue",
+          desc = "Merge '" .. target_branch .. "' into '" .. current_branch .. "'. Creates a merge commit if needed.",
+          cmd = "git merge " .. target_branch
+        },
+        {
+          key = "s",
+          label = "Squash merge, leave uncommitted",
+          hl = "MergeGreen",
+          desc = "Squash commits from '" .. target_branch .. "' into working tree, do not commit automatically.",
+          cmd = "git merge --squash " .. target_branch
+        },
+        {
+          key = "S",
+          label = "Squash merge and commit",
+          hl = "MergeRed",
+          desc = "Squash commits from '" .. target_branch .. "' and commit automatically.",
+          cmd = string.format("git merge --squash %s && git commit -m 'Merge %s into %s'", target_branch, target_branch,
+            current_branch)
+        },
+        { key = "q", label = "Cancel", hl = "MergeWhite", desc = "Exit without merging.", cmd = nil },
       }
 
       local selected = 1
       local ui = vim.api.nvim_list_uis()[1]
-      local width, height = 52, #options + 3
-      local row, col = math.floor((ui.height - height) / 2), math.floor((ui.width - width) / 2)
+      local width = 52
+      local height = #options + 3
+      local row = math.floor((ui.height - height) / 2)
+      local col = math.floor((ui.width - width) / 2)
 
-      -- POPUP WINDOW
+      -- POPUP WINDOWS
       local buf_win = vim.api.nvim_create_buf(false, true)
       local win = vim.api.nvim_open_win(buf_win, true, {
         relative = "editor",
@@ -3318,8 +3339,6 @@ function M.open_git_ui()
         title_pos = "center",
         zindex = 500
       })
-      vim.api.nvim_win_set_option(win, "cursorline", false)
-      vim.api.nvim_win_set_cursor(win, { 1, 0 })
 
       local buf_desc = vim.api.nvim_create_buf(false, true)
       local win_desc = vim.api.nvim_open_win(buf_desc, false, {
@@ -3334,6 +3353,9 @@ function M.open_git_ui()
         title_pos = "center",
         zindex = 500
       })
+
+      vim.api.nvim_win_set_option(win, "cursorline", false)
+      vim.api.nvim_win_set_cursor(win, { 1, 0 })
       vim.api.nvim_win_set_option(win_desc, "cursorline", false)
       vim.api.nvim_win_set_cursor(win_desc, { 1, 0 })
 
@@ -3341,7 +3363,8 @@ function M.open_git_ui()
       local function render()
         local lines = {}
         for i, opt in ipairs(options) do
-          lines[#lines + 1] = (i == selected and " " or "  ") .. opt.label
+          local prefix = (i == selected) and " " or "  "
+          lines[#lines + 1] = prefix .. opt.label
         end
         vim.api.nvim_buf_set_lines(buf_win, 0, -1, false, lines)
         vim.api.nvim_buf_clear_namespace(buf_win, -1, 0, -1)
@@ -3354,10 +3377,77 @@ function M.open_git_ui()
           vim.api.nvim_buf_add_highlight(buf_desc, -1, options[selected].hl, i - 1, 0, -1)
         end
       end
+
       render()
 
-      -- CLOSE POPUP
+      local floating_windows = {}
+
+      local function show_floating_pair(stdout_lines, stderr_lines)
+        local ui      = vim.api.nvim_list_uis()[1]
+
+        local width   = math.min(80, ui.width - 4)
+
+        -- heights (at least 3 so borders don't collapse)
+        local h_out   = math.max(#stdout_lines + 2, 3)
+        local h_err   = math.max(#stderr_lines + 2, 3)
+
+        -- total stack height
+        local total_h = h_out + h_err + 1 -- +1 for border separation
+
+        -- top row so the entire stack is centered
+        local top     = math.floor((ui.height - total_h) / 2)
+        local col     = math.floor((ui.width - width) / 2)
+
+        -- ███ OUTPUT WINDOW ███
+        local buf_out = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_lines(buf_out, 0, -1, false, stdout_lines)
+        vim.api.nvim_buf_set_option(buf_out, "modifiable", false)
+
+        local win_out = vim.api.nvim_open_win(buf_out, true, {
+          relative = "editor",
+          width = width,
+          height = h_out,
+          row = top,
+          col = col,
+          style = "minimal",
+          border = "rounded",
+          title = " Git Output ",
+          title_pos = "center",
+          zindex = 600
+        })
+
+        floating_windows.stdout = win_out
+
+        -- ███ ERRORS WINDOW ███
+        local buf_err = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_lines(buf_err, 0, -1, false, stderr_lines)
+        vim.api.nvim_buf_set_option(buf_err, "modifiable", false)
+
+        local win_err = vim.api.nvim_open_win(buf_err, false, {
+          relative = "editor",
+          width = width,
+          height = h_err,
+          row = top + h_out, -- RIGHT BELOW OUTPUT WINDOW
+          col = col,
+          style = "minimal",
+          border = "rounded",
+          title = " Git Errors ",
+          title_pos = "center",
+          zindex = 600
+        })
+
+        floating_windows.stderr = win_err
+      end
+
+      local function close_floating()
+        for _, w in pairs(floating_windows) do
+          if vim.api.nvim_win_is_valid(w) then vim.api.nvim_win_close(w, true) end
+        end
+        floating_windows = {}
+      end
+
       local function close_all()
+        close_floating()
         if vim.api.nvim_win_is_valid(win_desc) then vim.api.nvim_win_close(win_desc, true) end
         if vim.api.nvim_win_is_valid(win) then vim.api.nvim_win_close(win, true) end
         Ui.mode = "branches"
@@ -3366,15 +3456,12 @@ function M.open_git_ui()
 
       -- MOVEMENT
       vim.keymap.set("n", "j", function()
-        selected = math.min(#options, selected + 1)
-        render()
+        selected = math.min(#options, selected + 1); render()
       end, { buffer = buf_win })
       vim.keymap.set("n", "k", function()
-        selected = math.max(1, selected - 1)
-        render()
+        selected = math.max(1, selected - 1); render()
       end, { buffer = buf_win })
 
-      -- APPLY SELECTED
       local function apply_selected()
         local opt = options[selected]
         if not opt.cmd then
@@ -3384,67 +3471,39 @@ function M.open_git_ui()
 
         close_all() -- close main popup first
 
-        local floating_windows = {}
+        local stdout_lines = nil
+        local stderr_lines = nil
 
-        local function show_floating(title, lines, top_row, id)
-          local buf = vim.api.nvim_create_buf(false, true)
-          vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines or {})
-          vim.api.nvim_buf_set_option(buf, "modifiable", false)
-
-          local ui = vim.api.nvim_list_uis()[1]
-          local width = math.min(80, ui.width - 4)
-          local height = math.min(#lines + 2, ui.height - 4)
-          local row = top_row or math.floor((ui.height - height) / 2)
-          local col = math.floor((ui.width - width) / 2)
-
-          local win = vim.api.nvim_open_win(buf, true, {
-            relative = "editor",
-            width = width,
-            height = height,
-            row = row,
-            col = col,
-            style = "minimal",
-            border = "rounded",
-            title = " " .. title .. " ",
-            title_pos = "center",
-            zindex = 600
-          })
-
-          floating_windows[id] = win
-
-          vim.keymap.set("n", "q", function()
-            for _, w in pairs(floating_windows) do
-              if vim.api.nvim_win_is_valid(w) then vim.api.nvim_win_close(w, true) end
-            end
-            Ui.mode = "branches"
-            refresh_ui()
-          end, { nowait = true, silent = true })
-
-          return win
-        end
-
+        -- run merge asynchronously
         vim.fn.jobstart(opt.cmd, {
           stdout_buffered = true,
           stderr_buffered = true,
           on_stdout = function(_, data)
-            if data then show_floating("Git Output", data, 10, "stdout") end
+            stdout_lines = data or {}
           end,
           on_stderr = function(_, data)
-            if data then show_floating("Git Errors", data, 15, "stderr") end
+            stderr_lines = data or {}
+          end,
+          on_exit = function()
+            show_floating_pair(stdout_lines or {}, stderr_lines or {})
           end,
         })
 
-        -- window navigation
+        -- H/L navigation between floating windows
         vim.keymap.set("n", "H", function()
           if floating_windows.stdout and vim.api.nvim_win_is_valid(floating_windows.stdout) then
             vim.api.nvim_set_current_win(floating_windows.stdout)
           end
         end, { nowait = true, silent = true })
-
         vim.keymap.set("n", "L", function()
           if floating_windows.stderr and vim.api.nvim_win_is_valid(floating_windows.stderr) then
             vim.api.nvim_set_current_win(floating_windows.stderr)
           end
+        end, { nowait = true, silent = true })
+
+        -- 'q' closes floating windows and returns to branches
+        vim.keymap.set("n", "q", function()
+          close_floating()
         end, { nowait = true, silent = true })
       end
 
@@ -3455,6 +3514,7 @@ function M.open_git_ui()
           apply_selected()
         end, { buffer = buf_win })
       end
+      -- q in branches closes branches popup completely
       vim.keymap.set("n", "q", close_all, { buffer = buf_win })
       vim.keymap.set("n", "<Esc>", close_all, { buffer = buf_win })
     end, { buffer = buf, noremap = true, silent = true })
