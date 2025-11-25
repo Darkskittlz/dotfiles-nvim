@@ -2667,7 +2667,6 @@ function M.open_git_ui()
     end, { buffer = Ui.right_buf, noremap = true, silent = true })
 
 
-
     vim.keymap.set("n", "j", function()
       local win = vim.api.nvim_get_current_win()
 
@@ -2878,7 +2877,7 @@ function M.open_git_ui()
             relative = "editor",
             width = width,
             height = height_diff - 3,
-            row = 4,
+            row = 3,
             col = col,
             style = "minimal",
             border = "rounded",
@@ -3150,7 +3149,7 @@ function M.open_git_ui()
         relative = "editor",
         width = 50,
         height = 1,
-        row = 4,
+        row = 3,
         col = math.floor((ui.width - 50) / 2),
         style = "minimal",
         border = "rounded",
