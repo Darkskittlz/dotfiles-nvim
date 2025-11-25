@@ -977,7 +977,7 @@ local function show_centered_message(msg, icon)
     relative = "editor",
     width = width,
     height = height,
-    row = 2,
+    row = 3,
     col = math.floor((ui.width - width) / 2),
     style = "minimal",
     border = "rounded",
