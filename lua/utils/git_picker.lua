@@ -634,6 +634,21 @@ local function show_floating_pair(stdout_lines, stderr_lines)
 end
 
 ---------------------------------------------------------------------------
+-- Function to reload the current file buffer after exiting git picker
+---------------------------------------------------------------------------
+local function reload_file_buffer()
+  local current_buf = vim.api.nvim_get_current_buf()
+  if vim.api.nvim_buf_is_valid(current_buf) then
+    -- Check if the file has actually been modified
+    local modified = vim.api.nvim_buf_get_option(current_buf, 'modified')
+    if not modified then
+      -- Only reload if the file hasn't been modified
+      vim.cmd("e!")
+    end
+  end
+end
+
+---------------------------------------------------------------------------
 -- Focus helpers
 ---------------------------------------------------------------------------
 local function focus_left()
@@ -3404,7 +3419,10 @@ function M.open_git_ui()
     end, { buffer = buf, noremap = true, silent = true })
 
     -- Close UI
-    vim.keymap.set("n", "q", close_ui, {
+    vim.keymap.set("n", "q", function()
+      close_ui()
+      reload_file_buffer()
+    end, {
       buffer = buf,
       noremap = true,
       silent = true,
