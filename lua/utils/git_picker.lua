@@ -2666,6 +2666,7 @@ function M.open_git_ui()
     end, { noremap = true, silent = true })
 
 
+
     vim.keymap.set("n", "j", function()
       local win = vim.api.nvim_get_current_win()
 
