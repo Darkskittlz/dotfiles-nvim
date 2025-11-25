@@ -2995,10 +2995,11 @@ function M.open_git_ui()
       local current_branch = branch or Ui.branch_selected or "HEAD"
       local remote = "origin"
 
+      print("DEBUG: Starting push for branch:", current_branch)
+
       local spinner_chars = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
       local spinner_idx = 1
 
-      -- Create a buffer and floating window for the spinner
       local buf = vim.api.nvim_create_buf(false, true)
       vim.api.nvim_buf_set_lines(buf, 0, -1, false,
         { "Pushing to " .. current_branch .. " " .. spinner_chars[spinner_idx] })
@@ -3014,7 +3015,6 @@ function M.open_git_ui()
         zindex = 50,
       })
 
-      -- Spinner timer
       local spinner_timer = vim.loop.new_timer()
       spinner_timer:start(100, 100, vim.schedule_wrap(function()
         if not vim.api.nvim_win_is_valid(win) then
@@ -3027,15 +3027,17 @@ function M.open_git_ui()
           { "✨ Pushing To " .. current_branch .. " " .. spinner_chars[spinner_idx] })
       end))
 
-      -- Function to push (with optional force)
       local function do_push(force)
+        print("DEBUG: do_push called, force =", force)
         local args = { "git", "push", "-u", remote, current_branch }
         if force then table.insert(args, 3, "--force") end
+        print("DEBUG: git args =", vim.inspect(args))
 
         vim.fn.jobstart(args, {
           stdout_buffered = true,
           stderr_buffered = true,
           on_exit = function(_, exit_code, _)
+            print("DEBUG: job exited with code:", exit_code)
             spinner_timer:stop()
             spinner_timer:close()
             vim.schedule(function()
@@ -3043,18 +3045,25 @@ function M.open_git_ui()
                 vim.api.nvim_win_close(win, true)
               end
               if exit_code == 0 then
+                print("DEBUG: push succeeded")
                 show_centered_message("✅ Successfully pushed branch: " .. current_branch)
               else
+                print("DEBUG: push failed, checking for divergence")
                 local output = vim.fn.system("git push -u " .. remote .. " " .. current_branch .. " 2>&1")
+                print("DEBUG: git push output:\n" .. output)
                 if output:match("rejected") then
-                  -- Prompt to force push
+                  print("DEBUG: branch rejected, prompting for force push")
                   local answer = vim.fn.input("Branch has diverged. Force push? (y/N): ")
+                  print("DEBUG: user answer =", answer)
                   if answer:lower() == "y" then
+                    print("DEBUG: user confirmed force push")
                     do_push(true)
                   else
+                    print("DEBUG: user declined force push")
                     show_centered_message("Push aborted.")
                   end
                 else
+                  print("DEBUG: push failed for other reason")
                   show_centered_message(" Failed to push branch: " .. current_branch)
                 end
               end
@@ -3063,13 +3072,10 @@ function M.open_git_ui()
         })
       end
 
-      -- Start initial push
       do_push(false)
       refresh_ui()
-    end, {
-      noremap = true,
-      silent = true,
-    })
+    end)
+
 
     -- n keymap to create new branches off of selected branch
     vim.keymap.set("n", "n", function()
