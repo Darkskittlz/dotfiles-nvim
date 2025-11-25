@@ -3179,7 +3179,7 @@ function M.open_git_ui()
       end
 
       -- Window size
-      local width, height = 50, 2
+      local width, height = 50, 1
       local ui = vim.api.nvim_list_uis()[1]
       local buf = vim.api.nvim_create_buf(false, true)
 
@@ -3188,7 +3188,7 @@ function M.open_git_ui()
         relative = "editor",
         width = width,
         height = height,
-        row = 2,
+        row = 3,
         col = math.floor((ui.width - width) / 2),
         style = "minimal",
         border = "rounded",
