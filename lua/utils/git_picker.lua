@@ -3422,6 +3422,9 @@ function M.open_git_ui()
         refresh_ui()
       end
 
+
+      -- test
+
       local function close_all()
         close_floating()
         if vim.api.nvim_win_is_valid(win_desc) then vim.api.nvim_win_close(win_desc, true) end
