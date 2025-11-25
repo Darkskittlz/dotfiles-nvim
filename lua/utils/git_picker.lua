@@ -5,8 +5,8 @@ local M = {}
 -- TODO: add l keymap to show pretty git graph
 
 -- Highlights
-vim.api.nvim_set_hl(0, "GitBranchCurrent", { fg = "#549afc", bold = true })
-vim.api.nvim_set_hl(0, "GitUnstaged", { fg = "#f99c67", bold = false, italic = false })
+vim.api.nvim_set_hl(0, "GitBranchCurrent", { fg = "#549afc" })
+vim.api.nvim_set_hl(0, "GitUnstaged", { fg = "#f99c67", bold = true, italic = true })
 vim.api.nvim_set_hl(0, "GitStaged", { fg = "#a6e22e", bold = true })
 vim.api.nvim_set_hl(0, "GitPickerTitle", { fg = "#268bd3", bold = true })
 
@@ -34,9 +34,9 @@ vim.api.nvim_set_hl(0, "GitError", { fg = "#FF6F69", bold = false, italic = fals
 vim.cmd([[
 highlight GitStaged guifg=green
 highlight GitStagedFile guifg=green
-highlight GitUnstaged guifg=orange gui=bold
-highlight GitUnstagedFile guifg=orange gui=bold
-highlight GitBranchCurrent guifg=cyan
+highlight GitUnstaged guifg=orange
+highlight GitUnstagedFile guifg=orange
+highlight GitBranchCurrent guifg=#00BFFF
 ]])
 
 local Ui = {
