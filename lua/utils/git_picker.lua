@@ -3079,6 +3079,13 @@ function M.open_git_ui()
 
     -- n keymap to create new branches off of selected branch
     vim.keymap.set("n", "n", function()
+      if vim.api.nvim_get_current_buf() ~= Ui.left_buf then
+        return
+      end
+
+
+
+
       local current_branch = Ui.branch_selected
       if not current_branch or current_branch == "" then
         vim.notify("No branch selected!", vim.log.levels.ERROR)
@@ -3237,8 +3244,6 @@ function M.open_git_ui()
         [[<Cmd>lua vim.api.nvim_win_close(0, true)<CR>]],
         { noremap = true, silent = true }
       )
-
-      Ui.branch_selected = nil
     end, {
       noremap = true,
       silent = true,
