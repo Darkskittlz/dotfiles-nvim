@@ -2544,20 +2544,43 @@ function M.open_git_ui()
 
     -- keymap for dropping commits
     vim.keymap.set("n", "d", function()
-      if Ui.mode ~= "branches" then return end -- Ensure we are in the branches view
+      print("D keymap triggered") -- Confirm that the keymap is reached
 
+      -- Check if we're in the correct mode
+      if Ui.mode ~= "branches" then
+        print("Not in 'branches' mode, returning")
+        return
+      end
+
+      -- Check if we're in the right window
       local win = vim.api.nvim_get_current_win()
-      if win ~= Ui.right_win then return end -- Ensure we are in the right window
+      print("Current window:", win)
+      if win ~= Ui.right_win then
+        print("Not in the right window, returning")
+        return
+      end
 
+      -- Get the cursor position and the commit hash
       local cursor = vim.api.nvim_win_get_cursor(Ui.right_win)
+      print("Cursor position:", cursor)
       local line = vim.api.nvim_buf_get_lines(Ui.right_buf, cursor[1] - 1, cursor[1], false)[1] or ""
-      local hash = line:match("^(%S+)") -- Get the commit hash
-      if not hash then return end       -- No hash found, exit
+      print("Line content:", line)
 
-      -- Get the next commit hash (after the current one)
+      -- Extract the commit hash from the line
+      local hash = line:match("^(%S+)") -- Get the commit hash
+      if not hash then
+        print("No commit hash found, returning")
+        return
+      end
+
+      print("Commit hash found:", hash)
+
+      -- Get the next commit hash
       local next_commit_hash = vim.fn.trim(vim.fn.system("git log --format='%H' --skip=1 " .. hash .. " -n 1"))
+      print("Next commit hash:", next_commit_hash)
       if not next_commit_hash or next_commit_hash == "" then
         vim.notify("No next commit found", vim.log.levels.ERROR)
+        print("No next commit found, returning")
         return
       end
 
@@ -2582,7 +2605,6 @@ function M.open_git_ui()
         zindex = 500,
       })
 
-      
       local confirm_message = "Are you sure you want to discard this commit? (y/N)"
       vim.api.nvim_buf_set_lines(buf, 0, -1, false, { confirm_message })
 
@@ -2592,9 +2614,11 @@ function M.open_git_ui()
         end
       end
 
+      -- Confirm keymap for 'y' and 'n'
       vim.keymap.set("n", "y", function()
         -- Perform the reset to the next commit
         local reset_command = "git reset --hard " .. next_commit_hash
+        print("Running git reset command:", reset_command)
         vim.fn.system(reset_command)
 
         -- Show a success message
@@ -2623,23 +2647,23 @@ function M.open_git_ui()
         end, 1500)
 
         -- Refresh UI to reflect the reset state
-        Ui.mode = "branches" -- Remain in branches mode after reset
+        Ui.mode = "branches" -- Stay in branches mode after reset
         refresh_ui()
 
         close_confirm_win()
       end, { buffer = buf, noremap = true, silent = true })
 
+      -- Cancel reset if user presses 'n' or Esc
       vim.keymap.set("n", "n", function()
         vim.notify("Reset aborted.", vim.log.levels.INFO)
         close_confirm_win()
       end, { buffer = buf, noremap = true, silent = true })
 
-      -- If user presses Esc, also cancel the reset
       vim.keymap.set("n", "<Esc>", function()
         vim.notify("Reset aborted.", vim.log.levels.INFO)
         close_confirm_win()
       end, { buffer = buf, noremap = true, silent = true })
-    end, { buffer = Ui.right_buf, noremap = true, silent = true })
+    end, { noremap = true, silent = true })
 
 
     vim.keymap.set("n", "j", function()
