@@ -2982,16 +2982,6 @@ function M.open_git_ui()
           or Ui.branch_selected
           or "HEAD"
 
-      -- Prompt for upstream before pushing
-      local default_upstream = "origin "
-          .. current_branch
-      local upstream = vim.fn.input(
-        "Enter upstream: ",
-        default_upstream
-      )
-      local upstream_parts =
-          vim.split(upstream, " ")
-
       local spinner_chars = {
         "⠋",
         "⠙",
