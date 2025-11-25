@@ -164,6 +164,90 @@ local function load_stashes()
 end
 
 ---------------------------------------------------------------------------
+-- 🌸 Floating window functions to display git output after an operation
+---------------------------------------------------------------------------
+local floating_windows = {}
+
+local function close_floating()
+  print("Closing floating windows...")
+  for _, w in pairs(floating_windows) do
+    if vim.api.nvim_win_is_valid(w) then
+      print("Closing window:", w)
+      vim.api.nvim_win_close(w, true)
+    else
+      print("Window is not valid:", w)
+    end
+  end
+  floating_windows = {} -- Reset floating windows table
+end
+
+local function show_floating_pair(stdout_lines, stderr_lines)
+  print("show_floating_pair called")
+  print("stdout_lines:", vim.inspect(stdout_lines))
+  print("stderr_lines:", vim.inspect(stderr_lines))
+
+  local ui = vim.api.nvim_list_uis()[1]
+  local width = math.min(80, ui.width - 4)
+
+  -- Calculate window heights
+  local h_out = math.max(#stdout_lines + 2, 3)
+  local h_err = math.max(#stderr_lines + 2, 3)
+  local total_h = h_out + h_err + 1 -- Total height with separator
+  print("total_h:", total_h)
+
+  -- Calculate top row and column for centering
+  local top = math.floor((ui.height - total_h) / 2)
+  local col = math.floor((ui.width - width) / 2)
+
+  -- Create and show the output window
+  local buf_out = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_lines(buf_out, 0, -1, false, stdout_lines)
+  vim.api.nvim_buf_set_option(buf_out, "modifiable", false)
+
+  local win_out = vim.api.nvim_open_win(buf_out, true, {
+    relative = "editor",
+    width = width,
+    height = h_out,
+    row = top,
+    col = col,
+    style = "minimal",
+    border = "rounded",
+    title = " Git Output ",
+    title_pos = "center",
+    zindex = 600
+  })
+
+  floating_windows.stdout = win_out -- Store reference to output window
+
+  -- Bind 'q' key to close floating windows and return to branches view
+  vim.keymap.set("n", "q", function()
+    close_floating()
+    Ui.mode = "branches"
+    refresh_ui()
+  end, { buffer = buf_out, nowait = true, silent = true })
+
+  -- Create and show the error window
+  local buf_err = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_lines(buf_err, 0, -1, false, stderr_lines)
+  vim.api.nvim_buf_set_option(buf_err, "modifiable", false)
+
+  local win_err = vim.api.nvim_open_win(buf_err, false, {
+    relative = "editor",
+    width = width,
+    height = h_err,
+    row = top + h_out + 2, -- Right below output window
+    col = col,
+    style = "minimal",
+    border = "rounded",
+    title = " Git Errors ",
+    title_pos = "center",
+    zindex = 600
+  })
+
+  floating_windows.stderr = win_err -- Store reference to error window
+end
+
+---------------------------------------------------------------------------
 -- 🧩 Load list of changed files (staged + unstaged)
 --  branch: optional branch or commit ref (defaults to HEAD)
 ---------------------------------------------------------------------------
@@ -2838,29 +2922,43 @@ function M.open_git_ui()
       if Ui.mode ~= "branches" then
         return
       end
-      local branch =
-          Ui.branches[Ui.selected_index]
+      local branch = Ui.branches[Ui.selected_index]
       if not branch or branch == "" then
-        show_centered_message(
-          "No branch selected",
-          vim.log.levels.WARN
-        )
+        show_centered_message("No branch selected", vim.log.levels.WARN)
         return
       end
 
       local cmd = "git pull origin " .. branch
-      vim.fn.system(cmd)
-      show_centered_message(
-        "Pulled latest changes for branch: "
-        .. branch,
-        vim.log.levels.INFO
-      )
-      refresh_ui()
-    end, {
-      buffer = buf,
-      noremap = true,
-      silent = true,
-    })
+      local stdout_lines = {}
+      local stderr_lines = {}
+
+      -- Run the pull command asynchronously
+      vim.fn.jobstart(cmd, {
+        stdout_buffered = true,
+        stderr_buffered = true,
+        on_stdout = function(_, data)
+          stdout_lines = data or {}
+        end,
+        on_stderr = function(_, data)
+          stderr_lines = data or {}
+        end,
+        on_exit = function(_, exit_code)
+          -- Show floating windows with the output and error messages
+          show_floating_pair(stdout_lines or {}, stderr_lines or {})
+
+          -- After pulling, handle success or failure
+          if exit_code == 0 then
+            show_centered_message("✅ Pulled latest changes for branch: " .. branch, vim.log.levels.INFO)
+          else
+            show_centered_message("❌ Failed to pull for branch: " .. branch, vim.log.levels.ERROR)
+          end
+          refresh_ui()
+        end,
+      })
+
+      -- Show spinner or any other loading feedback while pull is running
+      show_centered_message("Pulling latest changes for branch: " .. branch, vim.log.levels.INFO)
+    end, { buffer = buf, noremap = true, silent = true })
 
     -- Push branch
     vim.keymap.set("n", "P", function()
