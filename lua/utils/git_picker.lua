@@ -3224,20 +3224,26 @@ function M.open_git_ui()
       local floating_windows = {}
 
       local function show_floating_pair(stdout_lines, stderr_lines)
-        local ui      = vim.api.nvim_list_uis()[1]
+        -- Debugging: Check if we're entering the function and what data is passed
+        print("show_floating_pair called")
+        print("stdout_lines:", vim.inspect(stdout_lines))
+        print("stderr_lines:", vim.inspect(stderr_lines))
 
-        local width   = math.min(80, ui.width - 4)
+        local ui = vim.api.nvim_list_uis()[1]
+
+        local width = math.min(80, ui.width - 4)
 
         -- heights (at least 3 so borders don't collapse)
-        local h_out   = math.max(#stdout_lines + 2, 3)
-        local h_err   = math.max(#stderr_lines + 2, 3)
+        local h_out = math.max(#stdout_lines + 2, 3)
+        local h_err = math.max(#stderr_lines + 2, 3)
 
         -- total stack height
         local total_h = h_out + h_err + 1 -- +1 for border separation
+        print("total_h:", total_h)
 
         -- top row so the entire stack is centered
-        local top     = math.floor((ui.height - total_h) / 2)
-        local col     = math.floor((ui.width - width) / 2)
+        local top = math.floor((ui.height - total_h) / 2)
+        local col = math.floor((ui.width - width) / 2)
 
         -- ███ OUTPUT WINDOW ███
         local buf_out = vim.api.nvim_create_buf(false, true)
@@ -3256,6 +3262,9 @@ function M.open_git_ui()
           title_pos = "center",
           zindex = 600
         })
+
+        -- Debugging: Check if the output window is created
+        print("Created output window:", win_out)
 
         floating_windows.stdout = win_out
 
@@ -3277,23 +3286,45 @@ function M.open_git_ui()
           zindex = 600
         })
 
+        -- Debugging: Check if the error window is created
+        print("Created error window:", win_err)
+
         floating_windows.stderr = win_err
       end
 
       local function close_floating()
+        -- Debugging: Check what is in floating_windows
+        print("Closing floating windows...")
         for _, w in pairs(floating_windows) do
-          if vim.api.nvim_win_is_valid(w) then vim.api.nvim_win_close(w, true) end
+          if vim.api.nvim_win_is_valid(w) then
+            print("Closing window:", w)
+            vim.api.nvim_win_close(w, true)
+          else
+            print("Window is not valid:", w)
+          end
         end
         floating_windows = {}
       end
 
-      -- function to close floating windows
+      -- function to close main windows (merge popup and description)
       local function close_all()
-        if vim.api.nvim_win_is_valid(win_desc) then vim.api.nvim_win_close(win_desc, true) end
-        if vim.api.nvim_win_is_valid(win) then vim.api.nvim_win_close(win, true) end
+        print("Closing all windows...")
+        if vim.api.nvim_win_is_valid(win_desc) then
+          print("Closing win_desc:", win_desc)
+          vim.api.nvim_win_close(win_desc, true)
+        else
+          print("win_desc is not valid")
+        end
+        if vim.api.nvim_win_is_valid(win) then
+          print("Closing win:", win)
+          vim.api.nvim_win_close(win, true)
+        else
+          print("win is not valid")
+        end
         Ui.mode = "branches"
         refresh_ui()
       end
+
 
       -- MOVEMENT
       vim.keymap.set("n", "j", function()
