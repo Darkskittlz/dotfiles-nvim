@@ -25,6 +25,16 @@ vim.api.nvim_set_hl(
   "GitPickerTitle",
   { fg = "#268bd3", bold = true }
 )
+vim.api.nvim_set_hl(0, "DiffAdd", { fg = "#00aa00", bg = "", bold = false })    -- green
+vim.api.nvim_set_hl(0, "DiffDelete", { fg = "#f92672", bg = "", bold = false }) -- red/pink
+vim.api.nvim_set_hl(0, "DiffChange", { fg = "#fd971f", bg = "", bold = false }) -- orange/yellow
+vim.api.nvim_set_hl(0, "GitHash", { fg = "#00dfff", bold = true, italic = false })
+vim.api.nvim_set_hl(0, "GitDate", { fg = "#ffd700", bold = false, italic = true })
+vim.api.nvim_set_hl(0, "GitMsg", { fg = "#ffffff", bold = false, italic = false })
+vim.api.nvim_set_hl(0, "GitCommitMerge", { fg = "#c678dd", bold = true }) -- purple
+
+
+
 
 vim.cmd([[
 highlight GitStaged guifg=green
@@ -400,53 +410,51 @@ local function render_right()
     return
   end
 
-  vim.api.nvim_buf_set_option(
-    Ui.right_buf,
-    "modifiable",
-    true
-  )
-
+  vim.api.nvim_buf_set_option(Ui.right_buf, "modifiable", true)
   local out = {}
 
   if Ui.mode == "branches" then
     local branch = Ui.branch_selected or "HEAD"
-    out = run_git(
-      [[git log --pretty=format:"%h %ad %s" --date=short ]]
-      .. vim.fn.shellescape(branch)
-    )
-    if #out == 0 then
-      out = { "[No commits]" }
+    out = run_git([[git log --pretty=format:"%h %ad %s" --date=short ]] .. vim.fn.shellescape(branch))
+    if #out == 0 then out = { "[No commits]" } end
+
+    vim.api.nvim_buf_set_lines(Ui.right_buf, 0, -1, false, out)
+    vim.api.nvim_buf_set_option(Ui.right_buf, "filetype", "")
+    vim.api.nvim_buf_clear_namespace(Ui.right_buf, -1, 0, -1)
+
+    -- Override highlights
+    for i, line in ipairs(out) do
+      local hash, date, msg = line:match("^(%S+)%s+(%S+)%s+(.*)$")
+      if hash then
+        vim.api.nvim_buf_add_highlight(Ui.right_buf, -1, "GitHash", i - 1, 0, #hash)
+        vim.api.nvim_buf_add_highlight(Ui.right_buf, -1, "GitDate", i - 1, #hash + 1, #hash + 1 + #date)
+        vim.api.nvim_buf_add_highlight(Ui.right_buf, -1, "GitMsg", i - 1, #hash + 1 + #date + 2, -1)
+      end
     end
-    vim.api.nvim_buf_set_option(
-      Ui.right_buf,
-      "filetype",
-      "gitcommit"
-    )
-  else
-    local sel =
-        Ui.changed_files[Ui.selected_index]
-    out = sel and get_diff_for_target(sel.value)
-        or { "[No file selected]" }
-    vim.api.nvim_buf_set_option(
-      Ui.right_buf,
-      "filetype",
-      "diff"
-    )
+  elseif Ui.mode == "files" then
+    -- Files / diff view
+    local sel = Ui.changed_files[Ui.selected_index]
+    out = sel and get_diff_for_target(sel.value) or { "[No file selected]" }
+    vim.api.nvim_buf_set_option(Ui.right_buf, "filetype", "diff")
+
+    -- Apply highlights for diff view
+    for i, line in ipairs(out) do
+      if line:match("^%+.*") then
+        vim.api.nvim_buf_add_highlight(Ui.right_buf, -1, "DiffAddLine", i - 1, 0, -1)
+      elseif line:match("^%-.*") then
+        vim.api.nvim_buf_add_highlight(Ui.right_buf, -1, "DiffDeleteLine", i - 1, 0, -1)
+      elseif line:match("^diff ") then
+        vim.api.nvim_buf_add_highlight(Ui.right_buf, -1, "DiffFile", i - 1, 0, -1)
+      elseif line:match("^@@") then
+        vim.api.nvim_buf_add_highlight(Ui.right_buf, -1, "DiffHeader", i - 1, 0, -1)
+      end
+    end
   end
 
-  vim.api.nvim_buf_set_lines(
-    Ui.right_buf,
-    0,
-    -1,
-    false,
-    out
-  )
-  vim.api.nvim_buf_set_option(
-    Ui.right_buf,
-    "modifiable",
-    false
-  )
+  vim.api.nvim_buf_set_lines(Ui.right_buf, 0, -1, false, out)
+  vim.api.nvim_buf_set_option(Ui.right_buf, "modifiable", false)
 end
+
 
 local function refresh_ui()
   if Ui.mode == "branches" then
