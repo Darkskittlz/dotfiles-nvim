@@ -2994,12 +2994,12 @@ function M.open_git_ui()
     vim.keymap.set("n", "P", function()
       local current_branch = branch or Ui.branch_selected or "HEAD"
       local remote = "origin"
-
       print("DEBUG: Starting push for branch:", current_branch)
 
       local spinner_chars = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
       local spinner_idx = 1
 
+      -- Spinner window
       local buf = vim.api.nvim_create_buf(false, true)
       vim.api.nvim_buf_set_lines(buf, 0, -1, false,
         { "Pushing to " .. current_branch .. " " .. spinner_chars[spinner_idx] })
@@ -3028,51 +3028,45 @@ function M.open_git_ui()
       end))
 
       local function do_push(force)
-        print("DEBUG: do_push called, force =", force)
         local args = { "git", "push", "-u", remote, current_branch }
         if force then table.insert(args, 3, "--force") end
-        print("DEBUG: git args =", vim.inspect(args))
+        print("DEBUG: running git args", vim.inspect(args))
 
         vim.fn.jobstart(args, {
           stdout_buffered = true,
           stderr_buffered = true,
           on_exit = function(_, exit_code, _)
-            print("DEBUG: job exited with code:", exit_code)
             spinner_timer:stop()
             spinner_timer:close()
             vim.schedule(function()
-              if vim.api.nvim_win_is_valid(win) then
-                vim.api.nvim_win_close(win, true)
-              end
+              if vim.api.nvim_win_is_valid(win) then vim.api.nvim_win_close(win, true) end
               if exit_code == 0 then
                 print("DEBUG: push succeeded")
                 show_centered_message("✅ Successfully pushed branch: " .. current_branch)
               else
-                print("DEBUG: push failed, checking for divergence")
-                local output = vim.fn.system("git push -u " .. remote .. " " .. current_branch .. " 2>&1")
-                print("DEBUG: git push output:\n" .. output)
-                if output:match("rejected") then
-                  print("DEBUG: branch rejected, prompting for force push")
-                  local answer = vim.fn.input("Branch has diverged. Force push? (y/N): ")
-                  print("DEBUG: user answer =", answer)
-                  if answer:lower() == "y" then
-                    print("DEBUG: user confirmed force push")
-                    do_push(true)
-                  else
-                    print("DEBUG: user declined force push")
-                    show_centered_message("Push aborted.")
-                  end
-                else
-                  print("DEBUG: push failed for other reason")
-                  show_centered_message(" Failed to push branch: " .. current_branch)
-                end
+                print("DEBUG: push failed for other reason")
+                show_centered_message(" Failed to push branch: " .. current_branch)
               end
             end)
           end,
         })
       end
 
-      do_push(false)
+      -- Run a dry-run push first to detect divergence
+      local dry_output = vim.fn.system("git push --dry-run -u " .. remote .. " " .. current_branch .. " 2>&1")
+      print("DEBUG: dry-run output:\n" .. dry_output)
+      if dry_output:match("rejected") or dry_output:match("non-fast-forward") then
+        local answer = vim.fn.input("Branch has diverged. Force push? (y/N): ")
+        if answer:lower() == "y" then
+          do_push(true)
+        else
+          print("DEBUG: user declined force push")
+          show_centered_message("Push aborted.")
+        end
+      else
+        do_push(false)
+      end
+
       refresh_ui()
     end)
 
