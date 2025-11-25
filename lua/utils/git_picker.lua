@@ -2982,6 +2982,8 @@ function M.open_git_ui()
           or Ui.branch_selected
           or "HEAD"
 
+      local remote = "origin"
+
       local spinner_chars = {
         "⠋",
         "⠙",
@@ -2997,8 +2999,7 @@ function M.open_git_ui()
       local spinner_idx = 1
 
       -- Create a buffer and floating window for the spinner
-      local buf =
-          vim.api.nvim_create_buf(false, true)
+      local buf = vim.api.nvim_create_buf(false, true)
       vim.api.nvim_buf_set_lines(
         buf,
         0,
@@ -3055,16 +3056,8 @@ function M.open_git_ui()
         end)
       )
 
-      -- Start the push
-      vim.fn.jobstart({
-        "git",
-        "push",
-        "-u",
-        upstream_parts[1], -- remote
-        upstream_parts[2],
-        branch,
-        h,
-      }, {
+      -- Run git push
+      vim.fn.jobstart({ "git", "push", "-u", remote, current_branch }, {
         on_exit = function(_, exit_code)
           spinner_timer:stop()
           spinner_timer:close()
@@ -3089,7 +3082,6 @@ function M.open_git_ui()
 
       refresh_ui()
     end, {
-      buffer = buf,
       noremap = true,
       silent = true,
     })
