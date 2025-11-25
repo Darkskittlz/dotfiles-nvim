@@ -3104,118 +3104,172 @@ function M.open_git_ui()
       silent = true,
     })
 
-    vim.keymap.set(
-      "n",
-      "n",
-      function()
-        local current_branch = branch
-            or Ui.branch_selected
-            or "HEAD"
+    -- n keymap to create new branches off of selected branch
+    vim.keymap.set("n", "n", function()
+      local current_branch = Ui.branch_selected
+      if not current_branch or current_branch == "" then
+        vim.notify("No branch selected!", vim.log.levels.ERROR)
+        return
+      end
 
-        -- Floating input for new branch
-        local width = 50
-        local height = 1
-        local ui = vim.api.nvim_list_uis()[1]
-        local buf =
-            vim.api.nvim_create_buf(false, true)
-
-        local win =
-            vim.api.nvim_open_win(buf, true, {
-              relative = "editor",
-              width = width,
-              height = height,
-              row = 2,
-              col = math.floor(
-                (ui.width - width) / 2
-              ),
-              style = "minimal",
-              border = "rounded",
-              zindex = 50,
-            })
-
+      local function show_centered_error(msg)
+        local buf = vim.api.nvim_create_buf(false, true)
+        local lines = vim.split(msg, "\n")
         vim.api.nvim_buf_set_lines(
           buf,
           0,
           -1,
           false,
-          {
-            "Enter new branch name (from "
-            .. current_branch
-            .. "): ",
-          }
+          vim.split(msg, "\n")
         )
 
-        -- Start insert mode for input
-        vim.api.nvim_command("startinsert")
+        vim.api.nvim_set_hl(
+          0,
+          "CenteredError",
+          { fg = "#FF5555", bold = true }
+        )
 
-        -- Capture input
-        vim.fn.nvim_buf_set_keymap(
+        -- Apply highlight to all lines
+        for i = 0, #lines - 1 do
+          vim.api.nvim_buf_add_highlight(
+            buf,
+            -1,
+            "CenteredError",
+            i,
+            0,
+            -1
+          )
+        end
+
+        local width = 60
+        local height = #lines
+        local ui = vim.api.nvim_list_uis()[1]
+
+        local win = vim.api.nvim_open_win(buf, false, {
+          relative = "editor",
+          width = width,
+          height = height,
+          row = 2,
+          col = math.floor((ui.width - width) / 2),
+          style = "minimal",
+          border = "rounded",
+          zindex = 50,
+        })
+
+        vim.api.nvim_buf_set_option(
           buf,
-          "i",
-          "<CR>",
-          [[<Cmd>lua vim.schedule(function()
-    local new_branch = vim.fn.getline("."):gsub("^Enter new branch name %(from .*%) : ", "")
-    vim.api.nvim_win_close(0, true)
+          "modifiable",
+          false
+        )
+        -- Auto close after 3 seconds
+        vim.defer_fn(function()
+          if vim.api.nvim_win_is_valid(win) then
+            vim.api.nvim_win_close(win, true)
+          end
+        end, 2000)
+      end
 
-    if new_branch == "" then
-      print("Aborted: no branch name entered")
-      return
-    end
-
-    -- Spinner for branch creation
-    local spinner_chars = { "⠋","⠙","⠹","⠸","⠼","⠴","⠦","⠧","⠇","⠏" }
-    local spinner_idx = 1
-    local spin_buf = vim.api.nvim_create_buf(false, true)
-    local spin_win = vim.api.nvim_open_win(spin_buf, false, {
-      relative = "editor",
-      width = 50,
-      height = 1,
-      row = 2,
-      col = math.floor((ui.width - 50) / 2),
-      style = "minimal",
-      border = "rounded",
-      zindex = 50,
-    })
-
-    local spinner_timer = vim.loop.new_timer()
-    spinner_timer:start(100, 100, vim.schedule_wrap(function()
-      if not vim.api.nvim_win_is_valid(spin_win) then
-        spinner_timer:stop()
-        spinner_timer:close()
+      -- Check for uncommitted changes using systemlist
+      local status = vim.fn.systemlist("git status --porcelain")
+      if #status > 0 then
+        show_centered_error(
+          "🚨 You have uncommitted changes!\nCommit, stash, or discard them before switching branches."
+        )
         return
       end
-      spinner_idx = spinner_idx % #spinner_chars + 1
-      vim.api.nvim_buf_set_lines(spin_buf, 0, -1, false, { "✨ Creating new branch " .. new_branch .. " " .. spinner_chars[spinner_idx] })
-    end))
 
-    -- Run git checkout -b
-    vim.fn.jobstart({ "git", "checkout", "-b", new_branch, current_branch }, {
-      on_exit = function(_, exit_code)
-        spinner_timer:stop()
-        spinner_timer:close()
-        vim.schedule(function()
-          if vim.api.nvim_win_is_valid(spin_win) then
-            vim.api.nvim_win_close(spin_win, true)
+      -- Window size
+      local width, height = 50, 2
+      local ui = vim.api.nvim_list_uis()[1]
+      local buf = vim.api.nvim_create_buf(false, true)
+
+      -- Open floating window with a title
+      local win = vim.api.nvim_open_win(buf, true, {
+        relative = "editor",
+        width = width,
+        height = height,
+        row = 3,
+        col = math.floor((ui.width - width) / 2),
+        style = "minimal",
+        border = "rounded",
+        title = " Create New Branch: " .. current_branch .. " ",
+        title_pos = "center",
+        zindex = 50,
+      })
+
+      -- Start insert mode at second line
+      vim.api.nvim_win_set_cursor(win, { 1, 0 })
+      vim.cmd("startinsert")
+
+      -- Keymap for Enter to create branch
+      -- Normal mode mapping inside the buffer
+      -- after creating `buf` and `win`
+      -- set normal mode mapping for Enter
+      vim.keymap.set("n", "<CR>", function()
+        local new_branch = vim.api.nvim_get_current_line()
+        vim.api.nvim_win_close(win, true)
+
+        if new_branch == "" then
+          print("Aborted: no branch name entered")
+          return
+        end
+
+        -- Spinner
+        local spinner_chars = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
+        local spinner_idx = 1
+        local spin_buf = vim.api.nvim_create_buf(false, true)
+        local spin_win = vim.api.nvim_open_win(spin_buf, false, {
+          relative = "editor",
+          width = 50,
+          height = 1,
+          row = 2,
+          col = math.floor((vim.api.nvim_list_uis()[1].width - 50) / 2),
+          style = "minimal",
+          border = "rounded",
+          zindex = 50,
+        })
+
+        local spinner_timer = vim.loop.new_timer()
+        spinner_timer:start(100, 100, vim.schedule_wrap(function()
+          if not vim.api.nvim_win_is_valid(spin_win) then
+            spinner_timer:stop()
+            spinner_timer:close()
+            return
           end
-          if exit_code == 0 then
-            print("✅ Created new branch '" .. new_branch .. "' from '" .. current_branch .. "'")
-          else
-            print(" Failed to create branch '" .. new_branch .. "'")
-          end
-        end)
-      end,
+          spinner_idx = spinner_idx % #spinner_chars + 1
+          vim.api.nvim_buf_set_lines(spin_buf, 0, -1, false,
+            { "✨ Creating new branch " .. new_branch .. " " .. spinner_chars[spinner_idx] })
+        end))
+
+        vim.fn.jobstart({ "git", "checkout", "-b", new_branch, current_branch }, {
+          on_exit = function(_, exit_code)
+            spinner_timer:stop()
+            spinner_timer:close()
+            vim.schedule(function()
+              if vim.api.nvim_win_is_valid(spin_win) then
+                vim.api.nvim_win_close(spin_win, true)
+              end
+              if exit_code == 0 then
+                print("✅ Created new branch '" .. new_branch .. "' from '" .. current_branch .. "'")
+              else
+                print(" Failed to create branch '" .. new_branch .. "'")
+              end
+            end)
+          end,
+        })
+      end, { buffer = buf, noremap = true, silent = true })
+
+      -- Keymap to quit the floating window with 'q' in normal mode
+      vim.api.nvim_buf_set_keymap(buf, "n", "q",
+        [[<Cmd>lua vim.api.nvim_win_close(0, true)<CR>]],
+        { noremap = true, silent = true }
+      )
+    end, {
+      noremap = true,
+      silent = true,
+      desc = "Create new branch from selected",
     })
 
-  end)<CR>]],
-          { noremap = true, silent = true }
-        )
-      end,
-      {
-        noremap = true,
-        silent = true,
-        desc = "Create new branch from selected",
-      }
-    )
 
     -- Close UI
     vim.keymap.set("n", "q", close_ui, {

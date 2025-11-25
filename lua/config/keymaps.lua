@@ -38,30 +38,28 @@ local function show_spinner()
   return timer
 end
 
-keymap.set(
-  "n",
-  "<leader>rl",
-  function()
-    local spinner = show_spinner()
-    -- Source init.lua / config
-    vim.cmd("source $MYVIMRC")
-    -- Optionally reload Lua modules
-    for name, _ in pairs(package.loaded) do
-      if name:match("^git_picker") then
-        package.loaded[name] = nil
-      end
+keymap.set("n", "<leader>rl", function()
+  local spinner = show_spinner()
+
+  -- Source init.lua
+  vim.cmd("source $MYVIMRC")
+
+  -- Reload all custom utils/config modules
+  for name, _ in pairs(package.loaded) do
+    if name:match("^utils") or name:match("^config") then
+      package.loaded[name] = nil
     end
-    require("utils.git_picker") -- reload your file
-    spinner:stop()
-    spinner:close()
-    vim.o.background = original_bg -- restore original background
-    vim.notify(
-      "Config reloaded ✅",
-      vim.log.levels.INFO
-    )
-  end,
-  { desc = "Reload Neovim config with spinner" }
-)
+  end
+
+  -- Re-require key files
+  require("utils.git_picker")
+
+  spinner:stop()
+  spinner:close()
+
+  vim.o.background = original_bg
+  vim.notify("Config reloaded ✅", vim.log.levels.INFO)
+end, { desc = "Reload Neovim config with spinner" })
 
 -- Mason --
 vim.api.nvim_set_keymap(
