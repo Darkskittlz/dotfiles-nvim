@@ -2544,11 +2544,10 @@ function M.open_git_ui()
 
     -- keymap for dropping commits
     vim.keymap.set("n", "d", function()
-      if Ui.mode ~= "branches" then return end -- Ensure we are in the commits view
+      if Ui.mode ~= "branches" then return end -- Ensure we are in the branches view
 
       local win = vim.api.nvim_get_current_win()
       if win ~= Ui.right_win then return end -- Ensure we are in the right window
-
 
       local cursor = vim.api.nvim_win_get_cursor(Ui.right_win)
       local line = vim.api.nvim_buf_get_lines(Ui.right_buf, cursor[1] - 1, cursor[1], false)[1] or ""
@@ -2563,46 +2562,82 @@ function M.open_git_ui()
       end
 
       -- Ask for user confirmation before discarding the commit
-      local answer = vim.fn.input("Are you sure you want to discard this commit? (y/N): ")
-      if answer:lower() ~= "y" then
-        vim.notify("Reset aborted.", vim.log.levels.INFO)
-        return -- User chose not to proceed
-      end
-
-      -- Perform the reset to the next commit
-      local reset_command = "git reset --hard " .. next_commit_hash
-      vim.fn.system(reset_command)
-
-      -- Show a message indicating the reset was successful
       local ui = vim.api.nvim_list_uis()[1]
-      local msg = "Reset to commit: " .. next_commit_hash
-      local buf_ok = vim.api.nvim_create_buf(false, true)
-      vim.api.nvim_buf_set_lines(buf_ok, 0, -1, false, { msg })
-      vim.api.nvim_buf_add_highlight(buf_ok, -1, "ResetGreen", 0, 0, -1)
+      local width = 50
+      local height = 4
+      local row = math.floor((ui.height - height) / 2)
+      local col = math.floor((ui.width - width) / 2)
 
-      local w = #msg + 4
-      local c = math.floor((ui.width - w) / 2)
-      local win_ok = vim.api.nvim_open_win(buf_ok, false, {
+      local buf = vim.api.nvim_create_buf(false, true)
+      local win_confirm = vim.api.nvim_open_win(buf, true, {
         relative = "editor",
-        width = w,
-        height = 1,
-        row = 2,
-        col = c,
+        width = width,
+        height = height,
+        row = row,
+        col = col,
         style = "minimal",
         border = "rounded",
-        zindex = 600,
+        title = " Confirmation ",
+        title_pos = "center",
+        zindex = 500,
       })
 
+      local confirm_message = "Are you sure you want to discard this commit? (y/N)"
+      vim.api.nvim_buf_set_lines(buf, 0, -1, false, { confirm_message })
 
-      vim.defer_fn(function()
-        if vim.api.nvim_win_is_valid(win_ok) then
-          vim.api.nvim_win_close(win_ok, true)
+      local function close_confirm_win()
+        if vim.api.nvim_win_is_valid(win_confirm) then
+          vim.api.nvim_win_close(win_confirm, true)
         end
-      end, 1500)
+      end
 
-      -- Refresh UI to reflect the reset state (go back to branches view or whatever logic applies)
-      Ui.mode = "branches"
-      refresh_ui()
+      vim.keymap.set("n", "y", function()
+        -- Perform the reset to the next commit
+        local reset_command = "git reset --hard " .. next_commit_hash
+        vim.fn.system(reset_command)
+
+        -- Show a success message
+        local msg = "Reset to commit: " .. next_commit_hash
+        local buf_ok = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_lines(buf_ok, 0, -1, false, { msg })
+        vim.api.nvim_buf_add_highlight(buf_ok, -1, "ResetGreen", 0, 0, -1)
+
+        local w = #msg + 4
+        local c = math.floor((ui.width - w) / 2)
+        local win_ok = vim.api.nvim_open_win(buf_ok, false, {
+          relative = "editor",
+          width = w,
+          height = 1,
+          row = row - 2,
+          col = c,
+          style = "minimal",
+          border = "rounded",
+          zindex = 600,
+        })
+
+        vim.defer_fn(function()
+          if vim.api.nvim_win_is_valid(win_ok) then
+            vim.api.nvim_win_close(win_ok, true)
+          end
+        end, 1500)
+
+        -- Refresh UI to reflect the reset state
+        Ui.mode = "branches" -- Remain in branches mode after reset
+        refresh_ui()
+
+        close_confirm_win()
+      end, { buffer = buf, noremap = true, silent = true })
+
+      vim.keymap.set("n", "n", function()
+        vim.notify("Reset aborted.", vim.log.levels.INFO)
+        close_confirm_win()
+      end, { buffer = buf, noremap = true, silent = true })
+
+      -- If user presses Esc, also cancel the reset
+      vim.keymap.set("n", "<Esc>", function()
+        vim.notify("Reset aborted.", vim.log.levels.INFO)
+        close_confirm_win()
+      end, { buffer = buf, noremap = true, silent = true })
     end, { buffer = Ui.right_buf, noremap = true, silent = true })
 
 
