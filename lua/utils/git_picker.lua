@@ -2832,7 +2832,6 @@ function M.open_git_ui()
       noremap = true,
       silent = true,
     })
-    -- test
     -- Pull latest changes
     vim.keymap.set("n", "p", function()
       if Ui.mode ~= "branches" then
