@@ -3404,15 +3404,17 @@ function M.open_git_ui()
 
       local floating_windows = {}
 
-      local function show_floating(title, lines, row_offset, id)
+      local floating_windows = {}
+
+      local function show_floating(title, lines, top_row, id)
         local buf = vim.api.nvim_create_buf(false, true)
         vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines or {})
         vim.api.nvim_buf_set_option(buf, "modifiable", false)
 
         local ui = vim.api.nvim_list_uis()[1]
         local width = math.min(80, ui.width - 4)
-        local height = math.min(#lines + 2, ui.height - 4)
-        local row = math.floor((ui.height - height) / 2) + (row_offset or 0)
+        local height = math.min(#lines + 4, ui.height - 4)
+        local row = top_row or math.floor((ui.height - height) / 2)
         local col = math.floor((ui.width - width) / 2)
 
         local win = vim.api.nvim_open_win(buf, true, {
@@ -3428,15 +3430,24 @@ function M.open_git_ui()
           zindex = 600,
         })
 
-        floating_windows[id] = win
+        floating_windows[id] = { win = win, buf = buf, height = height, row = row }
 
         -- close window on 'q'
         vim.keymap.set("n", "q", function()
           if vim.api.nvim_win_is_valid(win) then
             vim.api.nvim_win_close(win, true)
           end
+          Ui.mode = "branches"
+          refresh_ui()
         end, { buffer = buf, nowait = true, silent = true })
+
+        return height
       end
+
+      -- Example usage: stack stdout above stderr
+      local top_row = math.floor(vim.api.nvim_list_uis()[1].height / 2) - 5
+      local stdout_height = show_floating("Git Output", stdout_lines, top_row, "stdout")
+      show_floating("Git Errors", stderr_lines, top_row + stdout_height - 2, "stderr")
 
 
       local function apply_selected()
