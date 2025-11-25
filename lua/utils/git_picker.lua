@@ -2389,6 +2389,64 @@ function M.open_git_ui()
       end, { buffer = buf })
 
       ---------------------------------------------------------------------------
+      -- APPLY RESET ON M/S/H/C
+      ---------------------------------------------------------------------------
+      for i, opt in ipairs(options) do
+        vim.keymap.set("n", opt.key, function()
+          print("[key " .. opt.key .. "] pressed, selected=" .. selected)
+
+          if opt.cmd == nil then
+            print("[key " .. opt.key .. "] cancel")
+            close_all()
+            return
+          end
+
+          print("[key " .. opt.key .. "] running: " .. opt.cmd)
+
+          local show_error = make_show_error(row, height, ui)
+
+          if has_worktree_changes() then
+            print("[key " .. opt.key .. "] worktree dirty, aborting")
+            show_error("Cannot reset: work tree has uncommitted changes")
+            return
+          end
+
+          vim.fn.system(opt.cmd)
+          print("[key " .. opt.key .. "] reset command executed")
+
+          -- success popup
+          local buf_ok = vim.api.nvim_create_buf(false, true)
+          local msg = opt.label .. " → " .. hash
+          vim.api.nvim_buf_set_lines(buf_ok, 0, -1, false, { msg })
+          vim.api.nvim_buf_add_highlight(buf_ok, -1, opt.hl, 0, 0, -1)
+
+          local w = #msg + 4
+          local c = math.floor((ui.width - w) / 2)
+          local win_ok = vim.api.nvim_open_win(buf_ok, false, {
+            relative = "editor",
+            width = w,
+            height = 1,
+            row = row - 2,
+            col = c,
+            style = "minimal",
+            border = "rounded",
+            zindex = 600,
+          })
+
+          vim.defer_fn(function()
+            if vim.api.nvim_win_is_valid(win_ok) then
+              print("[key " .. opt.key .. "] closing success popup")
+              vim.api.nvim_win_close(win_ok, true)
+            end
+          end, 1500)
+
+          print("[key " .. opt.key .. "] closing reset menu")
+          close_all()
+        end, { buffer = buf })
+      end
+
+
+      ---------------------------------------------------------------------------
       -- EXIT
       ---------------------------------------------------------------------------
       vim.keymap.set("n", "q", function()
