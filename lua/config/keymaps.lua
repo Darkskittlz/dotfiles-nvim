@@ -28,7 +28,7 @@ local function show_spinner()
     vim.schedule_wrap(function()
       vim.notify(
         "Reloading Neovim config "
-          .. spinner_frames[i],
+        .. spinner_frames[i],
         vim.log.levels.INFO,
         { timeout = 100 }
       )
@@ -54,6 +54,7 @@ keymap.set(
     require("utils.git_picker") -- reload your file
     spinner:stop()
     spinner:close()
+    vim.o.background = original_bg -- restore original background
     vim.notify(
       "Config reloaded ✅",
       vim.log.levels.INFO
