@@ -14,7 +14,11 @@ vim.api.nvim_set_hl(0, "DiffAdd", { fg = "#00aa00", bg = "", bold = false })    
 vim.api.nvim_set_hl(0, "DiffDelete", { fg = "#f92672", bg = "", bold = false }) -- red/pink
 vim.api.nvim_set_hl(0, "DiffChange", { fg = "#fd971f", bg = "", bold = false }) -- orange/yellow
 
--- Light Mode Colors
+vim.api.nvim_set_hl(0, "MergeBlue", { fg = "#4da3ff", bold = true })
+vim.api.nvim_set_hl(0, "MergeGreen", { fg = "#32cd32", bold = true })
+vim.api.nvim_set_hl(0, "MergeRed", { fg = "#ff4444", bold = true })
+vim.api.nvim_set_hl(0, "MergeWhite", { fg = "#bbbbbb", bold = true })
+
 vim.api.nvim_set_hl(0, "GitHash", { fg = "#ff007f", bold = true, italic = false }) -- Electric pink
 vim.api.nvim_set_hl(0, "GitDate", { fg = "#00d2ff", bold = false, italic = true }) -- Electric green
 vim.api.nvim_set_hl(0, "GitMsg", { fg = "#4e4e4e", bold = false, italic = false }) -- Dark grey for readability
@@ -27,6 +31,8 @@ vim.api.nvim_set_hl(0, "GitError", { fg = "#FF6F69", bold = false, italic = fals
 -- vim.api.nvim_set_hl(0, "GitHash", { fg = "#11518c", bold = true, italic = false })
 -- vim.api.nvim_set_hl(0, "GitDate", { fg = "#006400", bold = false, italic = true })
 -- vim.api.nvim_set_hl(0, "GitMsg", { fg = "#999999", bold = false, italic = false })
+--
+
 
 
 
@@ -3289,12 +3295,6 @@ function M.open_git_ui()
         return
       end
 
-      -- COLOR HIGHLIGHTS
-      vim.api.nvim_set_hl(0, "MergeBlue", { fg = "#4da3ff", bold = true })
-      vim.api.nvim_set_hl(0, "MergeGreen", { fg = "#32cd32", bold = true })
-      vim.api.nvim_set_hl(0, "MergeRed", { fg = "#ff4444", bold = true })
-      vim.api.nvim_set_hl(0, "MergeWhite", { fg = "#bbbbbb", bold = true })
-
       -- OPTIONS
       local options = {
         { key = "m", label = "Regular merge",                   hl = "MergeBlue",  desc = "Merge '" .. target_branch .. "' into '" .. current_branch .. "'. Creates a merge commit if needed.", cmd = "git merge " .. target_branch },
@@ -3362,118 +3362,6 @@ function M.open_git_ui()
       end
       render()
 
-      local floating_windows = {}
-
-      local function close_floating()
-        -- Debugging: Check what is in floating_windows
-        print("Closing floating windows...")
-        for _, w in pairs(floating_windows) do
-          if vim.api.nvim_win_is_valid(w) then
-            print("Closing window:", w)
-            vim.api.nvim_win_close(w, true)
-          else
-            print("Window is not valid:", w)
-          end
-        end
-        floating_windows = {}
-      end
-
-      local function show_floating_pair(stdout_lines, stderr_lines)
-        -- Debugging: Check if we're entering the function and what data is passed
-        print("show_floating_pair called")
-        print("stdout_lines:", vim.inspect(stdout_lines))
-        print("stderr_lines:", vim.inspect(stderr_lines))
-
-        local ui = vim.api.nvim_list_uis()[1]
-
-        local width = math.min(80, ui.width - 4)
-
-        -- heights (at least 3 so borders don't collapse)
-        local h_out = math.max(#stdout_lines + 2, 3)
-        local h_err = math.max(#stderr_lines + 2, 3)
-
-        -- total stack height
-        local total_h = h_out + h_err + 1 -- +1 for border separation
-        print("total_h:", total_h)
-
-        -- top row so the entire stack is centered
-        local top = math.floor((ui.height - total_h) / 2)
-        local col = math.floor((ui.width - width) / 2)
-
-        -- ███ OUTPUT WINDOW ███
-        local buf_out = vim.api.nvim_create_buf(false, true)
-        vim.api.nvim_buf_set_lines(buf_out, 0, -1, false, stdout_lines)
-        vim.api.nvim_buf_set_option(buf_out, "modifiable", false)
-
-        local win_out = vim.api.nvim_open_win(buf_out, true, {
-          relative = "editor",
-          width = width,
-          height = h_out,
-          row = top,
-          col = col,
-          style = "minimal",
-          border = "rounded",
-          title = " Git Output ",
-          title_pos = "center",
-          zindex = 600
-        })
-
-        -- Debugging: Check if the output window is created
-        print("stdout_lines before creating buf_out:", vim.inspect(stdout_lines))
-        print("Created output window:", win_out)
-
-        floating_windows.stdout = win_out
-
-        vim.keymap.set("n", "q", function()
-          close_floating()
-          Ui.mode = "branches"
-          refresh_ui()
-        end, { buffer = buf_out, nowait = true, silent = true })
-
-        -- ███ ERRORS WINDOW ███
-        local buf_err = vim.api.nvim_create_buf(false, true)
-        vim.api.nvim_buf_set_lines(buf_err, 0, -1, false, stderr_lines)
-        vim.api.nvim_buf_set_option(buf_err, "modifiable", false)
-
-        local win_err = vim.api.nvim_open_win(buf_err, false, {
-          relative = "editor",
-          width = width,
-          height = h_err,
-          row = top + h_out + 2, -- RIGHT BELOW OUTPUT WINDOW
-          col = col,
-          style = "minimal",
-          border = "rounded",
-          title = " Git Errors ",
-          title_pos = "center",
-          zindex = 600
-        })
-
-        -- Debugging: Check if the error window is created
-        print("Created error window:", win_err)
-
-        floating_windows.stderr = win_err
-      end
-
-      -- test
-      -- function to close main windows (merge popup and description)
-      local function close_all()
-        print("Closing all windows...")
-        if vim.api.nvim_win_is_valid(win_desc) then
-          print("Closing win_desc:", win_desc)
-          vim.api.nvim_win_close(win_desc, true)
-        else
-          print("win_desc is not valid")
-        end
-        if vim.api.nvim_win_is_valid(win) then
-          print("Closing win:", win)
-          vim.api.nvim_win_close(win, true)
-        else
-          print("win is not valid")
-        end
-        Ui.mode = "branches"
-        refresh_ui()
-      end
-
       -- MOVEMENT
       vim.keymap.set("n", "j", function()
         selected = math.min(#options, selected + 1); render()
@@ -3505,21 +3393,10 @@ function M.open_git_ui()
             stderr_lines = data or {}
           end,
           on_exit = function()
+            -- Use the floating window function here
             show_floating_pair(stdout_lines or {}, stderr_lines or {})
           end,
         })
-
-        -- H/L navigation between floating windows
-        vim.keymap.set("n", "H", function()
-          if floating_windows.stdout and vim.api.nvim_win_is_valid(floating_windows.stdout) then
-            vim.api.nvim_set_current_win(floating_windows.stdout)
-          end
-        end, { nowait = true, silent = true })
-        vim.keymap.set("n", "L", function()
-          if floating_windows.stderr and vim.api.nvim_win_is_valid(floating_windows.stderr) then
-            vim.api.nvim_set_current_win(floating_windows.stderr)
-          end
-        end, { nowait = true, silent = true })
       end
 
       vim.keymap.set("n", "<CR>", apply_selected, { buffer = buf_win })
@@ -3530,11 +3407,21 @@ function M.open_git_ui()
         end, { buffer = buf_win })
       end
 
-      -- q in branches closes branches popup completely
+      -- Close the merge popup completely (if 'q' or 'Esc' pressed)
+      local function close_all()
+        if vim.api.nvim_win_is_valid(win_desc) then
+          vim.api.nvim_win_close(win_desc, true)
+        end
+        if vim.api.nvim_win_is_valid(win) then
+          vim.api.nvim_win_close(win, true)
+        end
+        Ui.mode = "branches"
+        refresh_ui()
+      end
+
       vim.keymap.set("n", "q", close_all, { buffer = buf_win })
       vim.keymap.set("n", "<Esc>", close_all, { buffer = buf_win })
     end, { buffer = buf, noremap = true, silent = true })
-
 
     -- Close UI
     vim.keymap.set("n", "q", close_ui, {
