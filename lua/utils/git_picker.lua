@@ -3370,6 +3370,18 @@ function M.open_git_ui()
         selected = math.max(1, selected - 1); render()
       end, { buffer = buf_win })
 
+      -- Close the merge popup completely (if 'q' or 'Esc' pressed)
+      local function close_all()
+        if vim.api.nvim_win_is_valid(win_desc) then
+          vim.api.nvim_win_close(win_desc, true)
+        end
+        if vim.api.nvim_win_is_valid(win) then
+          vim.api.nvim_win_close(win, true)
+        end
+        Ui.mode = "branches"
+        refresh_ui()
+      end
+
       local function apply_selected()
         local opt = options[selected]
         if not opt.cmd then
@@ -3405,18 +3417,6 @@ function M.open_git_ui()
           selected = _
           apply_selected()
         end, { buffer = buf_win })
-      end
-
-      -- Close the merge popup completely (if 'q' or 'Esc' pressed)
-      local function close_all()
-        if vim.api.nvim_win_is_valid(win_desc) then
-          vim.api.nvim_win_close(win_desc, true)
-        end
-        if vim.api.nvim_win_is_valid(win) then
-          vim.api.nvim_win_close(win, true)
-        end
-        Ui.mode = "branches"
-        refresh_ui()
       end
 
       vim.keymap.set("n", "q", close_all, { buffer = buf_win })
