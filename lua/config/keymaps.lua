@@ -10,7 +10,7 @@ keymap.set(
   "<leader>rl",
   function()
     vim.cmd("source $MYVIMRC") -- reload your init.lua / init.vim
-    require("lazy").sync() -- reload LazyVim plugins
+    require("lazy").sync()     -- reload LazyVim plugins
   end,
   { desc = "Reload Neovim config and plugins" }
 )
@@ -96,8 +96,21 @@ keymap.set("x", "K", ":m '<-2<CR>gv=gv")
 keymap.set("x", "<A-j>", ":m '>+1<CR>gv=gv")
 keymap.set("x", "<A-k>", ":m '<-2<CR>gv=gv")
 
--- ChatGPT Keymaps --
+keymap.set("n", "<leader>cn", function()
+  if vim.wo.number then
+    -- hide both absolute and relative numbers
+    vim.wo.number = false
+    vim.wo.relativenumber = false
+  else
+    -- show absolute numbers (you can enable relative if you want)
+    vim.wo.number = true
+    vim.wo.relativenumber = false
+  end
+end, { desc = "Toggle line numbers" })
 
+
+
+-- ChatGPT Keymaps --
 -- GpChatNew Mappings
 keymap.set(
   "n",
