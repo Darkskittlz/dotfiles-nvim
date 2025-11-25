@@ -2,13 +2,7 @@
 ---@diagnostic disable: undefined-global
 local M = {}
 
--- TODO: Make g keymap work so it performs the reset/rebase.
--- TODO: Add force push confirm option if branch has diverged from remote.
--- TODO: Update prettier config so there aren't massive changes every time i save a file in nvim
--- TODO: Find an easier way to reset nvim so i don't have to exit out and come back in every time
--- TODO: add d for drop commits keymap functionality on git log
 -- TODO: add l keymap to show pretty git graph
--- TODO: Add M to show options for merging branch into another branch.
 
 -- Highlights
 vim.api.nvim_set_hl(
@@ -502,6 +496,26 @@ local function focus_right()
   then
     vim.api.nvim_set_current_win(Ui.right_win)
   end
+end
+
+-- When initializing your UI
+local function init_ui()
+  -- Load branches and changed files
+  load_branches()
+  get_changed_files(Ui.branch_selected)
+
+  -- Determine initial mode based on whether there are changes
+  if #Ui.changed_files > 0 then
+    Ui.mode = "files"
+  else
+    Ui.mode = "branches"
+  end
+
+  Ui.selected_index = 1
+
+  -- Create buffers / windows here if needed
+  refresh_ui()
+  focus_left()
 end
 
 -- Toggle between branches and files mode
@@ -3265,6 +3279,7 @@ function M.open_git_ui()
   set_keymaps(Ui.left_buf)
   set_keymaps(Ui.right_buf)
   refresh_ui()
+  init_ui()
 end
 
 return M
