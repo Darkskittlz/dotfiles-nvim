@@ -684,8 +684,6 @@ end
 
 -- Discard changes for the selected file
 local function discard_changes_selected()
-  print("discard_changes_selected called") -- Debug: function entered
-
   if Ui.mode ~= "files" then
     print(
       "Exiting: Ui.mode is not 'files', current mode:",
@@ -3080,7 +3078,7 @@ function M.open_git_ui()
 
 
     -- n keymap to create new branches off of selected branch
-    vim.keymap.set("n", "n", function()
+    vim.keymap.set("n", "N", function()
       local current_branch = Ui.branch_selected
       if not current_branch or current_branch == "" then
         vim.notify("No branch selected!", vim.log.levels.ERROR)
