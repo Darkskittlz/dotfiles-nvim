@@ -25,12 +25,20 @@ vim.api.nvim_set_hl(
   "GitPickerTitle",
   { fg = "#268bd3", bold = true }
 )
+
 vim.api.nvim_set_hl(0, "DiffAdd", { fg = "#00aa00", bg = "", bold = false })    -- green
 vim.api.nvim_set_hl(0, "DiffDelete", { fg = "#f92672", bg = "", bold = false }) -- red/pink
 vim.api.nvim_set_hl(0, "DiffChange", { fg = "#fd971f", bg = "", bold = false }) -- orange/yellow
-vim.api.nvim_set_hl(0, "GitHash", { fg = "#11518c", bold = true, italic = false })
-vim.api.nvim_set_hl(0, "GitDate", { fg = "#006400", bold = false, italic = true })
-vim.api.nvim_set_hl(0, "GitMsg", { fg = "#999999", bold = false, italic = false })
+
+-- Light Mode Colors
+vim.api.nvim_set_hl(0, "GitHash", { fg = "#ff007f", bold = true, italic = false }) -- Electric pink
+vim.api.nvim_set_hl(0, "GitDate", { fg = "#00d2ff", bold = false, italic = true }) -- Electric green
+vim.api.nvim_set_hl(0, "GitMsg", { fg = "#4e4e4e", bold = false, italic = false }) -- Dark grey for readability
+
+-- Dark Mode Colors
+-- vim.api.nvim_set_hl(0, "GitHash", { fg = "#11518c", bold = true, italic = false })
+-- vim.api.nvim_set_hl(0, "GitDate", { fg = "#006400", bold = false, italic = true })
+-- vim.api.nvim_set_hl(0, "GitMsg", { fg = "#999999", bold = false, italic = false })
 
 
 
