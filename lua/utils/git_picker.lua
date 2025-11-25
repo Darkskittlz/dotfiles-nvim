@@ -634,6 +634,39 @@ local function show_floating_pair(stdout_lines, stderr_lines)
 end
 
 ---------------------------------------------------------------------------
+-- Function to reload the current file buffer after exiting git picker
+---------------------------------------------------------------------------
+local function file_differs_from_disk(bufnr)
+  local path = vim.api.nvim_buf_get_name(bufnr)
+  if path == "" then return false end
+
+  local ok, disk = pcall(vim.fn.readfile, path)
+  if not ok then return false end
+
+  local buf = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+
+  return table.concat(disk, "\n") ~= table.concat(buf, "\n")
+end
+
+local function reload_file_buffer()
+  local bufnr = vim.api.nvim_get_current_buf()
+  if not vim.api.nvim_buf_is_valid(bufnr) then return end
+
+  if vim.api.nvim_buf_get_option(bufnr, "modified") then
+    return
+  end
+
+  if file_differs_from_disk(bufnr) then
+    -- This creates a true Yes/No prompt in the cmdline (always focused)
+    local choice = vim.fn.confirm("File changed on disk. Reload?", "&Yes\n&No", 2)
+
+    if choice == 1 then
+      vim.cmd("e!")
+    end
+  end
+end
+
+
 -- Focus helpers
 ---------------------------------------------------------------------------
 local function focus_left()
@@ -977,7 +1010,7 @@ local function show_centered_message(msg, icon)
     relative = "editor",
     width = width,
     height = height,
-    row = 2,
+    row = 3,
     col = math.floor((ui.width - width) / 2),
     style = "minimal",
     border = "rounded",
@@ -2579,7 +2612,6 @@ function M.open_git_ui()
       local height = 1
       local row = 3
       local col = math.floor((ui.width - width) / 2)
-
       local buf = vim.api.nvim_create_buf(false, true)
       local win_confirm = vim.api.nvim_open_win(buf, true, {
         relative = "editor",
@@ -2607,7 +2639,7 @@ function M.open_git_ui()
       vim.keymap.set("n", "y", function()
         -- Perform the reset to the next commit
         local reset_command = "git reset --hard " .. next_commit_hash
-        print("Running git reset command:", reset_command)
+        -- print("Running git reset command:", reset_command)
         vim.fn.system(reset_command)
 
         -- Show a success message
@@ -2616,14 +2648,17 @@ function M.open_git_ui()
         vim.api.nvim_buf_set_lines(buf_ok, 0, -1, false, { msg })
         vim.api.nvim_buf_add_highlight(buf_ok, -1, "ResetGreen", 0, 0, -1)
 
-        local w = #msg + 4
-        local c = math.floor((ui.width - w) / 2)
+        local width = #msg + 4
+        local ui = vim.api.nvim_list_uis()[1]
+        local col = math.floor((ui.width - width) / 2)
+
+        -- Position for the success message: Place it 2 rows below the confirmation
         local win_ok = vim.api.nvim_open_win(buf_ok, false, {
           relative = "editor",
-          width = w,
+          width = width,
           height = 1,
-          row = row - 2,
-          col = c,
+          row = row,
+          col = col,
           style = "minimal",
           border = "rounded",
           zindex = 600,
@@ -2658,7 +2693,6 @@ function M.open_git_ui()
         close_confirm_win()
       end, { buffer = buf, noremap = true, silent = true })
     end, { buffer = Ui.right_buf, noremap = true, silent = true })
-
 
 
     vim.keymap.set("n", "j", function()
@@ -2729,338 +2763,180 @@ function M.open_git_ui()
 
     -- Commit Keymap
     vim.keymap.set("n", "c", function()
-      if
-          Ui.mode ~= "branch"
-          and Ui.mode ~= "files"
-      then
+      if Ui.mode ~= "branch" and Ui.mode ~= "files" then
         return
       end
 
-      local branch =
-          Ui.branches[Ui.selected_index]
+      local branch = Ui.branches[Ui.selected_index]
       if not branch or branch == "" then
         branch = Ui.branch_selected or "HEAD"
       end
 
-      local width =
-          math.floor(vim.o.columns * 0.9)
+      local width = math.floor(vim.o.columns * 0.9)
       local height_title = 1
       local height_desc = 4
-      local height_diff =
-          math.floor(vim.o.lines * 0.72) -- taller diff
+      local height_diff = math.floor(vim.o.lines * 0.72) -- taller diff
       local spacing = 1
-      local col =
-          math.floor((vim.o.columns - width) / 2)
+      local col = math.floor((vim.o.columns - width) / 2)
 
       -- =========================
       -- Background overlay
       -- =========================
-      local buf_overlay =
-          vim.api.nvim_create_buf(false, true)
-      vim.api.nvim_buf_set_lines(
-        buf_overlay,
-        0,
-        -1,
-        false,
-        { string.rep(" ", width) }
-      )
-      local win_overlay = vim.api.nvim_open_win(
-        buf_overlay,
-        false,
-        {
-          relative = "editor",
-          width = vim.o.columns,
-          height = vim.o.lines,
-          row = 0,
-          col = 0,
-          style = "minimal",
-          border = "none",
-          zindex = 200,
-        }
-      )
+      local buf_overlay = vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_lines(buf_overlay, 0, -1, false, { string.rep(" ", width) })
+      local win_overlay = vim.api.nvim_open_win(buf_overlay, false, {
+        relative = "editor",
+        width = vim.o.columns,
+        height = vim.o.lines,
+        row = 0,
+        col = 0,
+        style = "minimal",
+        border = "none",
+        zindex = 200,
+      })
 
       -- =========================
       -- Buffers
       -- =========================
-      local buf_diff =
-          vim.api.nvim_create_buf(false, true)
-      vim.api.nvim_buf_set_option(
-        buf_diff,
-        "buftype",
-        "nofile"
-      )
-      vim.api.nvim_buf_set_option(
-        buf_diff,
-        "bufhidden",
-        "wipe"
-      )
-      vim.api.nvim_buf_set_option(
-        buf_diff,
-        "filetype",
-        "diff"
-      )
+      local buf_diff = vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_option(buf_diff, "buftype", "nofile")
+      vim.api.nvim_buf_set_option(buf_diff, "bufhidden", "wipe")
+      vim.api.nvim_buf_set_option(buf_diff, "filetype", "diff")
 
-      local diff_cmd = "git diff --cached "
-          .. vim.fn.shellescape(branch)
-      local diff_lines =
-          vim.fn.systemlist(diff_cmd)
-      if
-          vim.v.shell_error ~= 0
-          or #diff_lines == 0
-      then
+      local diff_cmd = "git diff --cached " .. vim.fn.shellescape(branch)
+      local diff_lines = vim.fn.systemlist(diff_cmd)
+      if vim.v.shell_error ~= 0 or #diff_lines == 0 then
         diff_lines = { "[No staged changes]" }
       end
-      vim.api.nvim_buf_set_lines(
-        buf_diff,
-        0,
-        -1,
-        false,
-        diff_lines
-      )
-      vim.api.nvim_buf_set_option(
-        buf_diff,
-        "modifiable",
-        false
-      )
+      vim.api.nvim_buf_set_lines(buf_diff, 0, -1, false, diff_lines)
+      vim.api.nvim_buf_set_option(buf_diff, "modifiable", false)
 
-      local buf_title =
-          vim.api.nvim_create_buf(false, true)
-      vim.api.nvim_buf_set_option(
-        buf_title,
-        "buftype",
-        "acwrite"
-      )
-      vim.api.nvim_buf_set_option(
-        buf_title,
-        "bufhidden",
-        "wipe"
-      )
-      vim.api.nvim_buf_set_lines(
-        buf_title,
-        0,
-        -1,
-        false,
-        { "" }
-      )
+      -- Buffers for title and description
+      local buf_title = vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_option(buf_title, "buftype", "acwrite")
+      vim.api.nvim_buf_set_option(buf_title, "bufhidden", "wipe")
+      vim.api.nvim_buf_set_lines(buf_title, 0, -1, false, { "" })
 
-      local buf_desc =
-          vim.api.nvim_create_buf(false, true)
-      vim.api.nvim_buf_set_option(
-        buf_desc,
-        "buftype",
-        "acwrite"
-      )
-      vim.api.nvim_buf_set_option(
-        buf_desc,
-        "bufhidden",
-        "wipe"
-      )
-      vim.api.nvim_buf_set_lines(
-        buf_desc,
-        0,
-        -1,
-        false,
-        { "", "", "" }
-      )
+      local buf_desc = vim.api.nvim_create_buf(false, true)
+      vim.api.nvim_buf_set_option(buf_desc, "buftype", "acwrite")
+      vim.api.nvim_buf_set_option(buf_desc, "bufhidden", "wipe")
+      vim.api.nvim_buf_set_lines(buf_desc, 0, -1, false, { "", "", "" })
 
       -- =========================
       -- Windows (diff top, commit bottom)
       -- =========================
-      local win_diff =
-          vim.api.nvim_open_win(buf_diff, false, {
-            relative = "editor",
-            width = width,
-            height = height_diff - 3,
-            row = 4,
-            col = col,
-            style = "minimal",
-            border = "rounded",
-            zindex = 300,
-            focusable = true,
-            title = " Commit ",
-            title_pos = "center",
-          })
+      local win_diff = vim.api.nvim_open_win(buf_diff, false, {
+        relative = "editor",
+        width = width,
+        height = height_diff - 3,
+        row = 4,
+        col = col,
+        style = "minimal",
+        border = "rounded",
+        zindex = 300,
+        focusable = true,
+        title = " Commit ",
+        title_pos = "center",
+      })
 
-      local win_title =
-          vim.api.nvim_open_win(buf_title, true, {
-            relative = "editor",
-            width = width,
-            height = height_title,
-            row = 2 + height_diff + spacing,
-            col = col,
-            style = "minimal",
-            border = "rounded",
-            zindex = 300,
-            title = " Title ",
-            title_pos = "center",
-          })
+      local win_title = vim.api.nvim_open_win(buf_title, true, {
+        relative = "editor",
+        width = width,
+        height = height_title,
+        row = 2 + height_diff + spacing,
+        col = col,
+        style = "minimal",
+        border = "rounded",
+        zindex = 300,
+        title = " Title ",
+        title_pos = "center",
+      })
 
-      local win_desc =
-          vim.api.nvim_open_win(buf_desc, true, {
-            relative = "editor",
-            width = width,
-            height = height_desc - 1,
-            row = height_diff + height_title + 5,
-            col = col,
-            style = "minimal",
-            border = "rounded",
-            zindex = 300,
-            title = " Description ",
-            title_pos = "center",
-          })
+      local win_desc = vim.api.nvim_open_win(buf_desc, true, {
+        relative = "editor",
+        width = width,
+        height = height_desc - 1,
+        row = height_diff + height_title + 5,
+        col = col,
+        style = "minimal",
+        border = "rounded",
+        zindex = 300,
+        title = " Description ",
+        title_pos = "center",
+      })
 
       -- =========================
       -- Close popup helper
       -- =========================
       local function close_commit_popup()
-        for _, w in ipairs({
-          win_title,
-          win_desc,
-          win_diff,
-          win_overlay,
-        }) do
+        for _, w in ipairs({ win_title, win_desc, win_diff, win_overlay }) do
           if vim.api.nvim_win_is_valid(w) then
             vim.api.nvim_win_close(w, true)
           end
         end
-        if
-            Ui.full_win
-            and vim.api.nvim_win_is_valid(
-              Ui.full_win
-            )
-        then
-          vim.api.nvim_set_current_win(
-            Ui.left_win
-          )
+        if Ui.full_win and vim.api.nvim_win_is_valid(Ui.full_win) then
+          vim.api.nvim_set_current_win(Ui.left_win)
           focus_left()
         end
       end
 
+      -- ====================================
+      -- Start commit title in insert mode
+      -- ====================================
+      -- Clear the title buffer and enter insert mode
+      local function prepare_title_buffer()
+        vim.api.nvim_buf_set_lines(buf_title, 0, -1, false, { "" })
+        vim.cmd("startinsert")
+      end
+
+      prepare_title_buffer()
       -- =========================
       -- Commit logic
       -- =========================
       local function commit_changes()
-        local title = vim.api.nvim_buf_get_lines(
-          buf_title,
-          0,
-          -1,
-          false
-        )[1] or ""
-        local body = table.concat(
-          vim.api.nvim_buf_get_lines(
-            buf_desc,
-            0,
-            -1,
-            false
-          ),
-          "\n"
-        )
+        local title = vim.api.nvim_buf_get_lines(buf_title, 0, -1, false)[1] or ""
+        local body = table.concat(vim.api.nvim_buf_get_lines(buf_desc, 0, -1, false), "\n")
 
         vim.fn.system("git add -A")
-        local cmd = "git commit -m "
-            .. vim.fn.shellescape(title)
+        local cmd = "git commit -m " .. vim.fn.shellescape(title)
         if body:match("%S") then
-          cmd = cmd
-              .. " -m "
-              .. vim.fn.shellescape(body)
+          cmd = cmd .. " -m " .. vim.fn.shellescape(body)
         end
         vim.fn.system(cmd)
-        show_centered_message(
-          "Committed changes on branch: "
-          .. branch,
-          "🌸"
-        )
+
+        show_centered_message("Committed changes on branch: " .. branch, "🌸")
         close_commit_popup()
       end
 
       -- =========================
       -- Keymaps
       -- =========================
-      for _, b in ipairs({
-        buf_title,
-        buf_desc,
-        buf_diff,
-      }) do
-        vim.keymap.set(
-          "n",
-          "q",
-          close_commit_popup,
-          {
-            buffer = b,
-            noremap = true,
-            silent = true,
-          }
-        )
-        vim.keymap.set(
-          "n",
-          "<Esc>",
-          close_commit_popup,
-          {
-            buffer = b,
-            noremap = true,
-            silent = true,
-          }
-        )
-
-        vim.keymap.set("n", "<Tab>", function()
-          vim.api.nvim_set_current_win(win_desc)
-        end, { buffer = b })
-        vim.keymap.set("n", "<S-Tab>", function()
-          vim.api.nvim_set_current_win(win_title)
-        end, { buffer = b })
+      for _, b in ipairs({ buf_title, buf_desc, buf_diff }) do
+        vim.keymap.set("n", "q", close_commit_popup, { buffer = b, noremap = true, silent = true })
+        vim.keymap.set("n", "<Esc>", close_commit_popup, { buffer = b, noremap = true, silent = true })
+        vim.keymap.set("n", "<Tab>", function() vim.api.nvim_set_current_win(win_desc) end, { buffer = b })
+        vim.keymap.set("n", "<S-Tab>", function() vim.api.nvim_set_current_win(win_title) end, { buffer = b })
 
         vim.keymap.set("n", "<C-d>", function()
-          vim.api.nvim_win_call(
-            win_diff,
-            function()
-              vim.cmd("normal! <C-d>")
-            end
-          )
-        end, {
-          buffer = buf_diff,
-          noremap = true,
-          silent = false,
-        })
+          vim.api.nvim_win_call(win_diff, function()
+            vim.cmd("normal! <C-d>")
+          end)
+        end, { buffer = buf_diff, noremap = true, silent = false })
 
         vim.keymap.set("n", "<C-b>", function()
-          vim.api.nvim_win_call(
-            win_diff,
-            function()
-              vim.cmd("normal! <C-b>")
-            end
-          )
-        end, {
-          buffer = buf_diff,
-          noremap = true,
-          silent = false,
-        })
+          vim.api.nvim_win_call(win_diff, function()
+            vim.cmd("normal! <C-b>")
+          end)
+        end, { buffer = buf_diff, noremap = true, silent = false })
       end
 
-      vim.keymap.set(
-        "n",
-        "<CR>",
-        commit_changes,
-        {
-          buffer = buf_title,
-          noremap = true,
-          silent = true,
-        }
-      )
-      vim.keymap.set(
-        "n",
-        "<CR>",
-        commit_changes,
-        {
-          buffer = buf_desc,
-          noremap = true,
-          silent = true,
-        }
-      )
+      vim.keymap.set("n", "<CR>", commit_changes, { buffer = buf_title, noremap = true, silent = true })
+      vim.keymap.set("n", "<CR>", commit_changes, { buffer = buf_desc, noremap = true, silent = true })
 
-      -- Start typing in title
+      -- Start typing in title (but don't go into insert mode)
       vim.api.nvim_set_current_win(win_title)
-      vim.cmd("startinsert")
     end)
+
 
     -- Delete branch
     vim.keymap.set("n", "d", function()
@@ -3143,7 +3019,7 @@ function M.open_git_ui()
         relative = "editor",
         width = 50,
         height = 1,
-        row = 2,
+        row = 3,
         col = math.floor((ui.width - 50) / 2),
         style = "minimal",
         border = "rounded",
@@ -3544,7 +3420,10 @@ function M.open_git_ui()
     end, { buffer = buf, noremap = true, silent = true })
 
     -- Close UI
-    vim.keymap.set("n", "q", close_ui, {
+    vim.keymap.set("n", "q", function()
+      close_ui()
+      reload_file_buffer()
+    end, {
       buffer = buf,
       noremap = true,
       silent = true,
