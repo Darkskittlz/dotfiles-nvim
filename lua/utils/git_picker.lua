@@ -2562,6 +2562,13 @@ function M.open_git_ui()
         return
       end
 
+      -- Ask for user confirmation before discarding the commit
+      local answer = vim.fn.input("Are you sure you want to discard this commit? (y/N): ")
+      if answer:lower() ~= "y" then
+        vim.notify("Reset aborted.", vim.log.levels.INFO)
+        return -- User chose not to proceed
+      end
+
       -- Perform the reset to the next commit
       local reset_command = "git reset --hard " .. next_commit_hash
       vim.fn.system(reset_command)
