@@ -2542,54 +2542,42 @@ function M.open_git_ui()
       vim.keymap.set("n", "<Esc>", close_all, { buffer = buf })
     end, { buffer = Ui.right_buf, noremap = true, silent = true })
 
+
     -- keymap for dropping commits
     vim.keymap.set("n", "d", function()
-      print("Current Ui.mode:", Ui.mode)
-      print("D keymap triggered") -- Confirm that the keymap is reached
-
       -- Check if we're in the correct mode
       if Ui.mode ~= "branches" then
-        print("Not in 'branches' mode, returning")
         return
       end
 
       -- Check if we're in the right window
       local win = vim.api.nvim_get_current_win()
-      print("Current window:", win)
       if win ~= Ui.right_win then
-        print("Not in the right window, returning")
         return
       end
 
       -- Get the cursor position and the commit hash
       local cursor = vim.api.nvim_win_get_cursor(Ui.right_win)
-      print("Cursor position:", cursor)
       local line = vim.api.nvim_buf_get_lines(Ui.right_buf, cursor[1] - 1, cursor[1], false)[1] or ""
-      print("Line content:", line)
 
       -- Extract the commit hash from the line
       local hash = line:match("^(%S+)") -- Get the commit hash
       if not hash then
-        print("No commit hash found, returning")
         return
       end
 
-      print("Commit hash found:", hash)
-
       -- Get the next commit hash
       local next_commit_hash = vim.fn.trim(vim.fn.system("git log --format='%H' --skip=1 " .. hash .. " -n 1"))
-      print("Next commit hash:", next_commit_hash)
       if not next_commit_hash or next_commit_hash == "" then
         vim.notify("No next commit found", vim.log.levels.ERROR)
-        print("No next commit found, returning")
         return
       end
 
       -- Ask for user confirmation before discarding the commit
       local ui = vim.api.nvim_list_uis()[1]
-      local width = 50
-      local height = 4
-      local row = math.floor((ui.height - height) / 2)
+      local width = 51
+      local height = 1
+      local row = 3
       local col = math.floor((ui.width - width) / 2)
 
       local buf = vim.api.nvim_create_buf(false, true)
@@ -2656,12 +2644,17 @@ function M.open_git_ui()
 
       -- Cancel reset if user presses 'n' or Esc
       vim.keymap.set("n", "n", function()
-        vim.notify("Reset aborted.", vim.log.levels.INFO)
+        vim.notify("Drop Aborted", vim.log.levels.INFO)
+        close_confirm_win()
+      end, { buffer = buf, noremap = true, silent = true })
+
+      vim.keymap.set("n", "q", function()
+        vim.notify("Drop Aborted", vim.log.levels.INFO)
         close_confirm_win()
       end, { buffer = buf, noremap = true, silent = true })
 
       vim.keymap.set("n", "<Esc>", function()
-        vim.notify("Reset aborted.", vim.log.levels.INFO)
+        vim.notify("Drop Aborted", vim.log.levels.INFO)
         close_confirm_win()
       end, { buffer = buf, noremap = true, silent = true })
     end, { buffer = Ui.right_buf, noremap = true, silent = true })
