@@ -927,10 +927,10 @@ end
 
 -- Checkout the selected branch
 local function checkout_branch()
-  print("DEBUG: Starting checkout_branch()")
+  -- print("DEBUG: Starting checkout_branch()")
 
   if Ui.mode ~= "branches" then
-    print("DEBUG: Not in branches mode, exiting")
+    -- print("DEBUG: Not in branches mode, exiting")
     return
   end
 
@@ -3003,7 +3003,7 @@ function M.open_git_ui()
     vim.keymap.set("n", "P", function()
       local current_branch = branch or Ui.branch_selected or "HEAD"
       local remote = "origin"
-      print("DEBUG: Starting push for branch:", current_branch)
+      -- print("DEBUG: Starting push for branch:", current_branch)
 
       local spinner_chars = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" }
       local spinner_idx = 1
@@ -3039,7 +3039,7 @@ function M.open_git_ui()
       local function do_push(force)
         local args = { "git", "push", "-u", remote, current_branch }
         if force then table.insert(args, 3, "--force") end
-        print("DEBUG: running git args", vim.inspect(args))
+        -- print("DEBUG: running git args", vim.inspect(args))
 
         vim.fn.jobstart(args, {
           stdout_buffered = true,
@@ -3050,10 +3050,10 @@ function M.open_git_ui()
             vim.schedule(function()
               if vim.api.nvim_win_is_valid(win) then vim.api.nvim_win_close(win, true) end
               if exit_code == 0 then
-                print("DEBUG: push succeeded")
+                -- print("DEBUG: push succeeded")
                 show_centered_message("✅ Successfully pushed branch: " .. current_branch)
               else
-                print("DEBUG: push failed for other reason")
+                -- print("DEBUG: push failed for other reason")
                 show_centered_message(" Failed to push branch: " .. current_branch)
               end
             end)
@@ -3063,13 +3063,13 @@ function M.open_git_ui()
 
       -- Run a dry-run push first to detect divergence
       local dry_output = vim.fn.system("git push --dry-run -u " .. remote .. " " .. current_branch .. " 2>&1")
-      print("DEBUG: dry-run output:\n" .. dry_output)
+      -- print("DEBUG: dry-run output:\n" .. dry_output)
       if dry_output:match("rejected") or dry_output:match("non-fast-forward") then
         local answer = vim.fn.input("Branch has diverged. Force push? (y/N): ")
         if answer:lower() == "y" then
           do_push(true)
         else
-          print("DEBUG: user declined force push")
+          -- print("DEBUG: user declined force push")
           show_centered_message("Push aborted.")
         end
       else
@@ -3402,8 +3402,6 @@ function M.open_git_ui()
         render()
       end, { buffer = buf_win })
 
-<<<<<<< Updated upstream
-=======
       local function show_output(title, lines)
         -- create buffer
         local buf = vim.api.nvim_create_buf(false, true)
@@ -3440,7 +3438,6 @@ function M.open_git_ui()
       end
 
 
->>>>>>> Stashed changes
       -- APPLY SELECTED
       local function apply_selected()
         local opt = options[selected]
@@ -3448,10 +3445,6 @@ function M.open_git_ui()
           close_all()
           return
         end
-<<<<<<< Updated upstream
-        vim.fn.system(opt.cmd)
-        close_all()
-=======
 
         close_all() -- close the merge popup first
 
@@ -3469,7 +3462,6 @@ function M.open_git_ui()
             end
           end,
         })
->>>>>>> Stashed changes
       end
 
       vim.keymap.set("n", "<CR>", apply_selected, { buffer = buf_win })
