@@ -2617,13 +2617,14 @@ function M.open_git_ui()
         vim.api.nvim_buf_set_lines(buf_ok, 0, -1, false, { msg })
         vim.api.nvim_buf_add_highlight(buf_ok, -1, "ResetGreen", 0, 0, -1)
 
+
         local w = #msg + 4
         local c = math.floor((ui.width - w) / 2)
         local win_ok = vim.api.nvim_open_win(buf_ok, false, {
           relative = "editor",
           width = w,
           height = 1,
-          row = row,
+          row = row + 2,
           col = c,
           style = "minimal",
           border = "rounded",
