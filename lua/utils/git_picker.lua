@@ -3287,8 +3287,8 @@ function M.open_git_ui()
         floating_windows = {}
       end
 
+      -- function to close floating windows
       local function close_all()
-        close_floating()
         if vim.api.nvim_win_is_valid(win_desc) then vim.api.nvim_win_close(win_desc, true) end
         if vim.api.nvim_win_is_valid(win) then vim.api.nvim_win_close(win, true) end
         Ui.mode = "branches"
