@@ -2884,30 +2884,16 @@ function M.open_git_ui()
         end
       end
 
-      -- =========================
-      -- Prefill title message
-      -- =========================
-      local function prefill_title()
-        -- Get the list of changed files using `git status --short`
-        local status_cmd = "git status --short"
-        local status_lines = vim.fn.systemlist(status_cmd)
-        local file_count = 0
-
-        for _, line in ipairs(status_lines) do
-          local file = line:match("^%S+%s+(.+)$")
-          if file then
-            file_count = file_count + 1
-          end
-        end
-
-        -- Format the title message (e.g., "Commit: 5 files changed")
-        local title_message = "Commit: " .. file_count .. " file" .. (file_count == 1 and "" or "s") .. " changed"
-        vim.api.nvim_buf_set_lines(buf_title, 0, -1, false, { title_message })
+      -- ====================================
+      -- Start commit title in insert mode
+      -- ====================================
+      -- Clear the title buffer and enter insert mode
+      local function prepare_title_buffer()
+        vim.api.nvim_buf_set_lines(buf_title, 0, -1, false, { "" })
+        vim.cmd("startinsert")
       end
 
-      -- Call prefill_title to update the title with file info
-      prefill_title()
-
+      prepare_title_buffer()
       -- =========================
       -- Commit logic
       -- =========================
