@@ -2180,52 +2180,40 @@ function M.open_git_ui()
 
     -- G keymap for reset/rebase options on commits
     vim.keymap.set("n", "g", function()
-      if Ui.mode ~= "branches" then
-        return
-      end
+      if Ui.mode ~= "branches" then return end
 
       local win = vim.api.nvim_get_current_win()
-      if win ~= Ui.right_win then
-        return
-      end
+      if win ~= Ui.right_win then return end
 
-      local cursor =
-          vim.api.nvim_win_get_cursor(Ui.right_win)
-      local line = vim.api.nvim_buf_get_lines(
-        Ui.right_buf,
-        cursor[1] - 1,
-        cursor[1],
-        false
-      )[1] or ""
-
+      local cursor = vim.api.nvim_win_get_cursor(Ui.right_win)
+      local line = vim.api.nvim_buf_get_lines(Ui.right_buf, cursor[1] - 1, cursor[1], false)[1] or ""
       local hash = line:match("^(%S+)")
-      if not hash then
-        return
+      if not hash then return end
+
+      ---------------------------------------------------------------------------
+      -- TEXT WRAPPING
+      ---------------------------------------------------------------------------
+      local function wrap_text(text, max_width)
+        local lines, current = {}, ""
+        for word in text:gmatch("%S+") do
+          if #current + #word + 1 > max_width then
+            table.insert(lines, current)
+            current = word
+          else
+            if current == "" then current = word else current = current .. " " .. word end
+          end
+        end
+        if current ~= "" then table.insert(lines, current) end
+        return lines
       end
 
       ---------------------------------------------------------------------------
       -- COLOR HIGHLIGHTS
       ---------------------------------------------------------------------------
-      vim.api.nvim_set_hl(
-        0,
-        "ResetBlue",
-        { fg = "#4da3ff", bold = true }
-      )
-      vim.api.nvim_set_hl(
-        0,
-        "ResetGreen",
-        { fg = "#32cd32", bold = true }
-      )
-      vim.api.nvim_set_hl(
-        0,
-        "ResetRed",
-        { fg = "#ff4444", bold = true }
-      )
-      vim.api.nvim_set_hl(
-        0,
-        "ResetWhite",
-        { fg = "#bbbbbb", bold = true }
-      )
+      vim.api.nvim_set_hl(0, "ResetBlue", { fg = "#4da3ff", bold = true })
+      vim.api.nvim_set_hl(0, "ResetGreen", { fg = "#32cd32", bold = true })
+      vim.api.nvim_set_hl(0, "ResetRed", { fg = "#ff4444", bold = true })
+      vim.api.nvim_set_hl(0, "ResetWhite", { fg = "#bbbbbb", bold = true })
 
       ---------------------------------------------------------------------------
       -- OPTIONS
@@ -2236,28 +2224,31 @@ function M.open_git_ui()
           label = "Mixed reset",
           hl = "ResetBlue",
           desc = "Reset HEAD to this commit, keeping changes unstaged.",
-          cmd = "git reset --mixed " .. hash,
+          cmd = "git reset --mixed " .. hash
         },
+
         {
           key = "s",
           label = "Soft reset",
           hl = "ResetGreen",
           desc = "Reset HEAD to this commit, keeping all changes staged.",
-          cmd = "git reset --soft " .. hash,
+          cmd = "git reset --soft " .. hash
         },
+
         {
           key = "h",
           label = "Hard reset",
           hl = "ResetRed",
           desc = "Fully reset working tree & index to this commit.",
-          cmd = "git reset --hard " .. hash,
+          cmd = "git reset --hard " .. hash
         },
+
         {
           key = "c",
           label = "Cancel",
           hl = "ResetWhite",
           desc = "Exit without doing anything.",
-          cmd = nil,
+          cmd = nil
         },
       }
 
@@ -2268,100 +2259,60 @@ function M.open_git_ui()
       ---------------------------------------------------------------------------
       local ui = vim.api.nvim_list_uis()[1]
       local width = 52
-      local height = #options + 3
+      local height = #options + 2 -- FIX: removed the extra blank line
 
-      local row =
-          math.floor((ui.height - height) / 2)
-      local col =
-          math.floor((ui.width - width) / 2)
+      local row = math.floor((ui.height - height) / 2)
+      local col = math.floor((ui.width - width) / 2)
 
-      local buf =
-          vim.api.nvim_create_buf(false, true)
-      local win =
-          vim.api.nvim_open_win(buf, true, {
-            relative = "editor",
-            width = width,
-            height = height,
-            row = row,
-            col = col,
-            style = "minimal",
-            border = "rounded",
-            title = " Reset to " .. hash .. " ",
-            title_pos = "center",
-            zindex = 500,
-          })
+      local buf = vim.api.nvim_create_buf(false, true)
+      local win = vim.api.nvim_open_win(buf, true, {
+        relative = "editor",
+        width = width,
+        height = height,
+        row = row,
+        col = col,
+        style = "minimal",
+        border = "rounded",
+        title = " Reset to " .. hash .. " ",
+        title_pos = "center",
+        zindex = 500,
+      })
 
-      local buf_desc =
-          vim.api.nvim_create_buf(false, true)
-      local win_desc =
-          vim.api.nvim_open_win(buf_desc, false, {
-            relative = "editor",
-            width = width,
-            height = 3,
-            row = row + height + 2,
-            col = col,
-            style = "minimal",
-            border = "rounded",
-            title = " Info ",
-            title_pos = "center",
-            zindex = 500,
-          })
+      local buf_desc = vim.api.nvim_create_buf(false, true)
+      local win_desc = vim.api.nvim_open_win(buf_desc, false, {
+        relative = "editor",
+        width = width,
+        height = 3,
+        row = row + height + 2,
+        col = col,
+        style = "minimal",
+        border = "rounded",
+        title = " Info ",
+        title_pos = "center",
+        zindex = 500,
+      })
 
       ---------------------------------------------------------------------------
       -- RENDER
       ---------------------------------------------------------------------------
       local function render()
-        local lines = { "" }
+        local lines = {}
+
         for i, opt in ipairs(options) do
-          local prefix = (i == selected)
-              and " "
-              or "  "
+          local prefix = (i == selected) and " " or "  "
           lines[#lines + 1] = prefix .. opt.label
         end
 
-        vim.api.nvim_buf_set_lines(
-          buf,
-          0,
-          -1,
-          false,
-          lines
-        )
-        vim.api.nvim_buf_clear_namespace(
-          buf,
-          -1,
-          0,
-          -1
-        )
-        vim.api.nvim_buf_add_highlight(
-          buf,
-          -1,
-          options[selected].hl,
-          selected,
-          0,
-          -1
-        )
+        vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+        vim.api.nvim_buf_clear_namespace(buf, -1, 0, -1)
+        vim.api.nvim_buf_add_highlight(buf, -1, options[selected].hl, selected - 1, 0, -1)
 
-        vim.api.nvim_buf_set_lines(
-          buf_desc,
-          0,
-          -1,
-          false,
-          { options[selected].desc }
-        )
-        vim.api.nvim_buf_clear_namespace(
-          buf_desc,
-          -1,
-          0,
-          -1
-        )
-        vim.api.nvim_buf_add_highlight(
-          buf_desc,
-          -1,
-          options[selected].hl,
-          0,
-          0,
-          -1
-        )
+        local wrapped = wrap_text(options[selected].desc, width - 4)
+        vim.api.nvim_buf_set_lines(buf_desc, 0, -1, false, wrapped)
+        vim.api.nvim_buf_clear_namespace(buf_desc, -1, 0, -1)
+        for i = 1, #wrapped do
+          vim.api.nvim_buf_add_highlight(buf_desc, -1, options[selected].hl, i - 1, 0, -1)
+        end
       end
 
       render()
@@ -2370,15 +2321,8 @@ function M.open_git_ui()
       -- CLOSE POPUP
       ---------------------------------------------------------------------------
       local function close_all()
-        if
-            vim.api.nvim_win_is_valid(win_desc)
-        then
-          vim.api.nvim_win_close(win_desc, true)
-        end
-        if vim.api.nvim_win_is_valid(win) then
-          vim.api.nvim_win_close(win, true)
-        end
-
+        if vim.api.nvim_win_is_valid(win_desc) then vim.api.nvim_win_close(win_desc, true) end
+        if vim.api.nvim_win_is_valid(win) then vim.api.nvim_win_close(win, true) end
         Ui.mode = "branches"
         refresh_ui()
       end
@@ -2387,8 +2331,7 @@ function M.open_git_ui()
       -- MOVEMENT
       ---------------------------------------------------------------------------
       vim.keymap.set("n", "j", function()
-        selected =
-            math.min(#options, selected + 1)
+        selected = math.min(#options, selected + 1)
         render()
       end, { buffer = buf })
 
@@ -2407,56 +2350,35 @@ function M.open_git_ui()
           close_all()
           return
         end
-
-        local show_error =
-            make_show_error(row, height, ui)
+        local show_error = make_show_error(row, height, ui)
 
         if has_worktree_changes() then
-          show_error(
-            "Cannot reset: work tree has uncommitted changes"
-          )
+          show_error("Cannot reset: work tree has uncommitted changes")
           return
         end
 
         vim.fn.system(opt.cmd)
 
-        local buf_ok =
-            vim.api.nvim_create_buf(false, true)
         local msg = opt.label .. " → " .. hash
-        vim.api.nvim_buf_set_lines(
-          buf_ok,
-          0,
-          -1,
-          false,
-          { msg }
-        )
-        vim.api.nvim_buf_add_highlight(
-          buf_ok,
-          -1,
-          opt.hl,
-          0,
-          0,
-          -1
-        )
+        local buf_ok = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_lines(buf_ok, 0, -1, false, { msg })
+        vim.api.nvim_buf_add_highlight(buf_ok, -1, opt.hl, 0, 0, -1)
 
         local w = #msg + 4
         local c = math.floor((ui.width - w) / 2)
-        local win_ok =
-            vim.api.nvim_open_win(buf_ok, false, {
-              relative = "editor",
-              width = w,
-              height = 1,
-              row = row - 2,
-              col = c,
-              style = "minimal",
-              border = "rounded",
-              zindex = 600,
-            })
+        local win_ok = vim.api.nvim_open_win(buf_ok, false, {
+          relative = "editor",
+          width = w,
+          height = 1,
+          row = row - 2,
+          col = c,
+          style = "minimal",
+          border = "rounded",
+          zindex = 600,
+        })
 
         vim.defer_fn(function()
-          if
-              vim.api.nvim_win_is_valid(win_ok)
-          then
+          if vim.api.nvim_win_is_valid(win_ok) then
             vim.api.nvim_win_close(win_ok, true)
           end
         end, 1500)
@@ -2464,92 +2386,25 @@ function M.open_git_ui()
         close_all()
       end
 
-      ---------------------------------------------------------------------------
-      -- ENTER KEY
-      ---------------------------------------------------------------------------
-      vim.keymap.set("n", "<CR>", function()
-        apply_selected_reset()
-      end, { buffer = buf })
+      vim.keymap.set("n", "<CR>", apply_selected_reset, { buffer = buf })
 
       ---------------------------------------------------------------------------
-      -- APPLY RESET ON M/S/H/C
+      -- APPLY RESET ON KEYMAP
       ---------------------------------------------------------------------------
-      for i, opt in ipairs(options) do
+      for _, opt in ipairs(options) do
         vim.keymap.set("n", opt.key, function()
-          if opt.cmd == nil then
-            close_all()
-            return
-          end
-
-          local show_error =
-              make_show_error(row, height, ui)
-
-          if has_worktree_changes() then
-            show_error(
-              "Cannot reset: work tree has uncommitted changes"
-            )
-            return
-          end
-
-          vim.fn.system(opt.cmd)
-
-          -- success popup
-          local buf_ok =
-              vim.api.nvim_create_buf(false, true)
-          local msg = opt.label .. " → " .. hash
-          vim.api.nvim_buf_set_lines(
-            buf_ok,
-            0,
-            -1,
-            false,
-            { msg }
-          )
-          vim.api.nvim_buf_add_highlight(
-            buf_ok,
-            -1,
-            opt.hl,
-            0,
-            0,
-            -1
-          )
-
-          local w = #msg + 4
-          local c = math.floor((ui.width - w) / 2)
-          local win_ok =
-              vim.api.nvim_open_win(buf_ok, false, {
-                relative = "editor",
-                width = w,
-                height = 1,
-                row = row - 2,
-                col = c,
-                style = "minimal",
-                border = "rounded",
-                zindex = 600,
-              })
-
-          vim.defer_fn(function()
-            if
-                vim.api.nvim_win_is_valid(win_ok)
-            then
-              vim.api.nvim_win_close(win_ok, true)
-            end
-          end, 1500)
-
-          close_all()
+          selected = _
+          apply_selected_reset()
         end, { buffer = buf })
       end
 
       ---------------------------------------------------------------------------
       -- EXIT
       ---------------------------------------------------------------------------
-      vim.keymap.set("n", "q", function()
-        close_all()
-      end, { buffer = buf })
-
-      vim.keymap.set("n", "<Esc>", function()
-        close_all()
-      end, { buffer = buf })
+      vim.keymap.set("n", "q", close_all, { buffer = buf })
+      vim.keymap.set("n", "<Esc>", close_all, { buffer = buf })
     end, { buffer = Ui.right_buf, noremap = true, silent = true })
+
 
     vim.keymap.set("n", "j", function()
       local win = vim.api.nvim_get_current_win()
@@ -3418,12 +3273,11 @@ function M.open_git_ui()
       end
 
       local function close_floating()
-        Ui.mode = "branches"
-        refresh_ui()
+        for _, w in pairs(floating_windows) do
+          if vim.api.nvim_win_is_valid(w) then vim.api.nvim_win_close(w, true) end
+        end
+        floating_windows = {}
       end
-
-
-      -- test
 
       local function close_all()
         close_floating()
@@ -3481,9 +3335,15 @@ function M.open_git_ui()
         end, { nowait = true, silent = true })
 
         -- 'q' closes floating windows and returns to branches
-        vim.keymap.set("n", "q", function()
-          close_floating()
-        end, { nowait = true, silent = true })
+        for _, win in pairs(floating_windows) do
+          local buf = vim.api.nvim_win_get_buf(win)
+
+          vim.keymap.set("n", "q", function()
+            close_floating()
+            Ui.mode = "branches"
+            refresh_ui()
+          end, { buffer = buf, nowait = true, silent = true })
+        end
       end
 
       vim.keymap.set("n", "<CR>", apply_selected, { buffer = buf_win })
