@@ -2637,15 +2637,14 @@ function M.open_git_ui()
         local col = math.floor((ui.width - width) / 2)
 
         -- Position for the success message: Place it 2 rows below the confirmation
-        local success_row = row + 2 -- This will move it 2 rows below the confirmation message
 
 
         local win_ok = vim.api.nvim_open_win(buf_ok, false, {
           relative = "editor",
-          width = w,
+          width = width,
           height = 1,
-          row = success_row,
-          col = c,
+          row = row,
+          col = col,
           style = "minimal",
           border = "rounded",
           zindex = 600,
