@@ -3314,7 +3314,7 @@ function M.open_git_ui()
         floating_windows.stderr = win_err
       end
 
-
+      -- test
       -- function to close main windows (merge popup and description)
       local function close_all()
         print("Closing all windows...")
