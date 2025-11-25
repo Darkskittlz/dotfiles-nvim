@@ -5,14 +5,61 @@ vim.g.maplocalleader = " "
 keymap.set("n", "-", "<C-a>")
 keymap.set("n", "+", "<C-x>")
 
+-- A simple spinner helper
+local spinner_frames = {
+  "⠋",
+  "⠙",
+  "⠹",
+  "⠸",
+  "⠼",
+  "⠴",
+  "⠦",
+  "⠧",
+  "⠇",
+  "⠏",
+}
+
+local function show_spinner()
+  local i = 1
+  local timer = vim.loop.new_timer()
+  timer:start(
+    0,
+    100,
+    vim.schedule_wrap(function()
+      vim.notify(
+        "Reloading Neovim config "
+          .. spinner_frames[i],
+        vim.log.levels.INFO,
+        { timeout = 100 }
+      )
+      i = (i % #spinner_frames) + 1
+    end)
+  )
+  return timer
+end
+
 keymap.set(
   "n",
   "<leader>rl",
   function()
-    vim.cmd("source $MYVIMRC") -- reload your init.lua / init.vim
-    require("lazy").sync()     -- reload LazyVim plugins
+    local spinner = show_spinner()
+    -- Source init.lua / config
+    vim.cmd("source $MYVIMRC")
+    -- Optionally reload Lua modules
+    for name, _ in pairs(package.loaded) do
+      if name:match("^git_picker") then
+        package.loaded[name] = nil
+      end
+    end
+    require("utils.git_picker") -- reload your file
+    spinner:stop()
+    spinner:close()
+    vim.notify(
+      "Config reloaded ✅",
+      vim.log.levels.INFO
+    )
   end,
-  { desc = "Reload Neovim config and plugins" }
+  { desc = "Reload Neovim config with spinner" }
 )
 
 -- Mason --
@@ -116,11 +163,9 @@ keymap.set(
 keymap.set(
   "v",
   '<leader>"',
-  'c"<C-R>\""<Esc>',
+  'c"<C-R>""<Esc>',
   { noremap = true, silent = true }
 )
-
-
 
 keymap.set("n", "<leader>cn", function()
   if vim.wo.number then
@@ -256,10 +301,33 @@ keymap.set(
   "<Cmd>BufferPrevious<CR>",
   { silent = true }
 )
+
 keymap.set(
   "n",
   "L",
   "<Cmd>BufferNext<CR>",
+  { silent = true }
+)
+
+-- Reorder buffers with Alt+h / Alt+l
+keymap.set(
+  "n",
+  "<A-h>",
+  "<Cmd>BufferMovePrevious<CR>",
+  { silent = true }
+)
+
+keymap.set(
+  "n",
+  "<A-l>",
+  "<Cmd>BufferMoveNext<CR>",
+  { silent = true }
+)
+
+keymap.set(
+  "n",
+  "<A-p>",
+  "<Cmd>BufferPin<CR>",
   { silent = true }
 )
 

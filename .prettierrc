@@ -2,11 +2,8 @@
   "tabWidth": 2,
   "useTabs": false,
   "printWidth": 9999,
-  "lua": {
-    "indentStyle": "space"
-  },
   "semi": false,
   "singleQuote": true,
-  "trailingComa": "none",
+  "trailingComma": "none",
 }
 
