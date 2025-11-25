@@ -2593,6 +2593,7 @@ function M.open_git_ui()
         zindex = 600,
       })
 
+
       vim.defer_fn(function()
         if vim.api.nvim_win_is_valid(win_ok) then
           vim.api.nvim_win_close(win_ok, true)
