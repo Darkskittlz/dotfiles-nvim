@@ -2580,6 +2580,7 @@ function M.open_git_ui()
       local row = 3
       local col = math.floor((ui.width - width) / 2)
 
+
       local buf = vim.api.nvim_create_buf(false, true)
       local win_confirm = vim.api.nvim_open_win(buf, true, {
         relative = "editor",
@@ -2622,7 +2623,7 @@ function M.open_git_ui()
           relative = "editor",
           width = w,
           height = 1,
-          row = row - 2,
+          row = row,
           col = c,
           style = "minimal",
           border = "rounded",
