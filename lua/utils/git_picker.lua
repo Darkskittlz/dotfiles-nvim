@@ -3404,8 +3404,6 @@ function M.open_git_ui()
 
       local floating_windows = {}
 
-      local floating_windows = {}
-
       local function show_floating(title, lines, top_row, id)
         local buf = vim.api.nvim_create_buf(false, true)
         vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines or {})
