@@ -3202,6 +3202,7 @@ function M.open_git_ui()
       vim.api.nvim_win_set_option(win_desc, "cursorline", false)
       vim.api.nvim_win_set_cursor(win_desc, { 1, 0 })
 
+      -- test
       -- RENDER FUNCTION
       local function render()
         local lines = {}
