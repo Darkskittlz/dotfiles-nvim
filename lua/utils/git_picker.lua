@@ -2877,7 +2877,7 @@ function M.open_git_ui()
             relative = "editor",
             width = width,
             height = height_diff - 3,
-            row = 3,
+            row = 4,
             col = col,
             style = "minimal",
             border = "rounded",
@@ -3085,8 +3085,6 @@ function M.open_git_ui()
       noremap = true,
       silent = true,
     })
-
-    -- test comment
 
     -- Pull latest changes
     vim.keymap.set("n", "p", function()
