@@ -3224,6 +3224,20 @@ function M.open_git_ui()
 
       local floating_windows = {}
 
+      local function close_floating()
+        -- Debugging: Check what is in floating_windows
+        print("Closing floating windows...")
+        for _, w in pairs(floating_windows) do
+          if vim.api.nvim_win_is_valid(w) then
+            print("Closing window:", w)
+            vim.api.nvim_win_close(w, true)
+          else
+            print("Window is not valid:", w)
+          end
+        end
+        floating_windows = {}
+      end
+
       local function show_floating_pair(stdout_lines, stderr_lines)
         -- Debugging: Check if we're entering the function and what data is passed
         print("show_floating_pair called")
@@ -3265,9 +3279,16 @@ function M.open_git_ui()
         })
 
         -- Debugging: Check if the output window is created
+        print("stdout_lines before creating buf_out:", vim.inspect(stdout_lines))
         print("Created output window:", win_out)
 
         floating_windows.stdout = win_out
+
+        vim.keymap.set("n", "q", function()
+          close_floating()
+          Ui.mode = "branches"
+          refresh_ui()
+        end, { buffer = buf_out, nowait = true, silent = true })
 
         -- ███ ERRORS WINDOW ███
         local buf_err = vim.api.nvim_create_buf(false, true)
@@ -3293,19 +3314,6 @@ function M.open_git_ui()
         floating_windows.stderr = win_err
       end
 
-      local function close_floating()
-        -- Debugging: Check what is in floating_windows
-        print("Closing floating windows...")
-        for _, w in pairs(floating_windows) do
-          if vim.api.nvim_win_is_valid(w) then
-            print("Closing window:", w)
-            vim.api.nvim_win_close(w, true)
-          else
-            print("Window is not valid:", w)
-          end
-        end
-        floating_windows = {}
-      end
 
       -- function to close main windows (merge popup and description)
       local function close_all()
@@ -3325,9 +3333,6 @@ function M.open_git_ui()
         Ui.mode = "branches"
         refresh_ui()
       end
-
-      -- test
-
 
       -- MOVEMENT
       vim.keymap.set("n", "j", function()
@@ -3375,17 +3380,6 @@ function M.open_git_ui()
             vim.api.nvim_set_current_win(floating_windows.stderr)
           end
         end, { nowait = true, silent = true })
-
-        -- 'q' closes floating windows and returns to branches
-        for _, win in pairs(floating_windows) do
-          local buf = vim.api.nvim_win_get_buf(win)
-
-          vim.keymap.set("n", "q", function()
-            close_floating()
-            Ui.mode = "branches"
-            refresh_ui()
-          end, { buffer = buf, nowait = true, silent = true })
-        end
       end
 
       vim.keymap.set("n", "<CR>", apply_selected, { buffer = buf_win })
