@@ -2970,6 +2970,7 @@ function M.open_git_ui()
       silent = true,
     })
 
+    -- Test Comment
     -- Pull latest changes
     vim.keymap.set("n", "p", function()
       if Ui.mode ~= "branches" then
@@ -3293,39 +3294,18 @@ function M.open_git_ui()
 
       -- OPTIONS
       local options = {
-        {
-          key = "m",
-          label = "Regular merge",
-          hl = "MergeBlue",
-          desc = "Merge '" .. target_branch .. "' into '" .. current_branch .. "'. Creates a merge commit if needed.",
-          cmd = "git merge " .. target_branch
-        },
-        {
-          key = "s",
-          label = "Squash merge, leave uncommitted",
-          hl = "MergeGreen",
-          desc = "Squash commits from '" .. target_branch .. "' into working tree, do not commit automatically.",
-          cmd = "git merge --squash " .. target_branch
-        },
-        {
-          key = "S",
-          label = "Squash merge and commit",
-          hl = "MergeRed",
-          desc = "Squash commits from '" .. target_branch .. "' and commit automatically.",
-          cmd = string.format("git merge --squash %s && git commit -m 'Merge %s into %s'", target_branch, target_branch,
-            current_branch)
-        },
-        { key = "q", label = "Cancel", hl = "MergeWhite", desc = "Exit without merging.", cmd = nil },
+        { key = "m", label = "Regular merge",                   hl = "MergeBlue",  desc = "Merge '" .. target_branch .. "' into '" .. current_branch .. "'. Creates a merge commit if needed.", cmd = "git merge " .. target_branch },
+        { key = "s", label = "Squash merge, leave uncommitted", hl = "MergeGreen", desc = "Squash commits from '" .. target_branch .. "' into working tree, do not commit automatically.",      cmd = "git merge --squash " .. target_branch },
+        { key = "S", label = "Squash merge and commit",         hl = "MergeRed",   desc = "Squash commits from '" .. target_branch .. "' and commit automatically.",                            cmd = string.format("git merge --squash %s && git commit -m 'Merge %s into %s'", target_branch, target_branch, current_branch) },
+        { key = "q", label = "Cancel",                          hl = "MergeWhite", desc = "Exit without merging.",                                                                              cmd = nil },
       }
 
       local selected = 1
       local ui = vim.api.nvim_list_uis()[1]
-      local width = 52
-      local height = #options + 3
-      local row = math.floor((ui.height - height) / 2)
-      local col = math.floor((ui.width - width) / 2)
+      local width, height = 52, #options + 3
+      local row, col = math.floor((ui.height - height) / 2), math.floor((ui.width - width) / 2)
 
-      -- POPUP WINDOWS
+      -- POPUP WINDOW
       local buf_win = vim.api.nvim_create_buf(false, true)
       local win = vim.api.nvim_open_win(buf_win, true, {
         relative = "editor",
@@ -3363,8 +3343,7 @@ function M.open_git_ui()
       local function render()
         local lines = {}
         for i, opt in ipairs(options) do
-          local prefix = (i == selected) and " " or "  "
-          lines[#lines + 1] = prefix .. opt.label
+          lines[#lines + 1] = (i == selected and " " or "  ") .. opt.label
         end
         vim.api.nvim_buf_set_lines(buf_win, 0, -1, false, lines)
         vim.api.nvim_buf_clear_namespace(buf_win, -1, 0, -1)
@@ -3377,7 +3356,6 @@ function M.open_git_ui()
           vim.api.nvim_buf_add_highlight(buf_desc, -1, options[selected].hl, i - 1, 0, -1)
         end
       end
-
       render()
 
       local floating_windows = {}
@@ -3427,7 +3405,7 @@ function M.open_git_ui()
           relative = "editor",
           width = width,
           height = h_err,
-          row = top + h_out, -- RIGHT BELOW OUTPUT WINDOW
+          row = top + h_out + 2, -- RIGHT BELOW OUTPUT WINDOW
           col = col,
           style = "minimal",
           border = "rounded",
@@ -3440,10 +3418,8 @@ function M.open_git_ui()
       end
 
       local function close_floating()
-        for _, w in pairs(floating_windows) do
-          if vim.api.nvim_win_is_valid(w) then vim.api.nvim_win_close(w, true) end
-        end
-        floating_windows = {}
+        Ui.mode = "branches"
+        refresh_ui()
       end
 
       local function close_all()
@@ -3514,6 +3490,7 @@ function M.open_git_ui()
           apply_selected()
         end, { buffer = buf_win })
       end
+
       -- q in branches closes branches popup completely
       vim.keymap.set("n", "q", close_all, { buffer = buf_win })
       vim.keymap.set("n", "<Esc>", close_all, { buffer = buf_win })
