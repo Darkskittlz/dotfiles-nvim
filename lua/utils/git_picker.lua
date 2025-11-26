@@ -38,20 +38,28 @@ vim.api.nvim_set_hl(0, "GitError", { fg = "#FF6F69", bold = false, italic = fals
 -- Git Graph Colors
 local graph_chars = { "◯", "│", "╮", "╯", "─" }
 
+-- branch colors
+local graph_colors = {
+  "#5fff5f", -- green
+  "#5fd7ff", -- cyan
+  "#ffaf5f", -- orange
+  "#ff5fff", -- magenta
+  "#ffff5f", -- yellow
+  "#5f5fff", -- blue
+  "#5fffff", -- light cyan
+  "#ff5f5f", -- red
+}
+
+for i, c in ipairs(graph_colors) do
+  vim.api.nvim_set_hl(0, "GitGraphSymbol" .. i, { fg = c })
+end
+
 -- Highlight groups
 vim.api.nvim_set_hl(0, "GitHash", { fg = "#00d7ff", bold = true })
 vim.api.nvim_set_hl(0, "GitDate", { fg = "#db302d", italic = true })
 vim.api.nvim_set_hl(0, "GitAuthor", { fg = "#00a77d", italic = true })
 vim.api.nvim_set_hl(0, "GitMsg", { fg = "#ffffff" })
 
--- branch colors
-local graph_colors = {
-  "#ff5f5f", "#ffaf5f", "#ffd75f", "#5fff5f",
-  "#5fffff", "#5f5fff", "#af5fff", "#ff5fff"
-}
-for i, c in ipairs(graph_colors) do
-  vim.api.nvim_set_hl(0, "GitGraphSymbol" .. i, { fg = c })
-end
 
 
 vim.cmd([[
@@ -423,30 +431,17 @@ end
 ---------------------------------------------------------------------------
 -- Git Graph Functions
 ---------------------------------------------------------------------------
-local graph_chars = { "◯", "│", "╮", "╯", "─" }
-
--- Converts git log --graph symbols to pretty UTF-8 symbols
 local function convert_graph(line)
-  -- multi-character sequences first
-  line = line:gsub("%*%-%-", "◯─") -- star with horizontal line
-  line = line:gsub("|\\", "│╯") -- branch merge down-right
-  line = line:gsub("|/", "│╮") -- branch merge down-left
-
-  -- single-character replacements
-  line = line:gsub("%*", "◯")
-  line = line:gsub("|", "│")
-  line = line:gsub("\\", "╯")
-  line = line:gsub("/", "╮")
-  line = line:gsub("-", "─")
-
+  line = line:gsub("%*%-", "*-") -- star + horizontal
+  line = line:gsub("|\\", "|\\") -- merge down-right
+  line = line:gsub("|/", "|/")   -- merge down-left
   return line
 end
 
--- Fetches git log and converts graph symbols
+-- Fetch git log and convert graph symbols
 local function git_graph(limit, branch)
   limit = limit or 20
   branch = branch or "HEAD"
-
   local cmd = string.format(
     [[git --no-pager log --graph --pretty=format:'%%h %%cd %%an %%s' --date=format:'%%I:%%M%%p' -n %d %s]],
     limit, branch
@@ -455,7 +450,6 @@ local function git_graph(limit, branch)
   if vim.v.shell_error ~= 0 then
     return { "Not a git repo or branch does not exist" }
   end
-
   for i, line in ipairs(lines) do
     lines[i] = convert_graph(line)
   end
@@ -466,8 +460,60 @@ end
 
 -- Render the right panel (commit log or diff preview)
 ---------------------------------------------------------------------------
+local graph_chars = { "*", "|", "/", "\\", "-" }
+
+-- Git Graph Colors (per column)
+local graph_colors = {
+  "#5fff5f", -- green
+  "#5fd7ff", -- cyan
+  "#ffaf5f", -- orange
+  "#ff5fff", -- magenta
+  "#ffff5f", -- yellow
+  "#5f5fff", -- blue
+  "#5fffff", -- light cyan
+  "#ff5f5f", -- red
+}
+
+-- Set highlight groups for graph columns
+for i, c in ipairs(graph_colors) do
+  vim.api.nvim_set_hl(0, "GitGraphSymbol" .. i, { fg = c })
+end
+
+-- Other commit highlights
+vim.api.nvim_set_hl(0, "GitHash", { fg = "#00d7ff", bold = true })
+vim.api.nvim_set_hl(0, "GitDate", { fg = "#db302d", italic = true })
+vim.api.nvim_set_hl(0, "GitAuthor", { fg = "#00a77d", italic = true })
+vim.api.nvim_set_hl(0, "GitMsg", { fg = "#ffffff" })
+
+-- Convert git --graph lines (ASCII identity)
+local function convert_graph(line)
+  line = line:gsub("%*%-", "*-")
+  line = line:gsub("|\\", "|\\")
+  line = line:gsub("|/", "|/")
+  return line
+end
+
+-- Fetch git log and convert graph symbols
+local function git_graph(limit, branch)
+  limit = limit or 20
+  branch = branch or "HEAD"
+  local cmd = string.format(
+    [[git --no-pager log --graph --pretty=format:'%%h %%cd %%an %%s' --date=format:'%%I:%%M%%p' -n %d %s]],
+    limit, branch
+  )
+  local lines = vim.fn.systemlist(cmd)
+  if vim.v.shell_error ~= 0 then
+    return { "Not a git repo or branch does not exist" }
+  end
+  for i, line in ipairs(lines) do
+    lines[i] = convert_graph(line)
+  end
+  return lines
+end
+
+-- Render right panel (branches or files)
 local function render_right()
-  if not Ui.right_buf then return end
+  if not Ui or not Ui.right_buf then return end
   vim.api.nvim_buf_set_option(Ui.right_buf, "modifiable", true)
   vim.api.nvim_buf_clear_namespace(Ui.right_buf, -1, 0, -1)
 
@@ -480,14 +526,9 @@ local function render_right()
     Ui.branch_colors = Ui.branch_colors or {}
 
     for i, line in ipairs(out) do
-      -- split graph and commit content
-      local graph_part, content = line:match("^(%s*[◯│╮╯─]+)%s*(.*)$")
-      graph_part = graph_part or ""
-      content = content or line
-
-      -- highlight rails per column
-      for pos = 1, #graph_part do
-        local char = graph_part:sub(pos, pos)
+      -- highlight graph per column
+      for pos = 1, #line do
+        local char = line:sub(pos, pos)
         if vim.tbl_contains(graph_chars, char) then
           if not Ui.branch_colors[pos] then
             local color = graph_colors[((pos - 1) % #graph_colors) + 1]
@@ -499,7 +540,7 @@ local function render_right()
       end
 
       -- highlight commit hash/date/author/message
-      local hash, date, author, msg = content:match("([0-9a-f]+)%s+([0-9:APM]+)%s+(%S+)%s+(.+)")
+      local hash, date, author, msg = line:match("([0-9a-f]+)%s+([0-9:APM]+)%s+(%S+)%s+(.+)")
       if hash then
         local s = line:find(hash, 1, true)
         if s then vim.api.nvim_buf_add_highlight(Ui.right_buf, -1, "GitHash", i - 1, s - 1, s - 1 + #hash) end
@@ -541,7 +582,6 @@ local function render_right()
 
   vim.api.nvim_buf_set_option(Ui.right_buf, "modifiable", false)
 end
-
 
 ---------------------------------------------------------------------------
 -- Refresh UI on close
