@@ -423,35 +423,34 @@ end
 ---------------------------------------------------------------------------
 -- Git Graph Functions
 ---------------------------------------------------------------------------
--- ordered replacements to preserve alignment
-local graph_replacements = {
-  { pattern = "%*%-%-", repl = "◯─" },
-  { pattern = "|\\", repl = "│╯" },
-  { pattern = "|/", repl = "│╮" },
-  { pattern = "%*", repl = "◯" },
-  { pattern = "|", repl = "│" },
-  { pattern = "\\", repl = "╯" },
-  { pattern = "/", repl = "╮" },
-  { pattern = "-", repl = "─" },
-}
+local graph_chars = { "◯", "│", "╮", "╯", "─" }
 
+-- Converts git log --graph symbols to pretty UTF-8 symbols
 local function convert_graph(line)
-  for _, item in ipairs(graph_replacements) do
-    line = line:gsub(item.pattern, item.repl)
-  end
+  -- multi-character sequences first
+  line = line:gsub("%*%-%-", "◯─") -- star with horizontal line
+  line = line:gsub("|\\", "│╯") -- branch merge down-right
+  line = line:gsub("|/", "│╮") -- branch merge down-left
+
+  -- single-character replacements
+  line = line:gsub("%*", "◯")
+  line = line:gsub("|", "│")
+  line = line:gsub("\\", "╯")
+  line = line:gsub("/", "╮")
+  line = line:gsub("-", "─")
+
   return line
 end
 
+-- Fetches git log and converts graph symbols
 local function git_graph(limit, branch)
   limit = limit or 20
   branch = branch or "HEAD"
 
   local cmd = string.format(
     [[git --no-pager log --graph --pretty=format:'%%h %%cd %%an %%s' --date=format:'%%I:%%M%%p' -n %d %s]],
-    limit,
-    branch
+    limit, branch
   )
-
   local lines = vim.fn.systemlist(cmd)
   if vim.v.shell_error ~= 0 then
     return { "Not a git repo or branch does not exist" }
@@ -460,10 +459,11 @@ local function git_graph(limit, branch)
   for i, line in ipairs(lines) do
     lines[i] = convert_graph(line)
   end
-
   return lines
 end
+
 ---------------------------------------------------------------------------
+
 -- Render the right panel (commit log or diff preview)
 ---------------------------------------------------------------------------
 local function render_right()
@@ -480,9 +480,14 @@ local function render_right()
     Ui.branch_colors = Ui.branch_colors or {}
 
     for i, line in ipairs(out) do
-      -- 1️⃣ Highlight graph rails with per-column colors
-      for pos = 1, #line do
-        local char = line:sub(pos, pos)
+      -- split graph and commit content
+      local graph_part, content = line:match("^(%s*[◯│╮╯─]+)%s*(.*)$")
+      graph_part = graph_part or ""
+      content = content or line
+
+      -- highlight rails per column
+      for pos = 1, #graph_part do
+        local char = graph_part:sub(pos, pos)
         if vim.tbl_contains(graph_chars, char) then
           if not Ui.branch_colors[pos] then
             local color = graph_colors[((pos - 1) % #graph_colors) + 1]
@@ -493,10 +498,8 @@ local function render_right()
         end
       end
 
-      -- 2️⃣ Strip graph characters to parse hash/date/author/message
-      local content = line:gsub("^[◯│╮╯─%s]+", "")
+      -- highlight commit hash/date/author/message
       local hash, date, author, msg = content:match("([0-9a-f]+)%s+([0-9:APM]+)%s+(%S+)%s+(.+)")
-
       if hash then
         local s = line:find(hash, 1, true)
         if s then vim.api.nvim_buf_add_highlight(Ui.right_buf, -1, "GitHash", i - 1, s - 1, s - 1 + #hash) end
@@ -538,6 +541,7 @@ local function render_right()
 
   vim.api.nvim_buf_set_option(Ui.right_buf, "modifiable", false)
 end
+
 
 ---------------------------------------------------------------------------
 -- Refresh UI on close
