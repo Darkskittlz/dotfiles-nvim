@@ -2,7 +2,9 @@
 ---@diagnostic disable: undefined-global
 local M = {}
 
--- TODO: add l keymap to show pretty git graph
+-- TODO: fix graph in commit log view
+-- TODO: add Merge conflict resolver if there are merge conflicts
+-- TODO: add v keymap to view commits file changes on commit log view
 
 -- Highlights
 vim.api.nvim_set_hl(0, "GitBranchCurrent", { fg = "#549afc" })
