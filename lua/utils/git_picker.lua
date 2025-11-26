@@ -24,10 +24,7 @@ vim.api.nvim_set_hl(0, "ResetGreen", { fg = "#32cd32", bold = true })
 vim.api.nvim_set_hl(0, "ResetRed", { fg = "#ff4444", bold = true })
 vim.api.nvim_set_hl(0, "ResetWhite", { fg = "#bbbbbb", bold = true })
 
-
-vim.api.nvim_set_hl(0, "GitHash", { fg = "#ff007f", bold = true, italic = false }) -- Electric pink
-vim.api.nvim_set_hl(0, "GitDate", { fg = "#00d2ff", bold = false, italic = true }) -- Electric green
-vim.api.nvim_set_hl(0, "GitMsg", { fg = "#4e4e4e", bold = false, italic = false }) -- Dark grey for readability
+vim.api.nvim_set_hl(0, "GitGraphSymbol", { fg = "#5f87ff" })
 
 -- Light Mode Colors
 vim.api.nvim_set_hl(0, "GitOutput", { fg = "#40a02b", bold = false, italic = false }) -- Light green for stdout (success)
@@ -37,10 +34,24 @@ vim.api.nvim_set_hl(0, "GitError", { fg = "#FF6F69", bold = false, italic = fals
 -- vim.api.nvim_set_hl(0, "GitHash", { fg = "#11518c", bold = true, italic = false })
 -- vim.api.nvim_set_hl(0, "GitDate", { fg = "#006400", bold = false, italic = true })
 -- vim.api.nvim_set_hl(0, "GitMsg", { fg = "#999999", bold = false, italic = false })
---
 
+-- Git Graph Colors
+local graph_chars = { "◯", "│", "╮", "╯", "─" }
 
+-- Highlight groups
+vim.api.nvim_set_hl(0, "GitHash", { fg = "#00d7ff", bold = true })
+vim.api.nvim_set_hl(0, "GitDate", { fg = "#db302d", italic = true })
+vim.api.nvim_set_hl(0, "GitAuthor", { fg = "#00a77d", italic = true })
+vim.api.nvim_set_hl(0, "GitMsg", { fg = "#ffffff" })
 
+-- branch colors
+local graph_colors = {
+  "#ff5f5f", "#ffaf5f", "#ffd75f", "#5fff5f",
+  "#5fffff", "#5f5fff", "#af5fff", "#ff5fff"
+}
+for i, c in ipairs(graph_colors) do
+  vim.api.nvim_set_hl(0, "GitGraphSymbol" .. i, { fg = c })
+end
 
 
 vim.cmd([[
@@ -410,43 +421,108 @@ local function render_left()
 end
 
 ---------------------------------------------------------------------------
+-- Git Graph Functions
+---------------------------------------------------------------------------
+local graph_chars = { "◯", "│", "╮", "╯", "─" }
+
+-- Converts git log --graph symbols to pretty UTF-8 symbols
+local function convert_graph(line)
+  -- multi-character sequences first
+  line = line:gsub("%*%-%-", "◯─") -- star with horizontal line
+  line = line:gsub("|\\", "│╯") -- branch merge down-right
+  line = line:gsub("|/", "│╮") -- branch merge down-left
+
+  -- single-character replacements
+  line = line:gsub("%*", "◯")
+  line = line:gsub("|", "│")
+  line = line:gsub("\\", "╯")
+  line = line:gsub("/", "╮")
+  line = line:gsub("-", "─")
+
+  return line
+end
+
+-- Fetches git log and converts graph symbols
+local function git_graph(limit, branch)
+  limit = limit or 20
+  branch = branch or "HEAD"
+
+  local cmd = string.format(
+    [[git --no-pager log --graph --pretty=format:'%%h %%cd %%an %%s' --date=format:'%%I:%%M%%p' -n %d %s]],
+    limit, branch
+  )
+  local lines = vim.fn.systemlist(cmd)
+  if vim.v.shell_error ~= 0 then
+    return { "Not a git repo or branch does not exist" }
+  end
+
+  for i, line in ipairs(lines) do
+    lines[i] = convert_graph(line)
+  end
+  return lines
+end
+
+---------------------------------------------------------------------------
+
 -- Render the right panel (commit log or diff preview)
 ---------------------------------------------------------------------------
 local function render_right()
-  if not Ui.right_buf then
-    return
-  end
-
+  if not Ui.right_buf then return end
   vim.api.nvim_buf_set_option(Ui.right_buf, "modifiable", true)
-  local out = {}
+  vim.api.nvim_buf_clear_namespace(Ui.right_buf, -1, 0, -1)
 
   if Ui.mode == "branches" then
     local branch = Ui.branch_selected or "HEAD"
-    out = run_git([[git log --pretty=format:"%h %ad %s" --date=short ]] .. vim.fn.shellescape(branch))
+    local out = git_graph(40, branch)
     if #out == 0 then out = { "[No commits]" } end
-
     vim.api.nvim_buf_set_lines(Ui.right_buf, 0, -1, false, out)
-    vim.api.nvim_buf_clear_namespace(Ui.right_buf, -1, 0, -1)
+
+    Ui.branch_colors = Ui.branch_colors or {}
 
     for i, line in ipairs(out) do
-      local hash, date, msg = line:match("^(%S+)%s+(%S+)%s+(.*)$")
+      -- split graph and commit content
+      local graph_part, content = line:match("^(%s*[◯│╮╯─]+)%s*(.*)$")
+      graph_part = graph_part or ""
+      content = content or line
+
+      -- highlight rails per column
+      for pos = 1, #graph_part do
+        local char = graph_part:sub(pos, pos)
+        if vim.tbl_contains(graph_chars, char) then
+          if not Ui.branch_colors[pos] then
+            local color = graph_colors[((pos - 1) % #graph_colors) + 1]
+            Ui.branch_colors[pos] = color
+            vim.api.nvim_set_hl(0, "GitGraphSymbol" .. pos, { fg = color })
+          end
+          vim.api.nvim_buf_add_highlight(Ui.right_buf, -1, "GitGraphSymbol" .. pos, i - 1, pos - 1, pos)
+        end
+      end
+
+      -- highlight commit hash/date/author/message
+      local hash, date, author, msg = content:match("([0-9a-f]+)%s+([0-9:APM]+)%s+(%S+)%s+(.+)")
       if hash then
-        vim.api.nvim_buf_add_highlight(Ui.right_buf, -1, "GitHash", i - 1, 0, #hash)
-        vim.api.nvim_buf_add_highlight(Ui.right_buf, -1, "GitDate", i - 1, #hash + 1, #hash + 1 + #date)
-        local sep1 = line:find(" ")
-        local sep2 = line:find(" ", sep1 + 1)
-        vim.api.nvim_buf_add_highlight(Ui.right_buf, -1, "GitMsg", i - 1, sep2 + 1, -1)
+        local s = line:find(hash, 1, true)
+        if s then vim.api.nvim_buf_add_highlight(Ui.right_buf, -1, "GitHash", i - 1, s - 1, s - 1 + #hash) end
+      end
+      if date then
+        local s = line:find(date, 1, true)
+        if s then vim.api.nvim_buf_add_highlight(Ui.right_buf, -1, "GitDate", i - 1, s - 1, s - 1 + #date) end
+      end
+      if author then
+        local s = line:find(author, 1, true)
+        if s then vim.api.nvim_buf_add_highlight(Ui.right_buf, -1, "GitAuthor", i - 1, s - 1, s - 1 + #author) end
+      end
+      if msg then
+        local s = line:find(msg, 1, true)
+        if s then vim.api.nvim_buf_add_highlight(Ui.right_buf, -1, "GitMsg", i - 1, s - 1, -1) end
       end
     end
   elseif Ui.mode == "files" then
     get_changed_files(Ui.branch_selected)
-
     local sel = Ui.changed_files[Ui.selected_index]
-    out = sel and get_diff_for_target(sel.value) or { "[No file selected]" }
-
+    local out = sel and get_diff_for_target(sel.value) or { "[No file selected]" }
     vim.api.nvim_buf_set_lines(Ui.right_buf, 0, -1, false, out)
     vim.api.nvim_buf_set_option(Ui.right_buf, "filetype", "diff")
-    vim.api.nvim_buf_clear_namespace(Ui.right_buf, -1, 0, -1)
 
     for i, line in ipairs(out) do
       if line:match("^%+.*") then
@@ -467,6 +543,9 @@ local function render_right()
 end
 
 
+---------------------------------------------------------------------------
+-- Refresh UI on close
+---------------------------------------------------------------------------
 local function refresh_ui()
   -- Ensure Ui.selected_index is valid after switching to branches view
   if Ui.mode == "branches" then
