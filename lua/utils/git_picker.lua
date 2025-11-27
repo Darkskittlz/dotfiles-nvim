@@ -7,6 +7,7 @@ local M = {}
 -- TODO: add v keymap to view commits file changes on commit log view
 -- TODO: add c keymap on branches view to checkout existing branches that i don't have local branches for yet
 -- TODO: Add branch Ahead or Behind arrows on branches view
+-- TODO: Add O keymap to create a PR from target branch to HEAD branch
 
 -- Highlights
 vim.api.nvim_set_hl(0, "GitBranchCurrent", { fg = "#549afc" })
