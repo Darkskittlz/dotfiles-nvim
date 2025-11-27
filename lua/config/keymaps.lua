@@ -38,6 +38,8 @@ local function show_spinner()
   return timer
 end
 
+
+
 keymap.set("n", "<leader>rl", function()
   local spinner = show_spinner()
 
@@ -68,6 +70,7 @@ vim.api.nvim_set_keymap(
   ':lua require("mason.ui").open()<CR>',
   { noremap = true, silent = true }
 )
+
 
 keymap.set("n", "<leader>gb", function()
   -- require('gitsigns').blame_line({ full = true })
@@ -165,6 +168,16 @@ keymap.set(
   'c"<C-R>""<Esc>',
   { noremap = true, silent = true }
 )
+
+-- Surround selection with []
+keymap.set(
+  "v",
+  '<leader>[',
+  'c[<C-R>"]<Esc>',
+  { noremap = true, silent = true }
+)
+
+
 
 keymap.set("n", "<leader>cn", function()
   if vim.wo.number then
