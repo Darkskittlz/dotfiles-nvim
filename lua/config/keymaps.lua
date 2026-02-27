@@ -5,6 +5,10 @@ vim.g.maplocalleader = " "
 keymap.set("n", "-", "<C-a>")
 keymap.set("n", "+", "<C-x>")
 
+vim.keymap.set("n", "<leader>tw",
+  [[:s/\(\s\+\)className=\(['"]\)\(.\{-}\)\2/\=submatch(1) . "className=" . submatch(2) . "\r" . submatch(1) . "  " . substitute(submatch(3), ' ', '\r' . submatch(1) . "  ", 'g') . "\r" . submatch(1) . submatch(2)/g<CR>]],
+  { desc = "Split Tailwind classes into block" })
+
 -- A simple spinner helper
 local spinner_frames = {
   "⠋",

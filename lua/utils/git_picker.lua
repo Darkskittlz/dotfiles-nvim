@@ -32,13 +32,17 @@ vim.api.nvim_set_hl(0, "ResetWhite", { fg = "#bbbbbb", bold = true })
 vim.api.nvim_set_hl(0, "GitGraphSymbol", { fg = "#5f87ff" })
 
 -- Light Mode Colors
+vim.api.nvim_set_hl(0, "GitHash", { fg = "#00d7ff", bold = true })
+vim.api.nvim_set_hl(0, "GitDate", { fg = "#db302d", italic = true })
+vim.api.nvim_set_hl(0, "GitAuthor", { fg = "#00a77d", italic = true })
 vim.api.nvim_set_hl(0, "GitOutput", { fg = "#40a02b", bold = false, italic = false }) -- Light green for stdout (success)
 vim.api.nvim_set_hl(0, "GitError", { fg = "#FF6F69", bold = false, italic = false })  -- Red for stderr (error)
+vim.api.nvim_set_hl(0, "GitMsg", { fg = "#777777", bold = false, italic = false })
 
 -- Dark Mode Colors
 -- vim.api.nvim_set_hl(0, "GitHash", { fg = "#11518c", bold = true, italic = false })
 -- vim.api.nvim_set_hl(0, "GitDate", { fg = "#006400", bold = false, italic = true })
--- vim.api.nvim_set_hl(0, "GitMsg", { fg = "#999999", bold = false, italic = false })
+-- vim.api.nvim_set_hl(0, "GitMsg", { fg = "#ffffff" })
 
 -- Git Graph Colors
 local graph_chars = { "◯", "│", "╮", "╯", "─" }
@@ -58,13 +62,6 @@ local graph_colors = {
 for i, c in ipairs(graph_colors) do
   vim.api.nvim_set_hl(0, "GitGraphSymbol" .. i, { fg = c })
 end
-
--- Highlight groups
-vim.api.nvim_set_hl(0, "GitHash", { fg = "#00d7ff", bold = true })
-vim.api.nvim_set_hl(0, "GitDate", { fg = "#db302d", italic = true })
-vim.api.nvim_set_hl(0, "GitAuthor", { fg = "#00a77d", italic = true })
-vim.api.nvim_set_hl(0, "GitMsg", { fg = "#ffffff" })
-
 
 
 vim.cmd([[
@@ -484,11 +481,6 @@ for i, c in ipairs(graph_colors) do
   vim.api.nvim_set_hl(0, "GitGraphSymbol" .. i, { fg = c })
 end
 
--- Other commit highlights
-vim.api.nvim_set_hl(0, "GitHash", { fg = "#00d7ff", bold = true })
-vim.api.nvim_set_hl(0, "GitDate", { fg = "#db302d", italic = true })
-vim.api.nvim_set_hl(0, "GitAuthor", { fg = "#00a77d", italic = true })
-vim.api.nvim_set_hl(0, "GitMsg", { fg = "#ffffff" })
 
 -- Convert git --graph lines (ASCII identity)
 local function convert_graph(line)
