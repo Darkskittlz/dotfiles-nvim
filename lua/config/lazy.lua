@@ -1,5 +1,6 @@
-local lazypath = vim.fn.stdpath("data")
-    .. "/lazy/lazy.nvim"
+vim.g.sqlite_clib_path = '/home/linuxbrew/.linuxbrew/lib/libsqlite3.so'
+
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
   -- bootstrap lazy.nvim
   -- stylua: ignore
@@ -8,6 +9,7 @@ if not vim.loop.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(vim.env.LAZY or lazypath)
 
+vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
 vim.api.nvim_create_autocmd("VimEnter", {

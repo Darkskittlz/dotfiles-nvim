@@ -468,6 +468,9 @@ nvim_lsp.jsonls.setup({
   end,
 })
 
+local waka_cache = "󱎫 0m" -- Default value so it's never empty
+local last_waka_check = 0
+
 
 return {
   { "alvan/vim-closetag" },
@@ -492,6 +495,26 @@ return {
     end
   },
   {
+    "3rd/time-tracker.nvim",
+    dependencies = {
+      {
+        "3rd/sqlite.nvim",
+        lazy = false,
+        init = function()
+          -- This runs before the plugin code is even looked at
+          vim.g.sqlite_clib_path = '/home/linuxbrew/.linuxbrew/lib/libsqlite3.so'
+        end,
+      },
+    },
+    lazy = false,
+    config = function()
+      require("time-tracker").setup({
+        data_file = vim.fn.stdpath("data") .. "/time-tracker.db",
+        tracking_timeout_seconds = 300,
+      })
+    end,
+  },
+  {
     "lewis6991/gitsigns.nvim",
     event = { "BufReadPre", "BufNewFile" },
     config = function()
@@ -513,20 +536,13 @@ return {
   },
   {
     "nvim-lualine/lualine.nvim",
-    dependencies = {
-      "nvim-tree/nvim-web-devicons",
-    },
-    options = {},
+    dependencies = { "nvim-tree/nvim-web-devicons" },
     config = function()
-      -- Load the UI configurations, which may include lualine
       local ui_config = require("plugins.ui")
+      local opts = ui_config.lualine or {}
 
-      -- If ui_config contains a lualine config, use it
-      if ui_config.lualine then
-        require("lualine").setup(
-          ui_config.lualine
-        )
-      end
+      -- This restores your original look completely
+      require("lualine").setup(opts)
     end,
   },
   {
@@ -770,6 +786,31 @@ return {
         },
       })
 
+      -- Configure Python LSP (pyright)
+      require("lspconfig").pyright.setup({
+        capabilities = capabilities,
+        on_attach = function(client, bufnr)
+          -- Python usually uses black or ruff for formatting
+          -- If you want Pyright to handle basic stuff:
+          client.server_capabilities.documentFormattingProvider = true
+        end,
+        settings = {
+          python = {
+            analysis = {
+              autoSearchPaths = true,
+              useLibraryCodeForTypes = true,
+              diagnosticMode = "openFilesOnly", -- Keeps nvim from lagging on large projects
+            },
+          },
+        },
+        root_dir = require("lspconfig.util").root_pattern(
+          "requirements.txt",
+          "pyproject.toml",
+          "venv",
+          ".git"
+        ),
+      })
+
       -- Configure Vue LSP (`vuels`) for `.vue` files and ensure it's also handling formatting
       require("lspconfig").vuels.setup({
         on_attach = function(client, bufnr)
@@ -804,9 +845,9 @@ return {
 
       -- Autoformat on save for various filetypes
       vim.api.nvim_create_autocmd("BufWritePre", {
-        pattern = "*.jsx,*.tsx,*.js,*.ts,*.vue,*.lua", -- Adjust the pattern based on your needs
+        pattern = "*.jsx,*.tsx,*.js,*.ts,*.vue,*.lua, *.py", -- Adjust the pattern based on your needs
         callback = function()
-          vim.lsp.buf.format({ async = true })
+          vim.lsp.buf.format({ async = false })
         end,
       })
     end,

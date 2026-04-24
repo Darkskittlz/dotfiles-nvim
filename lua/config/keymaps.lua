@@ -42,6 +42,7 @@ local function show_spinner()
   return timer
 end
 
+vim.keymap.set("n", "<leader>tt", "<cmd>TimeTracker<cr>", { desc = "Open Time Tracker UI" })
 
 
 keymap.set("n", "<leader>rl", function()
