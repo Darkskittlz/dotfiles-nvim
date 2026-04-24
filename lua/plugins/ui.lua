@@ -366,55 +366,6 @@ require("lualine").setup({
 
 -- Apply a white background
 -- vim.cmd([[highlight Normal guibg=#00000]]) -- Set background color for normal text
-vim.cmd([[highlight NormalNC guibg=#000000]]) -- Set background color for non-current windows
-
-vim.api.nvim_set_hl(
-  0,
-  "RenderMarkdownH1Bg",
-  { fg = "#ffffff", bg = "#003366" }
-) -- Dark Blue
-vim.api.nvim_set_hl(
-  0,
-  "RenderMarkdownH2Bg",
-  { fg = "#ffffff", bg = "#8B0000" }
-) -- Dark Green
-vim.api.nvim_set_hl(
-  0,
-  "RenderMarkdownH3Bg",
-  { fg = "#ffffff", bg = "#4a1bdf" }
-) -- Dark Pink (Purple)
-vim.api.nvim_set_hl(
-  0,
-  "RenderMarkdownH4Bg",
-  { fg = "#ffffff", bg = "#4a1bdf" }
-) -- Dark Gold
-vim.api.nvim_set_hl(
-  0,
-  "RenderMarkdownH5Bg",
-  { fg = "#ffffff", bg = "#8B0000" }
-) -- Dark Red
-
--- Code block highlight
-vim.api.nvim_set_hl(0, "RenderMarkdownCode", {
-  fg = "#006500", -- Dark Green - Hacker green foreground color
-  bg = "#1e1e1e", -- Dark background color for the code block
-  bold = true,    -- Make text bold (optional)
-})
-
-vim.api.nvim_set_hl(
-  0,
-  "RenderMarkdownCodeInline",
-  {
-    fg = "#006500", -- Dark Green - Hacker green foreground color
-    bg = "#151515", -- Grey background color
-    italic = false, -- Optional: make inline code italic
-    bold = true,
-  }
-)
-
-vim.api.nvim_set_hl(0, "RenderMarkdownLink", {
-  fg = "#1E90FF", -- Blue foreground color
-})
 
 local focusConfig = {}
 
@@ -501,7 +452,6 @@ return {
         "3rd/sqlite.nvim",
         lazy = false,
         init = function()
-          -- This runs before the plugin code is even looked at
           vim.g.sqlite_clib_path = '/home/linuxbrew/.linuxbrew/lib/libsqlite3.so'
         end,
       },
@@ -958,39 +908,59 @@ return {
           on_highlights = function(hl, c)
             local util = require("solarized-osaka.util")
 
-            -- Ensure floating windows are transparent
+            -- 1. GLOBAL UI FIXES
+            hl.NormalNC = { bg = "NONE" } -- Fixes the non-current window background
             hl.NormalFloat = { bg = "NONE" }
             hl.FloatBorder = { bg = "NONE", fg = c.blue }
 
-            -- Syntax Highlighting for Keywords
+            -- 2. MARKDOWN HEADER BACKGROUNDS
+            hl.RenderMarkdownH1Bg = { fg = "#ffffff", bg = "#003366" }
+            hl.RenderMarkdownH2Bg = { fg = "#ffffff", bg = "#8B0000" }
+            hl.RenderMarkdownH3Bg = { fg = "#ffffff", bg = "#4a1bdf" }
+            hl.RenderMarkdownH4Bg = { fg = "#ffffff", bg = "#4a1bdf" }
+            hl.RenderMarkdownH5Bg = { fg = "#ffffff", bg = "#8B0000" }
+
+            -- 3. THE "HACKER GREEN" CODE BLOCKS
+            local hacker_green = "#006500"
+
+            -- Full Code Blocks (Triple backticks)
+            hl.RenderMarkdownCode = {
+              fg = hacker_green,
+              bg = "#1e1e1e",
+              bold = true,
+            }
+
+            -- Inline Code (Single backticks)
+            -- We map multiple groups to ensure the "Yellow" doesn't flash
+            local inline_style = { fg = hacker_green, bg = "#151515", bold = true }
+            hl.RenderMarkdownCodeInline = inline_style
+            hl["@markup.raw"] = inline_style -- Treesitter fallback
+            hl.MarkdownCode = inline_style   -- Legacy fallback
+
+            -- 4. LINKS & TIME TRACKER
+            hl.RenderMarkdownLink = { fg = "#1E90FF" }
+            hl.TimeTrackerRoot = { fg = hacker_green, bg = "NONE", bold = true }
+            hl.TimeTrackerCurrentProject = { fg = "#ffffff", bg = "NONE", bold = true }
+
+            -- 5. KEYWORDS & TELESCOPE (Your existing logic)
             local keyword_color = util.darken("#00ff00", 0.85)
             hl["keyword.tsx"] = { fg = keyword_color }
             hl["keyword.return.tsx"] = { fg = keyword_color }
             hl["keyword.javascript"] = { fg = keyword_color }
             hl["keyword.return.javascript"] = { fg = keyword_color }
 
-            -- Telescope UI Customization
             local telescope_groups = {
-              "TelescopeNormal",
-              "TelescopeBorder",
-              "TelescopePromptNormal",
-              "TelescopePromptBorder",
-              "TelescopePromptTitle",
-              "TelescopePreviewTitle",
-              "TelescopePreviewBorder",
-              "TelescopeResultsTitle",
-              "TelescopeResultsBorder",
+              "TelescopeNormal", "TelescopeBorder", "TelescopePromptNormal",
+              "TelescopePromptBorder", "TelescopePromptTitle", "TelescopePreviewTitle",
+              "TelescopePreviewBorder", "TelescopeResultsTitle", "TelescopeResultsBorder",
             }
-
             for _, g in ipairs(telescope_groups) do
               hl[g] = { bg = "NONE", fg = hl[g] and hl[g].fg or c.blue }
             end
-          end
+          end,
         }
 
-        require("solarized-osaka").setup(
-          osakaConfig
-        )
+        require("solarized-osaka").setup(osakaConfig)
       end,
     },
     -- {
