@@ -473,15 +473,11 @@ return {
         local sqlite_bin = "/home/linuxbrew/.linuxbrew/bin/sqlite3"
         local ns_id = vim.api.nvim_create_namespace("TrackerSelection")
 
-        -- 1. DEFINE COLORS
+        -- 1. COLORS
         vim.api.nvim_set_hl(0, "WorkSessionGreen", { fg = "#13a10e" })
         vim.api.nvim_set_hl(0, "SummaryWhite", { fg = "#ffffff" })
-        vim.api.nvim_set_hl(0, "FloatTitle", { fg = "#ffffff", bold = true })
-        vim.api.nvim_set_hl(0, "SeparatorColor", { fg = "#646464" })
-
-        -- ACTIVE: Darker/Stronger Blue with Black text
+        vim.api.nvim_set_hl(0, "SeparatorColor", { fg = "#b6b6b6" })
         vim.api.nvim_set_hl(0, "ActiveRowBlue", { fg = "#000000", bg = "#4682b4", bold = true })
-        -- MATCHES: "Opaque" Blue (Muted shade) with White text
         vim.api.nvim_set_hl(0, "MatchRowBlue", { fg = "#ffffff", bg = "#2c3e50" })
 
         local function get_sql_output(query)
@@ -498,7 +494,7 @@ return {
           return string.format("%dh %dmin", h, m)
         end
 
-        -- 2. WINDOW SETUP
+        -- 2. WINDOWS
         local stats = vim.api.nvim_list_uis()[1]
         local total_w, total_h = 87, 34
         local top_h, bot_h = 16, 14
@@ -522,30 +518,31 @@ return {
 
         local line_to_data = {}
 
-        -- 3. REFRESH UI
+        -- 3. REFRESH TOP WINDOW
         local function refresh_ui()
           local cursor = vim.api.nvim_win_get_cursor(bot_win)[1]
           local data = line_to_data[cursor]
-
           vim.api.nvim_buf_clear_namespace(bot_buf, ns_id, 0, -1)
 
           local list_sql
           if not data then
             list_sql = [[
-        SELECT strftime('%H:%M', s.start_time, 'unixepoch', 'localtime') as t,
-               COALESCE(b.cwd, '---'), COALESCE(b.path, '---'), (s.end_time - s.start_time)
+        SELECT strftime('%H:%M', s.start_time, 'unixepoch', 'localtime'),
+               COALESCE(b.cwd, '---'), COALESCE(b.path, '---'),
+               (s.end_time - s.start_time) / (SELECT COUNT(*) FROM buffers WHERE session_id = s.id)
         FROM sessions s LEFT JOIN buffers b ON s.id = b.session_id
         WHERE s.start_time > (strftime('%s', 'now') - 604800)
         ORDER BY s.start_time DESC;
       ]]
           else
             list_sql = string.format([[
-        SELECT strftime('%%H:%%M', s.start_time, 'unixepoch', 'localtime') as t,
-               COALESCE(b.cwd, '---'), COALESCE(b.path, '---'), SUM(s.end_time - s.start_time)
-        FROM sessions s LEFT JOIN buffers b ON s.id = b.session_id
+        SELECT strftime('%%H:%%M', s.start_time, 'unixepoch', 'localtime'),
+               COALESCE(b.cwd, '---'), COALESCE(b.path, '---'),
+               (s.end_time - s.start_time) / (SELECT COUNT(*) FROM buffers WHERE session_id = s.id)
+        FROM sessions s JOIN buffers b ON s.id = b.session_id
         WHERE strftime('%%m/%%d', s.start_time, 'unixepoch', 'localtime') = '%s'
-        AND (b.cwd LIKE '%%%s%%')
-        GROUP BY t, b.path ORDER BY s.start_time ASC;
+        AND b.cwd LIKE '%%%s%%'
+        ORDER BY s.start_time ASC;
       ]], data.date, data.project_root)
 
             for line_num, info in pairs(line_to_data) do
@@ -558,12 +555,13 @@ return {
           end
 
           local list_result = get_sql_output(list_sql)
+          -- Space added back to top ("")
           local lines = { "", string.format(" %-8s | %-15s | %-25s | %-10s", "Time", "Module", "File", "Duration"),
             string.rep("─", total_w - 4) }
 
           for line in list_result:gmatch("[^\r\n]+") do
             local p = vim.split(line, "|")
-            if #p >= 4 and p[2] ~= "---" then
+            if #p >= 4 then
               table.insert(lines,
                 string.format(" %-8s | %-15s | %-25s | %s", p[1], vim.fn.fnamemodify(p[2], ":t"),
                   vim.fn.fnamemodify(p[3], ":t"), format_time(tonumber(p[4]) or 0)))
@@ -572,11 +570,11 @@ return {
 
           vim.bo[top_buf].modifiable = true
           vim.api.nvim_buf_set_lines(top_buf, 0, -1, false, lines)
-          -- Color top window
           for i = 0, #lines - 1 do
-            if i == 1 or i == 2 then -- Header (1) and Separator (2)
+            -- Adjusted index for colors due to the new empty top line
+            if i == 1 or i == 2 then
               vim.api.nvim_buf_add_highlight(top_buf, -1, "SeparatorColor", i, 0, -1)
-            else
+            elseif i > 2 then
               vim.api.nvim_buf_add_highlight(top_buf, -1, "WorkSessionGreen", i, 0, -1)
             end
           end
@@ -584,30 +582,41 @@ return {
         end
 
         -- 4. BUILD SUMMARY
-        local summary_sql =
-        "SELECT strftime('%m/%d', s.start_time, 'unixepoch', 'localtime'), strftime('%w', s.start_time, 'unixepoch', 'localtime'), COALESCE(b.cwd, '---'), (s.end_time - s.start_time) FROM sessions s LEFT JOIN buffers b ON s.id = b.session_id ORDER BY s.start_time DESC;"
-        local summary_result = get_sql_output(summary_sql)
-        local summary_lines = { "", string.format(" %-7s | %-5s | %-25s | %-12s | %-12s", "Date", "Day", "Project Root",
-          "Daily", "Project Total"), string.rep("─", total_w - 4) }
-        local days = { [0] = "Sun", [1] = "Mon", [2] = "Tue", [3] = "Wed", [4] = "Thu", [5] = "Fri", [6] = "Sat" }
+        local raw_data = get_sql_output(
+          "SELECT strftime('%m/%d', start_time, 'unixepoch', 'localtime'), strftime('%w', start_time, 'unixepoch', 'localtime'), id, (end_time - start_time) FROM sessions;")
+
+        local session_to_project = {}
+        local project_map_res = get_sql_output("SELECT session_id, cwd FROM buffers;")
+        for line in project_map_res:gmatch("[^\r\n]+") do
+          local p = vim.split(line, "|")
+          if #p >= 2 then session_to_project[p[1]] = vim.fn.fnamemodify(p[2], ":h:t") end
+        end
 
         local daily_agg, project_totals, ordered_keys = {}, {}, {}
+        local days = { [0] = "Sun", [1] = "Mon", [2] = "Tue", [3] = "Wed", [4] = "Thu", [5] = "Fri", [6] = "Sat" }
 
-        for line in summary_result:gmatch("[^\r\n]+") do
+        for line in raw_data:gmatch("[^\r\n]+") do
           local p = vim.split(line, "|")
-          if #p >= 4 and p[3] ~= "---" then
-            local date, day_idx, root, sec = p[1], p[2], vim.fn.fnamemodify(p[3], ":h:t"), tonumber(p[4]) or 0
-            if root ~= "." and root ~= "" then
+          if #p >= 4 then
+            local date, day_idx, sid, sec = p[1], tonumber(p[2]), p[3], tonumber(p[4]) or 0
+            local root = session_to_project[sid] or "---"
+
+            if root ~= "---" and root ~= "." and root ~= "" then
               local key = date .. "|" .. root
               if not daily_agg[key] then
                 table.insert(ordered_keys, key)
-                daily_agg[key] = { date = date, day = days[tonumber(day_idx)], root = root, time = 0 }
+                daily_agg[key] = { date = date, day = days[day_idx], root = root, time = 0 }
               end
               daily_agg[key].time = daily_agg[key].time + sec
               project_totals[root] = (project_totals[root] or 0) + sec
             end
           end
         end
+
+        -- Space added back to top ("")
+        local summary_lines = { "", string.format(" %-7s | %-5s | %-25s | %-12s | %-12s", "Date", "Day", "Project Root",
+          "Daily", "Project Total"),
+          string.rep("─", total_w - 4) }
 
         for _, key in ipairs(ordered_keys) do
           local item = daily_agg[key]
@@ -619,17 +628,17 @@ return {
 
         vim.bo[bot_buf].modifiable = true
         vim.api.nvim_buf_set_lines(bot_buf, 0, -1, false, summary_lines)
-        -- Color bottom window
         for i = 0, #summary_lines - 1 do
-          if i == 1 or i == 2 then -- Header (1) and Separator (2)
+          -- Adjusted index for colors
+          if i == 1 or i == 2 then
             vim.api.nvim_buf_add_highlight(bot_buf, -1, "SeparatorColor", i, 0, -1)
-          else
+          elseif i > 2 then
             vim.api.nvim_buf_add_highlight(bot_buf, -1, "SummaryWhite", i, 0, -1)
           end
         end
         vim.bo[bot_buf].modifiable = false
 
-        -- 5. CLEANUP & MAPPINGS
+        -- 5. CLEANUP
         local close = function()
           pcall(vim.api.nvim_win_close, top_win, true)
           pcall(vim.api.nvim_win_close, bot_win, true)
@@ -646,9 +655,6 @@ return {
         refresh_ui()
         vim.api.nvim_create_autocmd("CursorMoved", { buffer = bot_buf, callback = refresh_ui })
       end
-
-
-
 
 
 
