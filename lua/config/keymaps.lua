@@ -42,7 +42,18 @@ local function show_spinner()
   return timer
 end
 
-vim.keymap.set("n", "<leader>tt", "<cmd>TimeTracker<cr>", { desc = "Open Time Tracker UI" })
+keymap.set("n", "<leader>tt", "<cmd>TimeTracker<cr>", { desc = "Open Time Tracker UI" })
+
+keymap.set("n", "<leader>tr", function()
+  local db_path = vim.fn.stdpath("data") .. "/time-tracker.db"
+  local success = os.remove(db_path)
+  if success then
+    vim.notify("Time Tracker Reset: Restart Neovim to begin fresh session.", vim.log.levels.INFO)
+  else
+    vim.notify("Reset failed: Database file not found or currently in use.", vim.log.levels.WARN)
+  end
+end, { desc = "Reset Time Tracker Database" })
+
 
 
 keymap.set("n", "<leader>rl", function()

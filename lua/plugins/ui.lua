@@ -460,8 +460,111 @@ return {
     config = function()
       require("time-tracker").setup({
         data_file = vim.fn.stdpath("data") .. "/time-tracker.db",
-        tracking_timeout_seconds = 300,
+        tracking_timeout_seconds = 120,
       })
+      vim.api.nvim_create_user_command("TimeTrackerReset", function()
+        local db_path = vim.fn.stdpath("data") .. "/time-tracker.db"
+        os.remove(db_path)
+        print("Time Tracker database reset. Restart Neovim to begin fresh.")
+      end, {})
+
+      local function show_session_history()
+        local db_path = vim.fn.stdpath("data") .. "/time-tracker.db"
+        local sqlite_bin = "/home/linuxbrew/.linuxbrew/bin/sqlite3"
+
+        if vim.fn.filereadable(db_path) == 0 then
+          vim.notify("Database not found.", vim.log.levels.WARN)
+          return
+        end
+
+        -- Fetch raw timestamps, paths, and total seconds
+        local sql = "SELECT strftime('%m/%d %H:%M', s.start_time, 'unixepoch', 'localtime'), b.cwd, b.path, " ..
+            "(s.end_time - s.start_time) " .. -- Fetch raw seconds for math
+            "FROM sessions s LEFT JOIN buffers b ON s.id = b.session_id " ..
+            "GROUP BY s.id ORDER BY s.start_time DESC LIMIT 15;"
+
+        local cmd = string.format("%s %s \"%s\"", sqlite_bin, db_path, sql)
+        local handle = io.popen(cmd)
+        local result = handle:read("*a")
+        handle:close()
+
+        local formatted_rows = {}
+        for line in result:gmatch("[^\r\n]+") do
+          local parts = vim.split(line, "|")
+          if #parts >= 4 then
+            local timestamp = parts[1]
+            local raw_cwd = parts[2]
+            local raw_path = parts[3]
+            local total_seconds = tonumber(parts[4]) or 0
+
+            -- Duration formatting: Convert seconds to h and min
+            local hours = math.floor(total_seconds / 3600)
+            local mins = math.floor((total_seconds % 3600) / 60)
+            local duration_str = string.format("%dh %dmin", hours, mins)
+
+            -- Helper to get ONLY the last segment
+            local function get_last_segment(full_path)
+              if full_path == "" or full_path == nil or full_path == "NULL" then return "---" end
+              local segments = vim.split(full_path, "/")
+              return segments[#segments] or "---"
+            end
+
+            local clean_project = get_last_segment(raw_cwd)
+            local clean_file = get_last_segment(raw_path)
+
+            table.insert(formatted_rows,
+              string.format("%-12s | %-20s | %-25s | %-10s", timestamp, clean_project, clean_file, duration_str))
+          end
+        end
+
+        local final_content = table.concat(formatted_rows, "\n")
+        if final_content == "" then
+          final_content = "No recorded sessions found."
+        end
+
+        -- UI Construction
+        local header = string.format("%-12s | %-20s | %-25s | %-10s", "Date/Time", "Project", "File", "Duration")
+        local separator = string.rep("─", #header)
+
+        -- Centering the Title
+        local title = "DARKMEOW WORK SESSIONS"
+        local padding = string.rep(" ", math.floor((#header - #title) / 2))
+        local centered_title = padding .. title
+
+        local lines = vim.split(centered_title .. "\n" .. header .. "\n" .. separator .. "\n" .. final_content, "\n")
+
+        local buf = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+
+        local stats = vim.api.nvim_list_uis()[1]
+        local width = #header + 4
+        local height = math.min(#lines + 2, stats.height - 4)
+
+        local opts = {
+          relative = "editor",
+          width = width,
+          height = height,
+          col = (stats.width - width) / 2,
+          row = (stats.height - height) / 2,
+          style = "minimal",
+          border = "rounded",
+        }
+
+        local win = vim.api.nvim_open_win(buf, true, opts)
+
+        -- Window behavior
+        vim.api.nvim_buf_set_keymap(buf, "n", "q", ":q<CR>", { noremap = true, silent = true })
+        vim.api.nvim_buf_set_keymap(buf, "n", "<Esc>", ":q<CR>", { noremap = true, silent = true })
+        vim.bo[buf].buftype = "nofile"
+        vim.bo[buf].bufhidden = "wipe"
+
+        -- Highlighting
+        vim.api.nvim_buf_add_highlight(buf, -1, "Title", 0, 0, -1)
+        vim.api.nvim_buf_add_highlight(buf, -1, "Comment", 1, 0, -1)
+      end
+
+      -- Map it to your leader key
+      vim.keymap.set("n", "<leader>th", show_session_history, { desc = "View Session History (Float)" })
     end,
   },
   {
