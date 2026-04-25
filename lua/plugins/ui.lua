@@ -472,9 +472,11 @@ return {
         local db_path = vim.fn.stdpath("data") .. "/time-tracker.db"
         local sqlite_bin = "/home/linuxbrew/.linuxbrew/bin/sqlite3"
 
-        local function log(msg, level)
-          vim.notify("[TimeTracker] " .. msg, level or vim.log.levels.INFO)
-        end
+        -- 1. DEFINE COLORS
+        vim.api.nvim_set_hl(0, "WorkSessionGreen", { fg = "#13a10e" })
+        vim.api.nvim_set_hl(0, "SummaryWhite", { fg = "#f1f1f1" })
+        -- Force floating window titles to be the same white
+        vim.api.nvim_set_hl(0, "FloatTitle", { fg = "#f1f1f1" })
 
         local function get_sql_output(query)
           local cmd = string.format("%s %s \"%s\"", sqlite_bin, db_path, query:gsub("\n", " "))
@@ -484,7 +486,20 @@ return {
           return res:gsub("^%s*(.-)%s*$", "%1")
         end
 
-        -- 1. WINDOW SETUP (87x34)
+        local function format_time(seconds)
+          local h = math.floor(seconds / 3600)
+          local m = math.floor((seconds % 3600) / 60)
+          return string.format("%dh %dmin", h, m)
+        end
+
+        local function apply_hl(buf, hl_group)
+          local line_count = vim.api.nvim_buf_line_count(buf)
+          for i = 0, line_count - 1 do
+            vim.api.nvim_buf_add_highlight(buf, -1, hl_group, i, 0, -1)
+          end
+        end
+
+        -- 2. WINDOW SETUP
         local stats = vim.api.nvim_list_uis()[1]
         local total_w, total_h = 87, 34
         local top_h, bot_h = 16, 14
@@ -499,99 +514,94 @@ return {
         }
 
         local top_buf = vim.api.nvim_create_buf(false, true)
-        local top_win = vim.api.nvim_open_win(top_buf, false,
-          vim.tbl_extend("force", root_opts, { height = top_h, title = " DARKMEOW WORK SESSIONS " }))
+        local top_win = vim.api.nvim_open_win(top_buf, false, vim.tbl_extend("force", root_opts, {
+          height = top_h,
+          title = " DARKMEOW WORK SESSIONS "
+        }))
+
         local bot_buf = vim.api.nvim_create_buf(false, true)
-        local bot_win = vim.api.nvim_open_win(bot_buf, true,
-          vim.tbl_extend("force", root_opts,
-            { height = bot_h, row = root_opts.row + top_h + 2, title = " WEEKLY PROGRESS SUMMARY " }))
+        local bot_win = vim.api.nvim_open_win(bot_buf, true, vim.tbl_extend("force", root_opts, {
+          height = bot_h,
+          row = root_opts.row + top_h + 2,
+          title = " WEEKLY PROGRESS SUMMARY "
+        }))
 
         local line_to_data = {}
 
-        -- 2. DYNAMIC TOP UPDATE
+        -- 3. REFRESH TOP (Green)
         local function refresh_sessions()
           local cursor = vim.api.nvim_win_get_cursor(bot_win)[1]
           local data = line_to_data[cursor]
-          local list_sql
+          if not data then return end
 
-          if not data or data.is_all then
-            list_sql =
-            "SELECT strftime('%m/%d %H:%M', s.start_time, 'unixepoch', 'localtime'), COALESCE(b.cwd, '---'), COALESCE(b.path, '---'), (s.end_time - s.start_time) FROM sessions s LEFT JOIN buffers b ON s.id = b.session_id GROUP BY s.id ORDER BY s.start_time DESC LIMIT 100;"
-          else
-            list_sql = string.format([[
-        SELECT strftime('%%H:%%M', s.start_time, 'unixepoch', 'localtime'), COALESCE(b.cwd, '---'), COALESCE(b.path, '---'), (s.end_time - s.start_time)
-        FROM sessions s LEFT JOIN buffers b ON s.id = b.session_id
-        WHERE strftime('%%m/%%d', s.start_time, 'unixepoch', 'localtime') = '%s'
-        AND (b.cwd = '%s' OR b.cwd IS NULL) ORDER BY s.start_time ASC;
-      ]], data.date, data.project_path)
-          end
+          local list_sql = string.format([[
+      SELECT strftime('%%H:%%M', s.start_time, 'unixepoch', 'localtime') as t,
+             COALESCE(b.cwd, '---'), COALESCE(b.path, '---'), SUM(s.end_time - s.start_time)
+      FROM sessions s LEFT JOIN buffers b ON s.id = b.session_id
+      WHERE strftime('%%m/%%d', s.start_time, 'unixepoch', 'localtime') = '%s'
+      AND (b.cwd LIKE '%%%s%%')
+      GROUP BY t, b.path ORDER BY s.start_time ASC;
+    ]], data.date, data.project_root)
 
           local list_result = get_sql_output(list_sql)
-          local lines = { "", string.format(" %-12s | %-18s | %-22s | %-10s", "Time", "Project", "File", "Duration"),
+          local lines = { "", string.format(" %-8s | %-15s | %-25s | %-10s", "Time", "Module", "File", "Duration"),
             string.rep("─", total_w - 4) }
 
           for line in list_result:gmatch("[^\r\n]+") do
             local p = vim.split(line, "|")
-            if #p >= 4 then
-              local proj = (p[2] ~= "---" and p[2] ~= "." and p[2] ~= "") and vim.fn.fnamemodify(p[2], ":t") or "---"
-              local file = (p[3] ~= "---" and p[3] ~= "." and p[3] ~= "") and vim.fn.fnamemodify(p[3], ":t") or "---"
-              local sec = tonumber(p[4]) or 0
+            if #p >= 4 and p[2] ~= "---" and p[3] ~= "---" then
               table.insert(lines,
-                string.format(" %-12s | %-18s | %-22s | %dh %dmin", p[1], proj, file, math.floor(sec / 3600),
-                  math.floor((sec % 3600) / 60)))
+                string.format(" %-8s | %-15s | %-25s | %s", p[1], vim.fn.fnamemodify(p[2], ":t"),
+                  vim.fn.fnamemodify(p[3], ":t"), format_time(tonumber(p[4]) or 0)))
             end
           end
 
           vim.bo[top_buf].modifiable = true
           vim.api.nvim_buf_set_lines(top_buf, 0, -1, false, lines)
+          apply_hl(top_buf, "WorkSessionGreen")
           vim.bo[top_buf].modifiable = false
         end
 
-        -- 3. SUMMARY WITH LEFT JOIN (Prevents skipping rows without buffer data)
-        local summary_sql = [[
-    SELECT
-      strftime('%w', s.start_time, 'unixepoch', 'localtime'),
-      strftime('%m/%d', s.start_time, 'unixepoch', 'localtime'),
-      COALESCE(b.cwd, 'No Project'),
-      SUM(s.end_time - s.start_time)
-    FROM sessions s
-    LEFT JOIN buffers b ON s.id = b.session_id
-    GROUP BY 2, 3
-    ORDER BY s.start_time DESC LIMIT 20;
-  ]]
-
+        -- 4. SUMMARY (White)
+        local summary_sql =
+        "SELECT strftime('%m/%d', s.start_time, 'unixepoch', 'localtime'), strftime('%w', s.start_time, 'unixepoch', 'localtime'), COALESCE(b.cwd, '---'), (s.end_time - s.start_time) FROM sessions s LEFT JOIN buffers b ON s.id = b.session_id ORDER BY s.start_time DESC;"
         local summary_result = get_sql_output(summary_sql)
-        local summary_lines = { "", string.format(" %-10s | %-20s | %-12s | %-10s", "Day", "Project", "Hours", "Total"),
-          string.rep("─", total_w - 4) }
+        local summary_lines = { "", string.format(" %-7s | %-5s | %-25s | %-12s | %-12s", "Date", "Day", "Project Root",
+          "Daily", "Project Total"), string.rep("─", total_w - 4) }
         local days = { [0] = "Sun", [1] = "Mon", [2] = "Tue", [3] = "Wed", [4] = "Thu", [5] = "Fri", [6] = "Sat" }
-        local rolling_total = 0
 
-        if summary_result ~= "" then
-          for line in summary_result:gmatch("[^\r\n]+") do
-            local p = vim.split(line, "|")
-            if #p >= 4 then
-              local day_name = days[tonumber(p[1])] or "???"
-              local project = (p[3] ~= "No Project") and vim.fn.fnamemodify(p[3], ":t"):gsub("^%l", string.upper) or
-              "---"
-              local sec = tonumber(p[4]) or 0
-              rolling_total = rolling_total + sec
+        local daily_agg, project_totals, ordered_keys = {}, {}, {}
 
-              table.insert(summary_lines,
-                string.format(" %-10s | %-20s | %-12s | %-10s", day_name .. " (" .. p[2] .. ")", project,
-                  string.format("%.2fh", sec / 3600), string.format("%.2fh", rolling_total / 3600)))
-              line_to_data[#summary_lines] = { date = p[2], project_path = p[3], is_all = false }
+        for line in summary_result:gmatch("[^\r\n]+") do
+          local p = vim.split(line, "|")
+          if #p >= 4 and p[3] ~= "---" then
+            local date, day_idx, root, sec = p[1], p[2], vim.fn.fnamemodify(p[3], ":h:t"), tonumber(p[4]) or 0
+            if root ~= "." and root ~= "" then
+              local key = date .. "|" .. root
+              if not daily_agg[key] then
+                table.insert(ordered_keys, key)
+                daily_agg[key] = { date = date, day = days[tonumber(day_idx)], root = root, time = 0 }
+              end
+              daily_agg[key].time = daily_agg[key].time + sec
+              project_totals[root] = (project_totals[root] or 0) + sec
             end
           end
-        else
-          table.insert(summary_lines, "           No project data found. Showing all recent sessions instead.")
-          line_to_data[#summary_lines] = { is_all = true }
+        end
+
+        for _, key in ipairs(ordered_keys) do
+          local item = daily_agg[key]
+          table.insert(summary_lines,
+            string.format(" %-7s | %-5s | %-25s | %-12s | %-12s", item.date, item.day, item.root, format_time(item.time),
+              format_time(project_totals[item.root])))
+          line_to_data[#summary_lines] = { date = item.date, project_root = item.root }
         end
 
         vim.bo[bot_buf].modifiable = true
         vim.api.nvim_buf_set_lines(bot_buf, 0, -1, false, summary_lines)
+        apply_hl(bot_buf, "SummaryWhite")
         vim.bo[bot_buf].modifiable = false
 
-        -- 4. CLEANUP & MAPPINGS
+        -- 5. CLEANUP & MAPPINGS
         local close = function()
           pcall(vim.api.nvim_win_close, top_win, true)
           pcall(vim.api.nvim_win_close, bot_win, true)
