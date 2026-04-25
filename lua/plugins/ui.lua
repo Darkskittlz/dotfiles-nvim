@@ -510,11 +510,11 @@ return {
 
         local top_buf = vim.api.nvim_create_buf(false, true)
         local top_win = vim.api.nvim_open_win(top_buf, false,
-          vim.tbl_extend("force", root_opts, { height = top_h, title = " DARKMEOW WORK SESSIONS " }))
+          vim.tbl_extend("force", root_opts, { height = top_h, title = " WORK SESSIONS " }))
         local bot_buf = vim.api.nvim_create_buf(false, true)
         local bot_win = vim.api.nvim_open_win(bot_buf, true,
           vim.tbl_extend("force", root_opts,
-            { height = bot_h, row = root_opts.row + top_h + 2, title = " WEEKLY PROGRESS SUMMARY " }))
+            { height = bot_h, row = root_opts.row + top_h + 2, title = " WEEKLY SUMMARY " }))
 
         local line_to_data = {}
 
