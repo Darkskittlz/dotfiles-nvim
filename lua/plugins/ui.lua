@@ -520,7 +520,7 @@ return {
         -- Insert title as the VERY FIRST element (Line 0)
         table.insert(summary_lines, centered_title)
         -- Insert separator as the SECOND element (Line 1)
-        table.insert(summary_lines, string.rep("─", 83))
+        table.insert(summary_lines, string.rep("", 83))
 
 
         local project_totals = {}
@@ -553,7 +553,7 @@ return {
           local sec = project_totals[name]
           local time_str = string.format("%dh %dmin", math.floor(sec / 3600), math.floor((sec % 3600) / 60))
           local line_content = string.format("%-25s %s", name, time_str)
-          local padding = math.floor((72 - #line_content) / 2)
+          local padding = math.floor((83 - #line_content) / 2)
           table.insert(summary_lines, string.rep(" ", padding) .. line_content)
         end
 
