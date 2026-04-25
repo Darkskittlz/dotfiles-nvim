@@ -468,132 +468,164 @@ return {
         print("Time Tracker database reset. Restart Neovim to begin fresh.")
       end, {})
 
-
       local function show_session_history()
         local db_path = vim.fn.stdpath("data") .. "/time-tracker.db"
         local sqlite_bin = "/home/linuxbrew/.linuxbrew/bin/sqlite3"
 
-        if vim.fn.filereadable(db_path) == 0 then
-          vim.notify("Database not found.", vim.log.levels.WARN)
-          return
-        end
-
         local function get_sql_output(query)
-          local clean_query = query:gsub("\n", " ")
-          local cmd = string.format("%s %s \"%s\"", sqlite_bin, db_path, clean_query)
+          local cmd = string.format("%s %s \"%s\"", sqlite_bin, db_path, query:gsub("\n", " "))
           local handle = io.popen(cmd)
           local res = handle:read("*a")
           handle:close()
           return res
         end
 
-        local list_sql = [[
-    SELECT strftime('%m/%d %H:%M', s.start_time, 'unixepoch', 'localtime'),
-    b.cwd, b.path, (s.end_time - s.start_time)
-    FROM sessions s LEFT JOIN buffers b ON s.id = b.session_id
-    GROUP BY s.id ORDER BY s.start_time DESC LIMIT 15;
-  ]]
-
-        local summary_sql = [[
-    SELECT b.cwd, SUM(s.duration)
-    FROM (
-        SELECT id, (end_time - start_time) as duration
-        FROM sessions
-        WHERE date(start_time, 'unixepoch', 'localtime') = date('now', 'localtime')
-    ) s
-    JOIN (SELECT DISTINCT session_id, cwd FROM buffers) b ON s.id = b.session_id
-    GROUP BY b.cwd;
-  ]]
+        -- 1. FETCH DATA
+        local list_sql =
+        "SELECT strftime('%m/%d %H:%M', s.start_time, 'unixepoch', 'localtime'), b.cwd, b.path, (s.end_time - s.start_time) FROM sessions s LEFT JOIN buffers b ON s.id = b.session_id GROUP BY s.id ORDER BY s.start_time DESC LIMIT 200;"
+        local summary_sql =
+        "SELECT b.cwd, SUM(s.end_time - s.start_time) FROM sessions s JOIN (SELECT DISTINCT session_id, cwd FROM buffers) b ON s.id = b.session_id WHERE date(s.start_time, 'unixepoch', 'localtime') = date('now', 'localtime') GROUP BY b.cwd;"
 
         local list_result = get_sql_output(list_sql)
         local summary_result = get_sql_output(summary_sql)
 
-        local formatted_rows = {}
-        for line in list_result:gmatch("[^\r\n]+") do
-          local parts = vim.split(line, "|")
-          if #parts >= 4 then
-            local timestamp, project = parts[1], vim.fn.fnamemodify(parts[2], ":t")
-            local file, total_seconds = vim.fn.fnamemodify(parts[3], ":t"), tonumber(parts[4]) or 0
-            local h, m = math.floor(total_seconds / 3600), math.floor((total_seconds % 3600) / 60)
-            table.insert(formatted_rows, string.format("%-12s | %-20s | %-25s | %-10s",
-              timestamp, project, file, string.format("%dh %dmin", h, m)))
-          end
-        end
-
-        local header_text = string.format("%-12s | %-20s | %-25s | %-10s", "Date/Time", "Project", "File", "Duration")
-        local window_width = #header_text
-        local separator = string.rep("─", window_width)
-
-        local title = "DARKMEOW WORK SESSIONS"
-        local title_padding = string.rep(" ", math.floor((window_width - #title) / 2))
-
-        local lines = { title_padding .. title, "", header_text, separator }
-        for _, row in ipairs(formatted_rows) do table.insert(lines, row) end
-
-        -- Centered Summary Header (Blue)
-        local summary_title = "SESSION SUMMARY (TOTAL FOR TODAY)"
-        local summary_title_padding = string.rep(" ", math.floor((window_width - #summary_title) / 2))
-
-        table.insert(lines, "")
-        table.insert(lines, summary_title_padding .. summary_title)
-        table.insert(lines, separator)
-
-        -- Minimalist Centered Summary Rows
-        for line in summary_result:gmatch("[^\r\n]+") do
-          local parts = vim.split(line, "|")
-          if #parts >= 2 then
-            local project = vim.fn.fnamemodify(parts[1], ":t")
-            local seconds = tonumber(parts[2]) or 0
-            local h, m = math.floor(seconds / 3600), math.floor((seconds % 3600) / 60)
-
-            -- Create the raw string first: "plugins    0h 48min"
-            local time_str = string.format("%dh %dmin", h, m)
-            local content = project .. string.rep(" ", 10) .. time_str
-
-            -- Calculate padding to center that whole string
-            local row_padding = string.rep(" ", math.floor((window_width - #content) / 2))
-            table.insert(lines, row_padding .. content)
-          end
-        end
-
-        local buf = vim.api.nvim_create_buf(false, true)
-        vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-
-        local stats = vim.api.nvim_list_uis()[1]
-        local width, height = window_width + 4, math.min(#lines + 2, stats.height - 4)
-        local opts = {
-          relative = "editor",
-          width = width,
-          height = height,
-          col = (stats.width - width) / 2,
-          row = (stats.height - height) / 2,
-          style = "minimal",
-          border = "rounded",
+        -- 2. FORMAT SESSION LINES
+        local session_width = 83
+        local main_title = "DARKMEOW WORK SESSIONS"
+        local session_lines = {
+          -- Mathematically centered title
+          string.rep(" ", math.floor((session_width - #main_title) / 2)) .. main_title,
+          "",
+          string.format("%-12s | %-18s | %-22s | %-10s", "Date/Time", "Project", "File", "Duration"),
+          string.rep("─", session_width)
         }
 
-        vim.api.nvim_open_win(buf, true, opts)
-
-        -- Highlighting
-        vim.api.nvim_buf_add_highlight(buf, -1, "Function", 0, 0, -1) -- Blue Title
-        vim.api.nvim_buf_add_highlight(buf, -1, "Comment", 2, 0, -1)
-
-        for i = 4, #formatted_rows + 3 do
-          vim.api.nvim_buf_add_highlight(buf, -1, "String", i, 0, -1)
+        for line in list_result:gmatch("[^\r\n]+") do
+          local p = vim.split(line, "|")
+          if #p >= 4 then
+            local project = (p[2] ~= "" and p[2] ~= ".") and vim.fn.fnamemodify(p[2], ":t") or "---"
+            local file = (p[3] ~= "" and p[3] ~= ".") and vim.fn.fnamemodify(p[3], ":t") or "---"
+            local h, m = math.floor(p[4] / 3600), math.floor((p[4] % 3600) / 60)
+            table.insert(session_lines, string.format("%-12s | %-18s | %-22s | %dh %dmin", p[1], project, file, h, m))
+          end
         end
 
-        local summary_header_idx = #formatted_rows + 5
-        vim.api.nvim_buf_add_highlight(buf, -1, "Function", summary_header_idx, 0, -1) -- Blue Summary Title
-        vim.api.nvim_buf_add_highlight(buf, -1, "Comment", summary_header_idx + 1, 0, -1)
+        -- 3. FORMAT SUMMARY LINES (Centered Logic)
+        -- 3. FORMAT SUMMARY LINES (Absolute Top)
+        local summary_lines = {} -- Initialize empty
 
-        for i = summary_header_idx + 2, #lines - 1 do
-          vim.api.nvim_buf_add_highlight(buf, -1, "String", i, 0, -1)
+        local summary_title = "SESSION SUMMARY (TOTAL FOR TODAY)"
+        local centered_title = string.rep(" ", math.floor((83 - #summary_title) / 2)) .. summary_title
+
+        -- Insert title as the VERY FIRST element (Line 0)
+        table.insert(summary_lines, centered_title)
+        -- Insert separator as the SECOND element (Line 1)
+        table.insert(summary_lines, string.rep("─", 83))
+
+
+        local project_totals = {}
+        local generic_names = { client = true, server = true, src = true, api = true, ui = true }
+
+        for line in summary_result:gmatch("[^\r\n]+") do
+          local p = vim.split(line, "|")
+          if #p >= 2 then
+            local full_path = p[1]:gsub("/$", "")
+            local current_dir = vim.fn.fnamemodify(full_path, ":t")
+            local parent_dir = vim.fn.fnamemodify(full_path, ":h:t")
+
+            -- If current dir is 'client' or 'server', use the parent folder name
+            local name = (generic_names[current_dir] and parent_dir ~= "" and parent_dir ~= ".")
+                and parent_dir or current_dir
+
+            -- Capitalize the first letter if you want (Optional)
+            name = name:gsub("^%l", string.upper)
+
+            project_totals[name] = (project_totals[name] or 0) + tonumber(p[2])
+          end
         end
 
-        vim.api.nvim_buf_set_keymap(buf, "n", "q", ":q<CR>", { noremap = true, silent = true })
-        vim.api.nvim_buf_set_keymap(buf, "n", "<Esc>", ":q<CR>", { noremap = true, silent = true })
-        vim.bo[buf].buftype, vim.bo[buf].bufhidden = "nofile", "wipe"
+        local sorted_names = {}
+
+        for name in pairs(project_totals) do table.insert(sorted_names, name) end
+        table.sort(sorted_names)
+
+        for _, name in ipairs(sorted_names) do
+          local sec = project_totals[name]
+          local time_str = string.format("%dh %dmin", math.floor(sec / 3600), math.floor((sec % 3600) / 60))
+          local line_content = string.format("%-25s %s", name, time_str)
+          local padding = math.floor((72 - #line_content) / 2)
+          table.insert(summary_lines, string.rep(" ", padding) .. line_content)
+        end
+
+        -- 4. WINDOW LOGIC
+        local stats = vim.api.nvim_list_uis()[1]
+        local total_w = 82 -- Adjusted slightly for the 78 char content + borders
+        local total_h = 30
+        local top_h = 20
+        local bot_h = total_h - top_h
+
+        local root_opts = {
+          relative = "editor",
+          width = total_w,
+          col = (stats.width - total_w) / 2,
+          row = (stats.height - total_h) / 2,
+          style = "minimal",
+          border = "rounded"
+        }
+
+        local top_buf = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_lines(top_buf, 0, -1, false, session_lines)
+        local top_win = vim.api.nvim_open_win(top_buf, true, vim.tbl_extend("force", root_opts, { height = top_h }))
+
+
+        local bot_buf = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_lines(bot_buf, 0, -1, false, summary_lines)
+        -- Bottom Window (Nudged up to row + top_h + 1)
+        local bot_win = vim.api.nvim_open_win(bot_buf, false, vim.tbl_extend("force", root_opts, {
+          height = bot_h,
+          row = root_opts.row + top_h + 2,
+          border = "rounded"
+        }))
+
+
+        -- 5. SETTINGS & KEYMAPS
+        local close_all = function()
+          if vim.api.nvim_win_is_valid(top_win) then vim.api.nvim_win_close(top_win, true) end
+          if vim.api.nvim_win_is_valid(bot_win) then vim.api.nvim_win_close(bot_win, true) end
+        end
+
+        for _, info in ipairs({ { buf = top_buf, win = top_win }, { buf = bot_buf, win = bot_win } }) do
+          vim.bo[info.buf].modifiable = false
+          vim.bo[info.buf].buftype = "nofile"
+          vim.wo[info.win].number = false
+          vim.wo[info.win].relativenumber = false
+          vim.wo[info.win].cursorline = true
+
+          local bopts = { buffer = info.buf, silent = true }
+          vim.keymap.set("n", "q", close_all, bopts)
+          vim.keymap.set("n", "<Esc>", close_all, bopts)
+          vim.keymap.set("n", "sk", function() vim.api.nvim_set_current_win(top_win) end, bopts)
+          vim.keymap.set("n", "sj", function() vim.api.nvim_set_current_win(bot_win) end, bopts)
+        end
+
+        -- -- --- HIGHLIGHTING SECTION ---
+        -- 1. Bottom Buffer (Summary)
+        -- Line 0: The Title (Blue)
+        vim.api.nvim_buf_add_highlight(bot_buf, -1, "DiagnosticInfo", 0, 0, -1)
+
+        -- Line 1: The Separator (Force White)
+        -- Most themes use 'Normal' or 'Identifier' for white/off-white.
+        -- If you want it pure bright white, 'Function' or 'Type' often work too.
+        vim.api.nvim_buf_add_highlight(bot_buf, -1, "Normal", 1, 0, -1)
+
+        -- 2. Top Buffer (Sessions)
+        -- Title centered at the top
+        vim.api.nvim_buf_add_highlight(top_buf, -1, "Function", 0, 0, -1)
+        -- Header (Date/Time | Project...)
+        vim.api.nvim_buf_add_highlight(top_buf, -1, "Comment", 2, 0, -1)
+        -- Top separator line (White)
+        vim.api.nvim_buf_add_highlight(top_buf, -1, "Normal", 3, 0, -1)
       end
-
 
       -- Map it to your leader key
       vim.keymap.set("n", "<leader>th", show_session_history, { desc = "View Session History (Float)" })
