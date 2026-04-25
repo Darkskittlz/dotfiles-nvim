@@ -489,15 +489,11 @@ return {
         local list_result = get_sql_output(list_sql)
         local summary_result = get_sql_output(summary_sql)
 
-        -- 2. FORMAT SESSION LINES
-        local session_width = 83
-        local main_title = "DARKMEOW WORK SESSIONS"
+        -- 2. FORMAT SESSION LINES (Buffer content only)
         local session_lines = {
-          -- Mathematically centered title
-          string.rep(" ", math.floor((session_width - #main_title) / 2)) .. main_title,
-          "",
+          "", -- Breathing room at the top
           string.format("%-12s | %-18s | %-22s | %-10s", "Date/Time", "Project", "File", "Duration"),
-          string.rep("─", session_width)
+          string.rep("─", 83)
         }
 
         for line in list_result:gmatch("[^\r\n]+") do
@@ -510,19 +506,8 @@ return {
           end
         end
 
-        -- 3. FORMAT SUMMARY LINES (Centered Logic)
-        -- 3. FORMAT SUMMARY LINES (Absolute Top)
-        local summary_lines = {} -- Initialize empty
-
-        local summary_title = "SESSION SUMMARY (TOTAL FOR TODAY)"
-        local centered_title = string.rep(" ", math.floor((83 - #summary_title) / 2)) .. summary_title
-
-        -- Insert title as the VERY FIRST element (Line 0)
-        table.insert(summary_lines, centered_title)
-        -- Insert separator as the SECOND element (Line 1)
-        table.insert(summary_lines, string.rep("", 83))
-
-
+        -- 3. FORMAT SUMMARY LINES
+        local summary_lines = { "" } -- Breathing room at the top
         local project_totals = {}
         local generic_names = { client = true, server = true, src = true, api = true, ui = true }
 
@@ -533,19 +518,15 @@ return {
             local current_dir = vim.fn.fnamemodify(full_path, ":t")
             local parent_dir = vim.fn.fnamemodify(full_path, ":h:t")
 
-            -- If current dir is 'client' or 'server', use the parent folder name
             local name = (generic_names[current_dir] and parent_dir ~= "" and parent_dir ~= ".")
                 and parent_dir or current_dir
 
-            -- Capitalize the first letter if you want (Optional)
             name = name:gsub("^%l", string.upper)
-
             project_totals[name] = (project_totals[name] or 0) + tonumber(p[2])
           end
         end
 
         local sorted_names = {}
-
         for name in pairs(project_totals) do table.insert(sorted_names, name) end
         table.sort(sorted_names)
 
@@ -557,9 +538,9 @@ return {
           table.insert(summary_lines, string.rep(" ", padding) .. line_content)
         end
 
-        -- 4. WINDOW LOGIC
+        -- 4. WINDOW LOGIC (Using native Title property)
         local stats = vim.api.nvim_list_uis()[1]
-        local total_w = 82 -- Adjusted slightly for the 78 char content + borders
+        local total_w = 87
         local total_h = 30
         local top_h = 20
         local bot_h = total_h - top_h
@@ -570,25 +551,28 @@ return {
           col = (stats.width - total_w) / 2,
           row = (stats.height - total_h) / 2,
           style = "minimal",
-          border = "rounded"
+          border = "rounded",
+          title_pos = "center",
         }
 
+        -- Open Top Window
         local top_buf = vim.api.nvim_create_buf(false, true)
         vim.api.nvim_buf_set_lines(top_buf, 0, -1, false, session_lines)
-        local top_win = vim.api.nvim_open_win(top_buf, true, vim.tbl_extend("force", root_opts, { height = top_h }))
+        local top_win = vim.api.nvim_open_win(top_buf, true, vim.tbl_extend("force", root_opts, {
+          height = top_h,
+          title = " DARKMEOW WORK SESSIONS "
+        }))
 
-
+        -- Open Bottom Window
         local bot_buf = vim.api.nvim_create_buf(false, true)
         vim.api.nvim_buf_set_lines(bot_buf, 0, -1, false, summary_lines)
-        -- Bottom Window (Nudged up to row + top_h + 1)
         local bot_win = vim.api.nvim_open_win(bot_buf, false, vim.tbl_extend("force", root_opts, {
           height = bot_h,
           row = root_opts.row + top_h + 2,
-          border = "rounded"
+          title = " SESSION SUMMARY "
         }))
 
-
-        -- 5. SETTINGS & KEYMAPS
+        -- 5. SETTINGS, KEYMAPS & HIGHLIGHTS
         local close_all = function()
           if vim.api.nvim_win_is_valid(top_win) then vim.api.nvim_win_close(top_win, true) end
           if vim.api.nvim_win_is_valid(bot_win) then vim.api.nvim_win_close(bot_win, true) end
@@ -599,7 +583,7 @@ return {
           vim.bo[info.buf].buftype = "nofile"
           vim.wo[info.win].number = false
           vim.wo[info.win].relativenumber = false
-          vim.wo[info.win].cursorline = true
+          vim.wo[info.win].cursorline = false
 
           local bopts = { buffer = info.buf, silent = true }
           vim.keymap.set("n", "q", close_all, bopts)
@@ -608,25 +592,10 @@ return {
           vim.keymap.set("n", "sj", function() vim.api.nvim_set_current_win(bot_win) end, bopts)
         end
 
-        -- -- --- HIGHLIGHTING SECTION ---
-        -- 1. Bottom Buffer (Summary)
-        -- Line 0: The Title (Blue)
-        vim.api.nvim_buf_add_highlight(bot_buf, -1, "DiagnosticInfo", 0, 0, -1)
-
-        -- Line 1: The Separator (Force White)
-        -- Most themes use 'Normal' or 'Identifier' for white/off-white.
-        -- If you want it pure bright white, 'Function' or 'Type' often work too.
-        vim.api.nvim_buf_add_highlight(bot_buf, -1, "Normal", 1, 0, -1)
-
-        -- 2. Top Buffer (Sessions)
-        -- Title centered at the top
-        vim.api.nvim_buf_add_highlight(top_buf, -1, "Function", 0, 0, -1)
-        -- Header (Date/Time | Project...)
-        vim.api.nvim_buf_add_highlight(top_buf, -1, "Comment", 2, 0, -1)
-        -- Top separator line (White)
-        vim.api.nvim_buf_add_highlight(top_buf, -1, "Normal", 3, 0, -1)
+        -- Highlight the internal headers
+        vim.api.nvim_buf_add_highlight(top_buf, -1, "Comment", 1, 0, -1)
+        vim.api.nvim_buf_add_highlight(top_buf, -1, "Normal", 2, 0, -1)
       end
-
       -- Map it to your leader key
       vim.keymap.set("n", "<leader>th", show_session_history, { desc = "View Session History (Float)" })
     end,
