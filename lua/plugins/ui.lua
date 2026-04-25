@@ -468,6 +468,7 @@ return {
         print("Time Tracker database reset. Restart Neovim to begin fresh.")
       end, {})
 
+
       local function show_session_history()
         local db_path = vim.fn.stdpath("data") .. "/time-tracker.db"
         local sqlite_bin = "/home/linuxbrew/.linuxbrew/bin/sqlite3"
@@ -477,67 +478,96 @@ return {
           return
         end
 
-        -- Fetch raw timestamps, paths, and total seconds
-        local sql = "SELECT strftime('%m/%d %H:%M', s.start_time, 'unixepoch', 'localtime'), b.cwd, b.path, " ..
-            "(s.end_time - s.start_time) " .. -- Fetch raw seconds for math
-            "FROM sessions s LEFT JOIN buffers b ON s.id = b.session_id " ..
+        -- Helper function MUST be defined before it is called
+        local function get_sql_output(query)
+          -- We gsub newlines to spaces so the shell command stays on one line
+          local clean_query = query:gsub("\n", " ")
+          local cmd = string.format("%s %s \"%s\"", sqlite_bin, db_path, clean_query)
+          local handle = io.popen(cmd)
+          local res = handle:read("*a")
+          handle:close()
+          return res
+        end
+
+        -- Query 1: The 15 most recent sessions for the list
+        local list_sql = "SELECT strftime('%m/%d %H:%M', s.start_time, 'unixepoch', 'localtime'), b.cwd, b.path, " ..
+            "(s.end_time - s.start_time) FROM sessions s LEFT JOIN buffers b ON s.id = b.session_id " ..
             "GROUP BY s.id ORDER BY s.start_time DESC LIMIT 15;"
 
-        local cmd = string.format("%s %s \"%s\"", sqlite_bin, db_path, sql)
-        local handle = io.popen(cmd)
-        local result = handle:read("*a")
-        handle:close()
+        -- Query 2: Fixed Daily Totals using a DISTINCT join to prevent multipliers
+        local summary_sql = [[
+      SELECT b.cwd, SUM(s.duration)
+      FROM (
+          SELECT id, (end_time - start_time) as duration
+          FROM sessions
+          WHERE date(start_time, 'unixepoch', 'localtime') = date('now', 'localtime')
+      ) s
+      JOIN (
+          SELECT DISTINCT session_id, cwd FROM buffers
+      ) b ON s.id = b.session_id
+      GROUP BY b.cwd;
+  ]]
 
+        local list_result = get_sql_output(list_sql)
+        local summary_result = get_sql_output(summary_sql)
+
+        -- 1. Process Recent History Rows
         local formatted_rows = {}
-        for line in result:gmatch("[^\r\n]+") do
+        for line in list_result:gmatch("[^\r\n]+") do
           local parts = vim.split(line, "|")
           if #parts >= 4 then
             local timestamp = parts[1]
-            local raw_cwd = parts[2]
-            local raw_path = parts[3]
+            local project = vim.fn.fnamemodify(parts[2], ":t")
+            local file = vim.fn.fnamemodify(parts[3], ":t")
             local total_seconds = tonumber(parts[4]) or 0
 
-            -- Duration formatting: Convert seconds to h and min
-            local hours = math.floor(total_seconds / 3600)
-            local mins = math.floor((total_seconds % 3600) / 60)
-            local duration_str = string.format("%dh %dmin", hours, mins)
-
-            -- Helper to get ONLY the last segment
-            local function get_last_segment(full_path)
-              if full_path == "" or full_path == nil or full_path == "NULL" then return "---" end
-              local segments = vim.split(full_path, "/")
-              return segments[#segments] or "---"
-            end
-
-            local clean_project = get_last_segment(raw_cwd)
-            local clean_file = get_last_segment(raw_path)
+            local h = math.floor(total_seconds / 3600)
+            local m = math.floor((total_seconds % 3600) / 60)
 
             table.insert(formatted_rows,
-              string.format("%-12s | %-20s | %-25s | %-10s", timestamp, clean_project, clean_file, duration_str))
+              string.format("%-12s | %-20s | %-25s | %-10s", timestamp, project, file, string.format("%dh %dmin", h, m)))
           end
         end
 
-        local final_content = table.concat(formatted_rows, "\n")
-        if final_content == "" then
-          final_content = "No recorded sessions found."
+        -- 2. Build the Buffer Content
+        local header_text = string.format("%-12s | %-20s | %-25s | %-10s", "Date/Time", "Project", "File", "Duration")
+        local separator = string.rep("─", #header_text)
+        local title = "DARKMEOW WORK SESSIONS"
+        local padding = string.rep(" ", math.floor((#header_text - #title) / 2))
+
+        local lines = {
+          padding .. title,
+          "", -- Space below title
+          header_text,
+          separator
+        }
+
+        for _, row in ipairs(formatted_rows) do
+          table.insert(lines, row)
         end
 
-        -- UI Construction
-        local header = string.format("%-12s | %-20s | %-25s | %-10s", "Date/Time", "Project", "File", "Duration")
-        local separator = string.rep("─", #header)
+        -- Add the True Daily Summary
+        table.insert(lines, "")
+        table.insert(lines, "SESSION SUMMARY (TOTAL FOR TODAY)")
+        table.insert(lines, string.rep("─", 35))
 
-        -- Centering the Title
-        local title = "DARKMEOW WORK SESSIONS"
-        local padding = string.rep(" ", math.floor((#header - #title) / 2))
-        local centered_title = padding .. title
+        for line in summary_result:gmatch("[^\r\n]+") do
+          local parts = vim.split(line, "|")
+          if #parts >= 2 then
+            local project = vim.fn.fnamemodify(parts[1], ":t")
+            local seconds = tonumber(parts[2]) or 0
+            local h = math.floor(seconds / 3600)
+            local m = math.floor((seconds % 3600) / 60)
+            table.insert(lines, string.format("%-20s: %dh %dmin", project, h, m))
+          end
+        end
 
-        local lines = vim.split(centered_title .. "\n" .. header .. "\n" .. separator .. "\n" .. final_content, "\n")
-
+        -- 3. UI and Window Setup
         local buf = vim.api.nvim_create_buf(false, true)
         vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
 
         local stats = vim.api.nvim_list_uis()[1]
-        local width = #header + 4
+        local width = #header_text + 4
         local height = math.min(#lines + 2, stats.height - 4)
 
         local opts = {
@@ -552,15 +582,22 @@ return {
 
         local win = vim.api.nvim_open_win(buf, true, opts)
 
+        -- 4. Highlighting
+        vim.api.nvim_buf_add_highlight(buf, -1, "Title", 0, 0, -1)
+        vim.api.nvim_buf_add_highlight(buf, -1, "Comment", 2, 0, -1)
+
+        for i = 4, #formatted_rows + 3 do
+          vim.api.nvim_buf_add_highlight(buf, -1, "String", i, 0, -1)
+        end
+
+        local summary_header_idx = #formatted_rows + 5
+        vim.api.nvim_buf_add_highlight(buf, -1, "Keyword", summary_header_idx, 0, -1)
+
         -- Window behavior
         vim.api.nvim_buf_set_keymap(buf, "n", "q", ":q<CR>", { noremap = true, silent = true })
         vim.api.nvim_buf_set_keymap(buf, "n", "<Esc>", ":q<CR>", { noremap = true, silent = true })
         vim.bo[buf].buftype = "nofile"
         vim.bo[buf].bufhidden = "wipe"
-
-        -- Highlighting
-        vim.api.nvim_buf_add_highlight(buf, -1, "Title", 0, 0, -1)
-        vim.api.nvim_buf_add_highlight(buf, -1, "Comment", 1, 0, -1)
       end
 
       -- Map it to your leader key
