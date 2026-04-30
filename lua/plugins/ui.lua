@@ -13,10 +13,7 @@ vim.g.python3_host_prog = '/home/darkskittlz/.neovim-python/bin/python'
 
 vim.opt.wrap = false
 
-vim.api.nvim_set_option(
-  "clipboard",
-  "unnamedplus"
-)
+vim.opt.clipboard = "unnamedplus"
 
 -- Highlight to the next parenthesis
 vim.api.nvim_set_keymap(
