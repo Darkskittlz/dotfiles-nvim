@@ -416,10 +416,6 @@ nvim_lsp.jsonls.setup({
   end,
 })
 
-local waka_cache = "󱎫 0m" -- Default value so it's never empty
-local last_waka_check = 0
-
-
 return {
   { "alvan/vim-closetag" },
   { "windwp/nvim-autopairs" },
@@ -428,6 +424,60 @@ return {
   { "voldikss/vim-floaterm" },
   { "tpope/vim-surround" },
   { "NLKNguyen/papercolor-theme" },
+  {
+
+    -- Command to pull deepseek onto local machine
+    -- ollama pull deepseek-r1:7b
+
+    "olimorris/codecompanion.nvim",
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "nvim-treesitter/nvim-treesitter",
+      "hrsh7th/nvim-cmp",                      -- Optional: For completion
+      "nvim-telescope/telescope.nvim",         -- Optional: For searching
+      { "stevearc/dressing.nvim", opts = {} }, -- Optional: Better UI
+    },
+    config = function()
+      require("codecompanion").setup({
+        strategies = {
+          chat = {
+            adapter = "ollama",
+          },
+          inline = { adapter = "ollama" },
+          agent = { adapter = "ollama" },
+        },
+        -- MOVE DISPLAY OUTSIDE OF STRATEGIES
+        display = {
+          chat = {
+            window = {
+              layout = "float", -- This ensures it opens as a float
+              relative = "editor",
+              width = 0.95,
+              height = 0.8,
+              border = "rounded",
+            },
+          },
+        },
+        adapters = {
+          ollama = function()
+            return require("codecompanion.adapters").extend("ollama", {
+              env = {
+                url = "http://127.0.0.1:11434",
+              },
+              schema = {
+                model = {
+                  default = "deepseek-r1:7b",
+                },
+                num_ctx = {
+                  default = 16384
+                }
+              },
+            })
+          end,
+        },
+      })
+    end,
+  },
   {
     "3rd/time-tracker.nvim",
     dir = "~/linuxProjects/time-tracker.nvim", -- Point to your local dev folder
@@ -559,72 +609,6 @@ return {
       vim.o.timeout = true
       vim.o.timeoutlen = 301
     end,
-    opts = {
-      c = {
-        name = "ChatGPT",
-        c = { "<cmd>ChatGPT<CR>", "ChatGPT" },
-        e = {
-          "<cmd>ChatGPTEditWithInstruction<CR>",
-          "Edit with instruction",
-          mode = { "n", "v" },
-        },
-        g = {
-          "<cmd>ChatGPTRun grammar_correction<CR>",
-          "Grammar Correction",
-          mode = { "n", "v" },
-        },
-        t = {
-          "<cmd>ChatGPTRun translate<CR>",
-          "Translate",
-          mode = { "n", "v" },
-        },
-        k = {
-          "<cmd>ChatGPTRun keywords<CR>",
-          "Keywords",
-          mode = { "n", "v" },
-        },
-        d = {
-          "<cmd>ChatGPTRun docstring<CR>",
-          "Docstring",
-          mode = { "n", "v" },
-        },
-        a = {
-          "<cmd>ChatGPTRun add_tests<CR>",
-          "Add Tests",
-          mode = { "n", "v" },
-        },
-        o = {
-          "<cmd>ChatGPTRun optimize_code<CR>",
-          "Optimize Code",
-          mode = { "n", "v" },
-        },
-        s = {
-          "<cmd>ChatGPTRun summarize<CR>",
-          "Summarize",
-          mode = { "n", "v" },
-        },
-        f = {
-          "<cmd>ChatGPTRun fix_bugs<CR>",
-          "Fix Bugs",
-          mode = { "n", "v" },
-        },
-        x = {
-          "<cmd>ChatGPTRun explain_code<CR>",
-          "Explain Code",
-          mode = { "n", "v" },
-        },
-        r = {
-          "<cmd>ChatGPTRun roxygen_edit<CR>",
-          "Roxygen Edit",
-          mode = { "n", "v" },
-        },
-        l = {
-          "<cmd>ChatGPTRun code_readability_analysis<CR>",
-          "Code Readability Analysis",
-          mode = { "n", "v" },
-        },
-      },
-    },
   },
   -- {
   --   "christoomey/vim-tmux-navigator",
@@ -643,33 +627,6 @@ return {
     build = "pnpm add -g live-server",
     cmd = { "LiveServerStart", "LiveServerStop" },
     config = true,
-  },
-  -- {
-  --   "jackMort/ChatGPT.nvim",
-  --   event = "VeryLazy",
-  --   config = function()
-  --     require("chatgpt").setup({
-  --       openai_api_key = os.getenv(
-  --         "OPENAI_API_KEY"
-  --       ),
-  --     })
-  --   end,
-  --   dependencies = {
-  --     "MunifTanjim/nui.nvim",
-  --     "nvim-lua/plenary.nvim",
-  --     "folke/trouble.nvim",
-  --     "nvim-telescope/telescope.nvim",
-  --   },
-  -- },
-  {
-    "robitx/gp.nvim",
-    config = function()
-      require("gp").setup({
-        openai_api_key = os.getenv(
-          "OPEN_API_KEY"
-        ),
-      })
-    end,
   },
   {
     "neovim/nvim-lspconfig",

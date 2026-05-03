@@ -5,7 +5,7 @@ vim.g.maplocalleader = " "
 keymap.set("n", "-", "<C-a>")
 keymap.set("n", "+", "<C-x>")
 
-vim.keymap.set("n", "<leader>tw",
+keymap.set("n", "<leader>tw",
   [[:s/\(\s\+\)className=\(['"]\)\(.\{-}\)\2/\=submatch(1) . "className=" . submatch(2) . "\r" . submatch(1) . "  " . substitute(submatch(3), ' ', '\r' . submatch(1) . "  ", 'g') . "\r" . submatch(1) . submatch(2)/g<CR>]],
   { desc = "Split Tailwind classes into block" })
 
@@ -42,8 +42,30 @@ local function show_spinner()
   return timer
 end
 
-keymap.set("n", "<leader>tt", "<cmd>TimeTracker<cr>", { desc = "Open Time Tracker UI" })
 
+-- Local Language Model
+-- Toggle the floating chat window
+keymap.set({ "n", "v" }, "<leader>aa", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true })
+
+-- Add selected text to the chat (useful for sending specific React components)
+keymap.set("v", "ac", "<cmd>CodeCompanionChat Add<cr>", { noremap = true, silent = true })
+
+-- Open the prompt selector (pre-defined actions like "Explain", "Fix", "Optimize")
+keymap.set("n", "<leader>ap", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
+
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "codecompanion",
+  callback = function()
+    -- 1. Native 'q' to stop the response (Built-in to CodeCompanion)
+    -- No extra mapping needed if you want to keep the default 'stop' behavior
+
+    -- 2. Use 'a' to close the floating window
+    vim.keymap.set("n", "a", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true, buffer = true })
+  end,
+})
+
+-- Time Tracker Keymaps
+keymap.set("n", "<leader>tt", "<cmd>TimeTracker<cr>", { desc = "Open Time Tracker UI" })
 keymap.set("n", "<leader>tr", function()
   local db_path = vim.fn.stdpath("data") .. "/time-tracker.db"
   local success = os.remove(db_path)
@@ -207,120 +229,6 @@ keymap.set("n", "<leader>cn", function()
   end
 end, { desc = "Toggle line numbers" })
 
--- ChatGPT Keymaps --
--- GpChatNew Mappings
-keymap.set(
-  "n",
-  "<leader>gv",
-  ":GpChatNew vsplit<CR>",
-  { noremap = true, silent = true }
-)
-keymap.set(
-  "n",
-  "<leader>gs",
-  ":GpChatNew split<CR>",
-  { noremap = true, silent = true }
-)
-keymap.set(
-  "n",
-  "<leader>gt",
-  ":GpChatNew tabnew<CR>",
-  { noremap = true, silent = true }
-)
-keymap.set(
-  "n",
-  "<leader>gp",
-  ":GpChatNew popup<CR>",
-  { noremap = true, silent = true }
-)
-
--- GpChatPaste Mappings
-keymap.set(
-  "v",
-  "<leader>gvp",
-  ':"<C-U>GpChatPaste<CR>',
-  { noremap = true, silent = true }
-)
-keymap.set(
-  "v",
-  "<leader>gvs",
-  ':"<C-U>GpChatPaste vsplit<CR>',
-  { noremap = true, silent = true }
-)
-keymap.set(
-  "v",
-  "<leader>gsp",
-  ':"<C-U>GpChatPaste split<CR>',
-  { noremap = true, silent = true }
-)
-keymap.set(
-  "v",
-  "<leader>gtp",
-  ':"<C-U>GpChatPaste tabnew<CR>',
-  { noremap = true, silent = true }
-)
-keymap.set(
-  "v",
-  "<leader>gpp",
-  ':"<C-U>GpChatPaste popup<CR>',
-  { noremap = true, silent = true }
-)
-
--- GpChatToggle Mappings
-keymap.set(
-  "n",
-  "<leader>gtg",
-  ":GpChatToggle<CR>",
-  { noremap = true, silent = true }
-)
-keymap.set(
-  "n",
-  "<leader>gtv",
-  ":GpChatToggle vsplit<CR>",
-  { noremap = true, silent = true }
-)
-keymap.set(
-  "n",
-  "<leader>gth",
-  ":GpChatToggle split<CR>",
-  { noremap = true, silent = true }
-)
-keymap.set(
-  "n",
-  "<leader>gtt",
-  ":GpChatToggle tabnew<CR>",
-  { noremap = true, silent = true }
-)
-keymap.set(
-  "n",
-  "<leader>gttg",
-  ":GpChatToggle popup<CR>",
-  { noremap = true, silent = true }
-)
-
--- GpChatFinder Mapping
-keymap.set(
-  "n",
-  "<leader>gf",
-  ":GpChatFinder<CR>",
-  { noremap = true, silent = true }
-)
-
--- GpChatRespond Mapping
-keymap.set(
-  "n",
-  "<leader>gr",
-  ":GpChatRespond<CR>",
-  { noremap = true, silent = true }
-)
-
--- GpChatDelete Mapping
-keymap.set(
-  "n",
-  "<leader>gd",
-  ":GpChatDelete<CR>",
-  { noremap = true, silent = true }
-)
 
 -- Switch (cycle) between buffers with uppercase H/L
 keymap.set(
