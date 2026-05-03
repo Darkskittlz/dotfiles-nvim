@@ -435,6 +435,7 @@ return {
       "nvim-treesitter/nvim-treesitter",
       "hrsh7th/nvim-cmp",                      -- Optional: For completion
       "nvim-telescope/telescope.nvim",         -- Optional: For searching
+      "ravitemer/codecompanion-history.nvim",  -- Add this extension
       { "stevearc/dressing.nvim", opts = {} }, -- Optional: Better UI
     },
     config = function()
@@ -464,6 +465,10 @@ return {
               env = {
                 url = "http://127.0.0.1:11434",
               },
+              opts = {
+                system_prompt =
+                "You are an expert AI assistant. Always respond using Markdown. Wrap all code blocks in triple backticks with the correct language identifier. Also address me as Tristan",
+              },
               schema = {
                 model = {
                   default = "deepseek-r1:7b",
@@ -474,6 +479,17 @@ return {
               },
             })
           end,
+        },
+        extensions = {
+          history = {
+            enabled = true,
+            opts = {
+              auto_save = true,      -- Saves after every message automatically
+              keymap = "gh",
+              save_id = "timestamp", -- Unique identifier for the save
+              index_path = vim.fn.stdpath("data") .. "/codecompanion-history/index.json",
+            },
+          },
         },
       })
     end,
@@ -874,9 +890,9 @@ return {
 
             -- 2. MARKDOWN HEADER BACKGROUNDS
             hl.RenderMarkdownH1Bg = { fg = "#ffffff", bg = "#003366" }
-            hl.RenderMarkdownH2Bg = { fg = "#ffffff", bg = "#8B0000" }
+            hl.RenderMarkdownH2Bg = { fg = "#ffffff", bg = "#1c6e68" }
             hl.RenderMarkdownH3Bg = { fg = "#ffffff", bg = "#4a1bdf" }
-            hl.RenderMarkdownH4Bg = { fg = "#ffffff", bg = "#4a1bdf" }
+            hl.RenderMarkdownH4Bg = { fg = "#ffffff", bg = "#cc5190" }
             hl.RenderMarkdownH5Bg = { fg = "#ffffff", bg = "#8B0000" }
 
             -- 3. THE "HACKER GREEN" CODE BLOCKS
@@ -884,7 +900,6 @@ return {
 
             -- Full Code Blocks (Triple backticks)
             hl.RenderMarkdownCode = {
-              fg = hacker_green,
               bg = "#1e1e1e",
               bold = true,
             }
@@ -895,6 +910,7 @@ return {
             hl.RenderMarkdownCodeInline = inline_style
             hl["@markup.raw"] = inline_style -- Treesitter fallback
             hl.MarkdownCode = inline_style   -- Legacy fallback
+            hl.RenderMarkdownLanguage = { fg = hacker_green, bold = true }
 
             -- 4. LINKS & TIME TRACKER
             hl.RenderMarkdownLink = { fg = "#1E90FF" }
@@ -1300,6 +1316,7 @@ return {
         )
         -- Call the setup function to initialize the plugin
         require("render-markdown").setup({
+          file_types = { "markdown", "codecompanion" },
           heading = {
             -- Turn on / off heading icon & background rendering
             enabled = true,
