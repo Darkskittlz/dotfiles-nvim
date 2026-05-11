@@ -426,33 +426,32 @@ return {
    { "tpope/vim-surround" },
    { "NLKNguyen/papercolor-theme" },
    {
-
-      -- Command to pull deepseek onto local machine
-      -- ollama pull deepseek-r1:7b
-
       "olimorris/codecompanion.nvim",
       dependencies = {
          "nvim-lua/plenary.nvim",
          "nvim-treesitter/nvim-treesitter",
-         "hrsh7th/nvim-cmp",                      -- Optional: For completion
-         "nvim-telescope/telescope.nvim",         -- Optional: For searching
-         "ravitemer/codecompanion-history.nvim",  -- Add this extension
-         { "stevearc/dressing.nvim", opts = {} }, -- Optional: Better UI
+         "hrsh7th/nvim-cmp",
+         "nvim-telescope/telescope.nvim",
+         "ravitemer/codecompanion-history.nvim",
+         { "stevearc/dressing.nvim", opts = {} },
       },
       config = function()
          require("codecompanion").setup({
             strategies = {
-               chat = {
-                  adapter = "gemini",
-               },
+               chat = { adapter = "gemini" },
                inline = { adapter = "gemini" },
                agent = { adapter = "gemini" },
             },
-            -- MOVE DISPLAY OUTSIDE OF STRATEGIES
+            -- This is the global 'opts' block where auto_generate_title lives
+            opts = {
+               chat = {
+                  auto_generate_title = false,
+               }
+            },
             display = {
                chat = {
                   window = {
-                     layout = "float", -- This ensures it opens as a float
+                     layout = "float",
                      relative = "editor",
                      width = 0.95,
                      height = 0.8,
@@ -464,11 +463,11 @@ return {
                gemini = function()
                   return require("codecompanion.adapters").extend("gemini", {
                      env = {
-                        api_key = "YOUR_ACTUAL_KEY_HERE",
+                        api_key = "GEMINI_API_KEY", -- Double check this matches image_95765a.png
                      },
                      url = "https://generativelanguage.googleapis.com/v1/models/${model}:streamGenerateContent",
                      headers = {
-                        ["x-goog-user-project"] = "gen-lang-client-0326750854", -- From your image_95765a.png
+                        ["x-goog-user-project"] = "50196597512",
                      },
                      schema = {
                         model = {
@@ -485,13 +484,10 @@ return {
                history = {
                   enabled = true,
                   opts = {
-                     auto_save = true,      -- Saves after every message automatically
+                     auto_save = true,
                      keymap = "gh",
-                     save_id = "timestamp", -- Unique identifier for the save
+                     save_id = "timestamp",
                      index_path = vim.fn.stdpath("data") .. "/codecompanion-history/index.json",
-                     chat = {
-                        auto_generate_title = false, -- Stops the history extension from crashing on errors
-                     },
                   },
                },
             },
