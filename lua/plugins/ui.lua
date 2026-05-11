@@ -433,7 +433,7 @@ return {
       "olimorris/codecompanion.nvim",
       dependencies = {
          "nvim-lua/plenary.nvim",
-         -- "nvim-treesitter/nvim-treesitter",
+         "nvim-treesitter/nvim-treesitter",
          "hrsh7th/nvim-cmp",                      -- Optional: For completion
          "nvim-telescope/telescope.nvim",         -- Optional: For searching
          "ravitemer/codecompanion-history.nvim",  -- Add this extension
@@ -472,12 +472,14 @@ return {
                      },
                      schema = {
                         model = {
-                           default = "deepseek-r1:7b",
+                           default = "gemini-1.5-flash",
                         },
                         num_ctx = {
                            default = 16384
                         }
                      },
+                     temperature = { default = 0.7 },
+                     max_tokens = { default = 4096 },
                   })
                end,
             },
@@ -643,136 +645,45 @@ return {
    },
    {
       "neovim/nvim-lspconfig",
-      opt = true,
-      event = "BufReadPre",
-      config = function()
-         -- Configure TypeScript LSP (`ts_ls`) for JavaScript and TypeScript files
-         require("lspconfig").ts_ls.setup({
-            capabilities = capabilities,
-            on_attach = function(client)
-               -- Enable formatting for TypeScript and JavaScript
-               client.server_capabilities.documentFormattingProvider =
-                   true
-               client.server_capabilities.documentRangeFormattingProvider =
-                   true
-            end,
-            filetypes = {
-               "javascript",
-               "javascriptreact",
-               "typescript",
-               "typescriptreact",
-               "vue",
-            }, -- Explicitly specify supported filetypes
-            init_options = {
-               plugins = {
-                  {
-                     name = "@vue/typescript-plugin",
-                     location = "/usr/local/lib/node_modules/@vue/typescript-plugin", -- Adjust location if necessary
-                     languages = {
-                        "javascript",
-                        "typescript",
-                        "vue",
+      opts = {
+         -- LazyVim will automatically merge these into the setup
+         servers = {
+            -- Python
+            pyright = {
+               settings = {
+                  python = {
+                     analysis = {
+                        autoSearchPaths = true,
+                        diagnosticMode = "openFilesOnly",
+                        useLibraryCodeForTypes = true,
                      },
                   },
                },
             },
-            root_dir = require("lspconfig.util").root_pattern(
-               "tsconfig.json",
-               "package.json",
-               ".git"
-            ),
-
-            handlers = {
-               ["window/showMessage"] = function(
-                   _,
-                   result,
-                   ctx,
-                   config
-               )
-                  if
-                      result
-                      and type(result.message) == "string"
-                      and result.message:match(
-                         "No Project"
-                      )
-                  then
-                     return
-                  end
-                  return vim.lsp.handlers["window/showMessage"](
-                     _,
-                     result,
-                     ctx,
-                     config
-                  )
-               end,
-            },
-         })
-
-         -- Configure Python LSP (pyright)
-         require("lspconfig").pyright.setup({
-            capabilities = capabilities,
-            on_attach = function(client, bufnr)
-               -- Python usually uses black or ruff for formatting
-               -- If you want Pyright to handle basic stuff:
-               client.server_capabilities.documentFormattingProvider = true
-            end,
-            settings = {
-               python = {
-                  analysis = {
-                     autoSearchPaths = true,
-                     useLibraryCodeForTypes = true,
-                     diagnosticMode = "openFilesOnly", -- Keeps nvim from lagging on large projects
+            -- TypeScript / JS / JSX
+            -- Note: LazyVim 15 defaults to vtsls, but if you prefer ts_ls:
+            vtsls = {
+               filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact", "vue" },
+               init_options = {
+                  plugins = {
+                     {
+                        name = "@vue/typescript-plugin",
+                        location = "/usr/local/lib/node_modules/@vue/typescript-plugin",
+                        languages = { "javascript", "typescript", "vue" },
+                     },
                   },
                },
             },
-            root_dir = require("lspconfig.util").root_pattern(
-               "requirements.txt",
-               "pyproject.toml",
-               "venv",
-               ".git"
-            ),
-         })
-
-         -- Configure Vue LSP (`vuels`) for `.vue` files and ensure it's also handling formatting
-         require("lspconfig").vuels.setup({
-            on_attach = function(client, bufnr)
-               -- Enable auto-formatting capability for vuels
-               client.resolved_capabilities.document_formatting =
-                   true
-               client.resolved_capabilities.document_range_formatting =
-                   true
-            end,
-         })
-
-         -- Configure Lua LSP (`lua_ls`) for Lua files
-         require("lspconfig").lua_ls.setup({
-            capabilities = capabilities,
-            on_attach = function(client)
-               -- Make sure that the server supports formatting
-               if
-                   client.server_capabilities.documentFormattingProvider
-               then
-                  client.server_capabilities.documentFormattingProvider =
-                      true
-               end
-               if
-                   client.server_capabilities.documentRangeFormattingProvider
-               then
-                  client.server_capabilities.documentRangeFormattingProvider =
-                      true
-               end
-            end,
-            filetypes = { "lua" },
-         })
-
-         -- Autoformat on save for various filetypes
-         vim.api.nvim_create_autocmd("BufWritePre", {
-            pattern = "*.jsx,*.tsx,*.js,*.ts,*.vue,*.lua, *.py", -- Adjust the pattern based on your needs
-            callback = function()
-               vim.lsp.buf.format({ async = false })
-            end,
-         })
-      end,
+            -- Vue
+            volar = {}, -- 'vuels' is very old; 'volar' is the modern standard for Vue 3
+            -- Lua
+            lua_ls = {},
+         },
+         -- This replaces your manual autocmd for formatting
+         setup = {
+            -- You can put custom setup logic here if needed
+         },
+      },
    },
    {
       "HampusHauffman/block.nvim",
@@ -920,6 +831,25 @@ return {
                   hl["keyword.return.tsx"] = { fg = keyword_color }
                   hl["keyword.javascript"] = { fg = keyword_color }
                   hl["keyword.return.javascript"] = { fg = keyword_color }
+
+                  local tag_color = c.blue -- Or c.magenta if you want them to pop more
+
+                  -- JSX/TSX Standard Elements
+                  hl["@tag.builtin"] = { fg = tag_color }
+                  hl["@tag.delimiter"] = { fg = c.blue700 } -- Colors the < and >
+                  hl["@tag.attribute"] = { fg = c.magenta }
+
+                  -- Specific overrides for javascriptreact (your current filetype)
+                  hl["@tag.builtin.javascript"] = { fg = tag_color }
+                  hl["@tag.javascript"] = { fg = c.cyan }
+
+                  -- If you want 'className' and 'key' to be a different color
+                  hl["@tag.attribute.javascript"] = { fg = c.magenta }
+                  hl["@tag.attribute.tsx"] = { fg = c.magenta }
+
+                  -- The actual component name inside the tag
+                  hl["@constructor.tsx"] = { fg = c.cyan }
+                  hl["@variable.builtin.tsx"] = { fg = c.cyan }
 
                   local telescope_groups = {
                      "TelescopeNormal", "TelescopeBorder", "TelescopePromptNormal",
