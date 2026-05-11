@@ -464,22 +464,20 @@ return {
                gemini = function()
                   return require("codecompanion.adapters").extend("gemini", {
                      env = {
-                        api_key = "GEMINI_API_KEY",
+                        api_key = "YOUR_ACTUAL_KEY_HERE",
                      },
-                     opts = {
-                        system_prompt =
-                        "You are an expert AI assistant. Always respond using Markdown. Wrap all code blocks in triple backticks with the correct language identifier. Also address me as Tristan",
+                     url = "https://generativelanguage.googleapis.com/v1/models/${model}:streamGenerateContent",
+                     headers = {
+                        ["x-goog-user-project"] = "gen-lang-client-0326750854", -- From your image_95765a.png
                      },
                      schema = {
                         model = {
                            default = "gemini-1.5-flash",
                         },
-                        num_ctx = {
-                           default = 16384
-                        }
                      },
-                     temperature = { default = 0.7 },
-                     max_tokens = { default = 4096 },
+                     parameters = {
+                        sync = false,
+                     },
                   })
                end,
             },
@@ -491,6 +489,9 @@ return {
                      keymap = "gh",
                      save_id = "timestamp", -- Unique identifier for the save
                      index_path = vim.fn.stdpath("data") .. "/codecompanion-history/index.json",
+                     chat = {
+                        auto_generate_title = false, -- Stops the history extension from crashing on errors
+                     },
                   },
                },
             },
@@ -837,15 +838,15 @@ return {
                   -- JSX/TSX Standard Elements
                   hl["@tag.builtin"] = { fg = tag_color }
                   hl["@tag.delimiter"] = { fg = c.blue700 } -- Colors the < and >
-                  hl["@tag.attribute"] = { fg = c.magenta }
+                  hl["@tag.attribute"] = { fg = '#6c71c4' }
 
                   -- Specific overrides for javascriptreact (your current filetype)
                   hl["@tag.builtin.javascript"] = { fg = tag_color }
                   hl["@tag.javascript"] = { fg = c.cyan }
 
                   -- If you want 'className' and 'key' to be a different color
-                  hl["@tag.attribute.javascript"] = { fg = c.magenta }
-                  hl["@tag.attribute.tsx"] = { fg = c.magenta }
+                  hl["@tag.attribute.javascript"] = { fg = '#6c71c4' }
+                  hl["@tag.attribute.tsx"] = { fg = '#6c71c4' }
 
                   -- The actual component name inside the tag
                   hl["@constructor.tsx"] = { fg = c.cyan }

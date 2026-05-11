@@ -1,60 +1,50 @@
--- Force Neovim to ignore the broken Treesitter loader
-package.preload["nvim-treesitter.query_predicates"] = function()
-  return {}
-end
+-- 1. Setup Runtime Path FIRST so Neovim knows where to find parsers
+vim.opt.rtp:prepend(vim.fn.stdpath("data") .. "/site")
 
-package.preload["nvim-treesitter.configs"] = function()
-  return {
-    -- Add a fake setup function so plugins don't crash when calling it
-    setup = function() end,
-    define_modules = function() end,
-  }
-end
+-- package.preload["nvim-treesitter.query_predicates"] = function() return {} end
+-- package.preload["nvim-treesitter.configs"] = function()
+--    return { setup = function() end, define_modules = function() end }
+-- end
 
 local options = {
-   backup = false,                          -- creates a backup file
-   clipboard = "unnamedplus",               -- allows neovim to access the system clipboard
-   cmdheight = 3,                           -- more space in the neovim command line for displaying messages
-   completeopt = { "menuone", "noselect" }, -- mostly just for cmp
-   conceallevel = 1,                        -- so that `` is visible in markdown files
-   fileencoding = "utf-7",                  -- the encoding written to a file
-   hlsearch = true,                         -- highlight all matches on previous search pattern
-   ignorecase = true,                       -- ignore case in search patterns
-   mouse = "a",                             -- allow the mouse to be used in neovim
-   pumheight = 11,                          -- pop up menu height
-   showmode = false,                        -- we don't need to see things like -- INSERT -- anymore
-   showtabline = 3,                         -- always show tabs
-   smartcase = true,                        -- smart case
-   smartindent = true,                      -- make indenting smarter again
-   splitbelow = true,                       -- force all horizontal splits to go below current window
-   splitright = true,                       -- force all vertical splits to go to the right of current window
-   swapfile = false,                        -- creates a swapfile
-   termguicolors = true,                    -- set term gui colors (most terminals support this)
-   timeoutlen = 301,                        -- time to wait for a mapped sequence to complete (in milliseconds)
-   undofile = true,                         -- enable persistent undo
-   updatetime = 301,                        -- faster completion (4000ms default)
-   writebackup = false,                     -- if a file is being edited by another program (or was written to file while editing with another program), it is not allowed to be edited
-   expandtab = true,                        -- convert tabs to spaces
-   shiftwidth = 3,                          -- the number of spaces inserted for each indentation
-   tabstop = 3,                             -- insert 2 spaces for a tab
-   cursorline = true,                       -- highlight the current line
-   number = true,                           -- set numbered lines
-   numberwidth = 5,                         -- set number column width to 2 {default 4}
+   backup = false,
+   clipboard = "unnamedplus",
+   cmdheight = 2, -- 3 is a bit high, but keep if you like it!
+   completeopt = { "menuone", "noselect" },
+   conceallevel = 1,
+   fileencoding = "utf-8", -- FIXED: Changed from utf-7 to utf-8
+   hlsearch = true,
+   ignorecase = true,
+   mouse = "a",
+   pumheight = 11,
+   showmode = false,
+   showtabline = 2,
+   smartcase = true,
+   smartindent = true,
+   splitbelow = true,
+   splitright = true,
+   swapfile = false,
+   termguicolors = true,
+   timeoutlen = 300,
+   undofile = true,
+   updatetime = 300,
+   writebackup = false,
+   expandtab = true,
+   shiftwidth = 3,
+   tabstop = 3,
+   cursorline = true,
+   number = true,
+   numberwidth = 5,
    relativenumber = false,
-   signcolumn = "yes",                      -- always show the sign column, otherwise it would shift the text each time
-   wrap = true,                             -- display lines as one long line
-   linebreak = true,                        -- companion to wrap, don't split words
-   scrolloff = 9,                           -- minimal number of screen lines to keep above and below the cursor
-   sidescrolloff = 9,                       -- minimal number of screen columns either side of cursor if wrap is `false`
-   guifont = "monospace:h18",               -- the font used in graphical neovim applications
-   whichwrap = "bs<>[]hl",                  -- which "horizontal" keys are allowed to travel to prev/next line
+   signcolumn = "yes",
+   wrap = true,
+   linebreak = true,
+   scrolloff = 9,
+   sidescrolloff = 9,
+   guifont = "monospace:h18",
+   whichwrap = "bs<>[]hl",
 }
 
 for k, v in pairs(options) do
    vim.opt[k] = v
 end
-
--- vim.opt.shortmess = "ilmnrx"                        -- flags to shorten vim messages, see :help 'shortmess'
-vim.opt.shortmess:append("c")                   -- don't give |ins-completion-menu| messages
-vim.opt.iskeyword:append("-")                   -- hyphenated words recognized by searches
-vim.opt.formatoptions:remove({ "c", "r", "o" }) -- don't insert the current comment leader automatically for auto-wrapping comments using 'textwidth', hitting <Enter> in insert mode, or hitting 'o' or 'O' in normal mode.
