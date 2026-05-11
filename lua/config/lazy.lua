@@ -1,89 +1,38 @@
+-- 1. SET LEADERS FIRST (Crucial for LazyVim)
+vim.g.mapleader = " "
+vim.g.maplocalleader = "\\"
 vim.g.sqlite_clib_path = '/home/linuxbrew/.linuxbrew/lib/libsqlite3.so'
 
+-- 2. BOOTSTRAP LAZY
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
-if not vim.loop.fs_stat(lazypath) then
-  -- bootstrap lazy.nvim
-  -- stylua: ignore
+if not (vim.uv or vim.loop).fs_stat(lazypath) then
   vim.fn.system({ "git", "clone", "--filter=blob:none", "https://github.com/folke/lazy.nvim.git", "--branch=stable",
     lazypath })
 end
-vim.opt.rtp:prepend(vim.env.LAZY or lazypath)
+vim.opt.rtp:prepend(lazypath)
 
-vim.g.mapleader = " "
-vim.g.maplocalleader = " "
-
-vim.api.nvim_create_autocmd("VimEnter", {
-  callback = function()
-    -- temporarily switch to light
-    vim.o.background = "light"
-    -- defer to next event loop tick, then switch back to dark
-    vim.schedule(function()
-      vim.o.background = "dark"
-    end)
-  end,
-})
-
+-- 3. SETUP PLUGINS
 require("lazy").setup({
   spec = {
-    -- add LazyVim and import its plugins
-    {
-      "LazyVim/LazyVim",
-      import = "lazyvim.plugins",
-      opts = {
-        colorscheme = "solarized-osaka",
-      },
-    },
-    -- {
-    --   "williamboman/mason.nvim",
-    --   opts = function(_, opts)
-    --     vim.list_extend(opts.ensure_installed, {
-    --       "stylua",
-    --       "selene",
-    --       "luacheck",
-    --       "shellcheck",
-    --       "shfmt",
-    --       "tailwindcss-language-server",
-    --       "typescript-language-server",
-    --       "css-lsp",
-    --       "vue-language-server",
-    --     })
-    --   end,
-    -- },
+    -- Import LazyVim's base
+    { "LazyVim/LazyVim", import = "lazyvim.plugins", opts = { colorscheme = "solarized-osaka" } },
 
-    -- import any extras modules here
-    -- { import = "lazyvim.extras.linting.eslint" },
-    -- { import = "lazyvim.extras.formatting.prettier" },
-    -- { import = "lazyvim.plugins.extras.lang.typescript" },
-    -- { import = "lazyvim.plugins.extras.lang.json" },
-    -- { import = "lazyvim.extras.lang.rust" },
-    -- { import = "lazyvim.extras.formatting.tailwind" },
-    -- { import = "lazyvim.plugins.extras.ui.mini-animate" },
-    -- { import = "lazyvim.extras.copilot" },
-    -- { import = "lazyvim.extras.formatting." },
-
-    -- import/override with your plugins
+    -- Import your custom stuff from lua/plugins/
     { import = "plugins" },
   },
-  defaults = {
-    -- By default, only LazyVim plugins will be lazy-loaded. Your custom plugins will load during startup.
-    -- If you know what you're doing, you can set this to `true` to have all your custom plugins lazy-loaded by default.
-    lazy = false,
-    -- It's recommended to leave version=false for now, since a lot the plugin that support versioning,
-    -- have outdated releases, which may break your Neovim install.
-    version = false, -- always use the latest git commit
-    -- version = "*", -- try installing the latest stable version for plugins that support semver
+  rocks = {
+    enabled = false
   },
-  install = { colorscheme = { "vim-habanight" } }, -- specify the color scheme to be installed
-  -- install = { colorscheme = { "tokyonight", "habamax" } },
-  checker = { enabled = true },                    -- automatically check for plugin updates
+  defaults = {
+    lazy = false,
+    version = false,
+  },
+  install = { colorscheme = { "solarized-osaka" } },
+  checker = { enabled = true },
   performance = {
     rtp = {
-      -- disable some rtp plugins
       disabled_plugins = {
         "gzip",
-        -- "matchit",
-        -- "matchparen",
-        -- "netrwPlugin",
         "tarPlugin",
         "tohtml",
         "tutor",
@@ -92,3 +41,6 @@ require("lazy").setup({
     },
   },
 })
+
+-- 4. FINAL THEME SETTINGS (After plugins load)
+vim.o.background = "dark"
