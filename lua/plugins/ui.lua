@@ -703,6 +703,7 @@ return {
          })
          vim.api.nvim_set_hl(0, "BufferCurrentSign", { fg = "#ffffff" })
 
+
          -- Inactive buffer highlights
          vim.api.nvim_set_hl(0, "BufferInactive", { fg = "#555555", bg = "none" })
          vim.api.nvim_set_hl(0, "BufferInactiveSign", { fg = "#555555", bg = "none" })
@@ -918,34 +919,44 @@ return {
             }
          end,
       },
-
-      -- bufferline
       {
          "akinsho/bufferline.nvim",
-         -- tag = "*",
-         -- event = "verylazy",
          requires = "nvim-tree/nvim-web-devicons",
          keys = {
-            {
-               "<tab>",
-               "<cmd>bufferlinecyclenext<cr>",
-               desc = "next tab",
-            },
-            {
-               "<s-tab>",
-               "<cmd>bufferlinecycleprev<cr>",
-               desc = "prev tab",
-            },
+            { "<tab>",   "<cmd>BufferLineCycleNext<cr>", desc = "next tab" },
+            { "<s-tab>", "<cmd>BufferLineCyclePrev<cr>", desc = "prev tab" },
          },
          opts = {
             options = {
                show_buffer_close_icons = true,
                show_close_icon = true,
             },
+            -- ADD THIS SECTION BELOW
+            highlights = {
+               buffer_selected = {
+                  fg = '#ffffff', -- Text color of the active tab
+                  bg = '#3366cc', -- Background color of the active tab
+                  bold = true,
+               },
+               icon_selected = {
+                  bg = '#3366cc', -- Ensures the gear icon background matches
+               },
+               modified_selected = {
+                  fg = '#f1fa8c',
+                  bg = '#3366cc', -- Matches background when file is unsaved
+               },
+               close_button_selected = {
+                  fg = '#ffffff',
+                  bg = '#3366cc', -- Matches background for the 'x' button
+               },
+               -- This fixes the thin indicator line usually at the bottom
+               indicator_selected = {
+                  fg = '#3366cc',
+                  bg = '#3366cc',
+               },
+            },
          },
       },
-
-      -- LOGO
       {
          "nvimdev/dashboard-nvim",
          lazy = false,
