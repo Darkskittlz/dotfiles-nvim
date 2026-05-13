@@ -47,6 +47,12 @@ end
 -- Toggle the floating chat window
 keymap.set({ "n", "v" }, "<leader>aa", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true })
 
+-- Normal mode: Just opens the prompt
+keymap.set("n", "<leader>ai", "<cmd>CodeCompanion <cr>", { noremap = true, silent = true })
+
+-- Visual mode: Automatically sends the selection to the LLM
+keymap.set("v", "<leader>ai", ":CodeCompanion ", { noremap = true, silent = true })
+
 -- Add selected text to the chat (useful for sending specific React components)
 keymap.set("v", "ac", "<cmd>CodeCompanionChat Add<cr>", { noremap = true, silent = true })
 

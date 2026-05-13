@@ -120,8 +120,24 @@ local function load_branches()
     "git rev-parse --abbrev-ref HEAD"
   )[1] or ""
 
+  -- Get ahead/behind info
+  Ui.branch_ahead_behind = {}
+  local tracking_info = run_git("git for-each-ref --format='%(refname:short)|%(upstream:track)' refs/heads/") or {}
+  for _, line in ipairs(tracking_info) do
+    local b, track = line:match("^(.-)|(.*)$")
+    if b and b ~= "" then
+      local ah = track:match("ahead (%d+)")
+      local bh = track:match("behind (%d+)")
+      local track_str = ""
+      if ah then track_str = track_str .. "↑" .. ah end
+      if bh then track_str = track_str .. "↓" .. bh end
+      Ui.branch_ahead_behind[b] = track_str
+    end
+  end
+
+
   -- Store branch statuses separately
-  local branch_statuses = {}
+   local branch_statuses = {}
   local status = run_git("git status --porcelain")
   for _, branch in ipairs(cleaned) do
     if branch == current then
@@ -139,7 +155,7 @@ local function load_branches()
         end
       end
 
-      if unstaged then
+            if unstaged then
         branch_statuses[branch] = "💣" -- unstaged changes exist
       elseif staged then
         branch_statuses[branch] = "✅" -- staged changes ready to commit
@@ -150,6 +166,7 @@ local function load_branches()
       branch_statuses[branch] = "" -- other branches just blank
     end
   end
+
 
   -- Reorder so current branch is first
   table.sort(cleaned, function(a, b)
@@ -332,14 +349,16 @@ local function render_left()
     --   "render_left: current branch =",
     --   current
     -- )
-    for i, b in ipairs(Ui.branches) do
+   for i, b in ipairs(Ui.branches) do
       local marker = (b == current) and "*" or " "
       local status = Ui.branch_statuses[b] or "" -- fetch ⚠ if there are uncommitted changes
+      local ahead_behind = Ui.branch_ahead_behind[b] or ""
       local line = string.format(
-        "%2s %s %s",
+        "%2s %s %s %s",
         marker,
         b,
-        status
+        status,
+        ahead_behind
       )
       table.insert(lines, line)
 
@@ -349,8 +368,10 @@ local function render_left()
           { line = i, hl = "GitBranchCurrent" }
         )
       end
-    end
-  else
+   end
+   else
+
+
     -- print(
     --   "render_left: rendering changed files, selected branch =",
     --   Ui.branch_selected
@@ -440,6 +461,9 @@ local function convert_graph(line)
   return line
 end
 
+
+
+
 -- Fetch git log and convert graph symbols
 local function git_graph(limit, branch)
   limit = limit or 20
@@ -457,6 +481,7 @@ local function git_graph(limit, branch)
   end
   return lines
 end
+
 
 ---------------------------------------------------------------------------
 
@@ -1860,6 +1885,132 @@ function M.open_git_ui()
         noremap = true,
         silent = true,
       })
+
+      vim.keymap.set("n", "<Space>", function()
+         local win = vim.api.nvim_get_current_win()
+         if win ~= Ui.left_win then
+         return -- Only operate in left panel
+         end
+
+         if Ui.mode == "files" then
+         stage_unstage_selected()
+         render_left() -- refresh UI so staging is visible
+         elseif Ui.mode == "branches" then
+         checkout_branch()
+         end
+      end, {
+         buffer = buf,
+         noremap = true,
+         silent = true,
+      })
+
+      -- Checkout Remote Branch Keymap
+      vim.keymap.set("n", "c", function()
+         if Ui.mode ~= "branches" then return end
+         local win = vim.api.nvim_get_current_win()
+         if win ~= Ui.left_win then return end
+
+         local remotes = run_git("git branch -r --format='%(refname:short)'")
+         local filtered = {}
+         for _, r in ipairs(remotes) do
+         if not r:match("->") then table.insert(filtered, r) end
+         end
+
+         vim.ui.select(filtered, { prompt = "Checkout Remote Branch:" }, function(choice)
+         if not choice then return end
+         local local_name = choice:match("^[^/]+/(.*)$") or choice
+         local out = vim.fn.system("git checkout -b " .. vim.fn.shellescape(local_name) .. " " .. vim.fn.shellescape(choice))
+         if vim.v.shell_error == 0 then
+            show_centered_message("Checked out " .. local_name)
+            load_branches()
+            refresh_ui()
+         else
+            show_centered_error("Failed to checkout remote branch.")
+         end
+         end)
+      end, { buffer = Ui.left_buf, noremap = true, silent = true, desc = "Checkout remote branch" })
+
+      -- Resolve Merge Conflict Keymap
+      vim.keymap.set("n", "r", function()
+         if Ui.mode ~= "files" then return end
+         local win = vim.api.nvim_get_current_win()
+         if win ~= Ui.left_win then return end
+
+         local sel = Ui.changed_files[Ui.selected_index]
+         if not sel then return end
+
+         -- Unmerged states contain "U" or are both modified/added (AA, DD)
+         if sel.status:match("U") or sel.status == "AA" or sel.status == "DD" then
+         local root = git_root()
+         close_ui()
+         vim.cmd("tabedit " .. root .. "/" .. sel.value)
+         vim.notify("Resolve conflicts for: " .. sel.value, vim.log.levels.WARN)
+         else
+         show_centered_message("File has no conflicts.", "ℹ️")
+         end
+      end, { buffer = Ui.left_buf, noremap = true, silent = true, desc = "Resolve conflicts in file" })
+
+      -- PR Creation Keymap
+      vim.keymap.set("n", "O", function()
+         if Ui.mode ~= "branches" then return end
+         local win = vim.api.nvim_get_current_win()
+         if win ~= Ui.left_win then return end
+
+         local target_branch = Ui.branches[Ui.selected_index]
+         if not target_branch then return end
+         local current_branch = run_git("git rev-parse --abbrev-ref HEAD")[1] or ""
+
+         if target_branch == current_branch then
+         show_centered_error("Cannot PR to the same branch!")
+         return
+         end
+
+         show_centered_message("Creating PR...")
+         vim.fn.jobstart({"gh", "pr", "create", "--base", current_branch, "--head", target_branch, "--web"}, {
+         on_exit = function(_, exit_code)
+            if exit_code == 0 then
+               vim.schedule(function() show_centered_message("Opened PR in browser!", "✅") end)
+            else
+               vim.schedule(function() show_centered_error("Failed to create PR.\nEnsure 'gh' CLI is installed and authenticated.") end)
+            end
+         end
+         })
+      end, { buffer = Ui.left_buf, noremap = true, silent = true, desc = "Create PR to HEAD branch" })
+
+      -- Commit Log Diff Viewer Keymap
+      vim.keymap.set("n", "v", function()
+         if Ui.mode ~= "branches" then return end
+         local win = vim.api.nvim_get_current_win()
+         if win ~= Ui.right_win then return end
+
+         local cursor = vim.api.nvim_win_get_cursor(Ui.right_win)
+         local line = vim.api.nvim_buf_get_lines(Ui.right_buf, cursor[1] - 1, cursor[1], false)[1] or ""
+         local hash = line:match("^(%S+)")
+         if not hash then return end
+
+         local diff_lines = vim.fn.systemlist("git show " .. hash)
+         if vim.v.shell_error ~= 0 then return end
+
+         local ui = vim.api.nvim_list_uis()[1]
+         local w = math.floor(ui.width * 0.8)
+         local h = math.floor(ui.height * 0.8)
+         local diff_buf = vim.api.nvim_create_buf(false, true)
+         
+         vim.api.nvim_buf_set_lines(diff_buf, 0, -1, false, diff_lines)
+         vim.api.nvim_buf_set_option(diff_buf, "filetype", "diff")
+         vim.api.nvim_buf_set_option(diff_buf, "modifiable", false)
+
+         local diff_win = vim.api.nvim_open_win(diff_buf, true, {
+         relative = "editor", width = w, height = h,
+         row = math.floor((ui.height - h) / 2), col = math.floor((ui.width - w) / 2),
+         style = "minimal", border = "rounded", title = " Commit: " .. hash .. " ", 
+         title_pos = "center", zindex = 600
+         })
+
+         vim.keymap.set("n", "q", function() vim.api.nvim_win_close(diff_win, true) end, { buffer = diff_buf, noremap = true, silent = true })
+         vim.keymap.set("n", "<Esc>", function() vim.api.nvim_win_close(diff_win, true) end, { buffer = diff_buf, noremap = true, silent = true })
+      end, { buffer = Ui.right_buf, noremap = true, silent = true, desc = "View commit changes" })
+
 
       -- =========================
       -- Prefill title and CR mapping

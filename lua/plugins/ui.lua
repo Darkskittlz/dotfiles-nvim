@@ -438,11 +438,30 @@ return {
       config = function()
          require("codecompanion").setup({
             strategies = {
-               chat = { adapter = "gemini" },
-               inline = { adapter = "gemini" },
+               chat = {
+                  adapter = "gemini",
+                  slash_commands = {
+                     ["buffer"] = {
+                        callback = "strategies.chat.slash_commands.buffer",
+                        description = "Insert the current buffer",
+                     },
+                  },
+                  roles = {
+                     llm = "CodeCompanion",
+                     user = "DarkMeow-CEO",
+                  },
+               },
+               inline = {
+                  adapter = "gemini",
+                  slash_commands = {
+                     ["buffer"] = {
+                        callback = "strategies.chat.slash_commands.buffer",
+                        description = "Insert the current buffer",
+                     },
+                  },
+               },
                agent = { adapter = "gemini" },
             },
-            -- This is the global 'opts' block where auto_generate_title lives
             opts = {
                chat = {
                   auto_generate_title = false,
@@ -463,33 +482,15 @@ return {
                gemini = function()
                   return require("codecompanion.adapters").extend("gemini", {
                      env = {
-                        api_key = "GEMINI_API_KEY", -- Double check this matches image_95765a.png
-                     },
-                     url = "https://generativelanguage.googleapis.com/v1/models/${model}:streamGenerateContent",
-                     headers = {
-                        ["x-goog-user-project"] = "50196597512",
+                        api_key = "GEMINI_API_KEY",
                      },
                      schema = {
                         model = {
-                           default = "gemini-1.5-flash",
+                           default = "gemini-1.5-flash-002",
                         },
-                     },
-                     parameters = {
-                        sync = false,
                      },
                   })
                end,
-            },
-            extensions = {
-               history = {
-                  enabled = true,
-                  opts = {
-                     auto_save = true,
-                     keymap = "gh",
-                     save_id = "timestamp",
-                     index_path = vim.fn.stdpath("data") .. "/codecompanion-history/index.json",
-                  },
-               },
             },
          })
       end,
@@ -959,23 +960,34 @@ return {
       },
       {
          "nvimdev/dashboard-nvim",
-         lazy = false,
-         opts = function(_, opts)
+         event = "VimEnter",
+         config = function()
             local logo = [[
-              ██████╗  █████╗ ██████╗ ██╗  ██╗    ███╗   ███╗███████╗ ██████╗ ██╗    ██╗
-              ██╔══██╗██╔══██╗██╔══██╗██║ ██╔╝    ████╗ ████║██╔════╝██╔═══██╗██║    ██║
-              ██║  ██║███████║██████╔╝█████╔╝     ██╔████╔██║█████╗  ██║   ██║██║ █╗ ██║
-              ██║  ██║██╔══██║██╔══██╗██╔═██╗     ██║╚██╔╝██║██╔══╝  ██║   ██║██║███╗██║
-              ██████╔╝██║  ██║██║  ██║██║  ██╗    ██║ ╚═╝ ██║███████╗╚██████╔╝╚███╔███╔╝
-              ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝    ╚═╝     ╚═╝╚══════╝ ╚═════╝  ╚══╝╚══╝
-          ]]
+            ██████╗  █████╗ ██████╗ ██╗  ██╗    ███╗   ███╗███████╗ ██████╗ ██╗    ██╗
+            ██╔══██╗██╔══██╗██╔══██╗██║ ██╔╝    ████╗ ████║██╔════╝██╔═══██╗██║    ██║
+            ██║  ██║███████║██████╔╝█████╔╝     ██╔████╔██║█████╗  ██║   ██║██║ █╗ ██║
+            ██║  ██║██╔══██║██╔══██╗██╔═██╗     ██║╚██╔╝██║██╔══╝  ██║   ██║██║███╗██║
+            ██████╔╝██║  ██║██║  ██║██║  ██╗    ██║ ╚═╝ ██║███████╗╚██████╔╝╚███╔███╔╝
+            ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝    ╚═╝     ╚═╝╚══════╝ ╚═════╝  ╚══╝╚══╝
+            ]]
 
-            opts.config = opts.config or {}
-            opts.config.header = vim.split(logo, "\n")
+            -- Helper to center the logo by removing leading whitespace
+            logo = string.gsub(logo, "^%s+", "")
+
+            require("dashboard").setup({
+               theme = "doom",
+               config = {
+                  header = vim.split(logo, "\n"),
+                  center = {
+                     { action = "Telescope find_files", desc = " Find File", icon = " ", key = "f" },
+                     { action = "Lazy", desc = " Lazy", icon = "󰒲 ", key = "l" },
+                     { action = "qa", desc = " Quit", icon = " ", key = "q" },
+                  },
+                  footer = { "Dark Meow CEO Edition" },
+               },
+            })
          end,
       },
-
-      -- Incline Floating File name and git info
       {
          "b0o/incline.nvim",
          opts = {
