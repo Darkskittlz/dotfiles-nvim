@@ -103,9 +103,9 @@ return {
                   n = {},
                },
                path_display = function(opts, path)
-                  local tail = vim.fn.fnamemodify(path, ":t") -- Get the filename
+                  local tail = vim.fn.fnamemodify(path, ":t")     -- Get the filename
                   local parent = vim.fn.fnamemodify(path, ":h:t") -- Get the parent directory
-                  return parent .. "/" .. tail              -- Show "parent/filename"
+                  return parent .. "/" .. tail                    -- Show "parent/filename"
                end,
                entry_display = function(entry)
                   -- This will remove the line and character positions from the result display
@@ -149,7 +149,7 @@ return {
    config = function(_, opts)
       opts = opts or {} -- Ensure opts is not nil
       local telescope = require("telescope")
-      local actions = require("telescope")
+      local actions = require("telescope.actions")
       local fb_actions =
           require("telescope").extensions.file_browser.actions
 
@@ -157,28 +157,32 @@ return {
          "force",
          opts.defaults or {},
          {
-            wrap_results = false,
             layout_strategy = "vertical",
             layout_config = {
-               horizontal = {
+               vertical = {
+                  -- This MUST be true to keep Preview at the top
+                  mirror = true,
+
+                  -- In a mirrored layout, 'top' puts the prompt
+                  -- in the MIDDLE (directly under the preview).
                   prompt_position = "top",
-                  preview_cutoff = 0.4,
-               },
-               center = {
-                  -- Dropdown uses this. NO preview_height here.
-                  prompt_position = "top",
-                  height = 0.4,
+
+                  width = 0.9,
+                  height = 0.95,
+                  preview_height = 0.5,
                },
             },
+            -- This MUST be ascending so results start right under your typing bar
             sorting_strategy = "ascending",
+            prompt_title = "Search", -- Globally renames the prompt window title
             winblend = 0,
             mappings = {
                n = {},
             },
             path_display = function(opts, path)
-               local tail = vim.fn.fnamemodify(path, ":t") -- Get the filename
+               local tail = vim.fn.fnamemodify(path, ":t")     -- Get the filename
                local parent = vim.fn.fnamemodify(path, ":h:t") -- Get the parent directory
-               return parent .. "/" .. tail               -- Show "parent/filename"
+               return parent .. "/" .. tail                    -- Show "parent/filename"
             end,
             entry_display = function(entry)
                -- This will remove the line and character positions from the result display
@@ -186,6 +190,7 @@ return {
             end,
          }
       )
+
       opts.pickers = {
          diagnostics = {
             theme = "ivy",
