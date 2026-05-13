@@ -7,6 +7,7 @@ vim.g.lazygit = {
    },
 }
 
+
 vim.g.transparent_enabled = true
 
 vim.g.python3_host_prog = '/home/darkskittlz/.neovim-python/bin/python'
@@ -532,6 +533,27 @@ return {
             tt_ui.show_session_history(tt_main.tracker)
          end, { desc = "Time Tracker: View History" })
       end,
+   },
+   {
+      "folke/snacks.nvim",
+      priority = 1000,
+      lazy = false,
+      opts = {
+         terminal = {
+            win = {
+            -- 'float' style adds padding. 'terminal' style is usually more flush.
+            style = "terminal", 
+            },
+         },
+         lazygit = {
+            win = {
+            -- SETTING THESE TO 0 FORCES FULL SCREEN
+            width = 0, 
+            height = 0,
+            border = "none", -- Removes the Neovim border so only Lazygit's border shows
+            },
+         },
+      },
    },
    {
       "lewis6991/gitsigns.nvim",

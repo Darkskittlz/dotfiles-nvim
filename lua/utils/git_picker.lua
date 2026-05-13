@@ -1604,13 +1604,13 @@ function M.open_git_ui()
              or { stashes = {}, selected_index = 1 }
          load_stashes()
 
-         if #UiStash.stashes == 0 then
-            vim.notify(
-               "No stashes available",
-               vim.log.levels.INFO
-            )
-            return
-         end
+         -- if #UiStash.stashes == 0 then
+         --    vim.notify(
+         --       "No stashes available",
+         --       vim.log.levels.INFO
+         --    )
+         --    return
+         -- end
 
          local width =
              math.floor(vim.o.columns * 0.9)
@@ -1957,14 +1957,21 @@ function M.open_git_ui()
          -- PR Creation Keymap
          vim.keymap.set("n", "O", function()
             -- 1. Ensure we are in the correct mode
-            if Ui.mode ~= "branches" then return end
+            print("O pressed! Mode: " .. tostring(Ui.mode) .. " | Index: " .. tostring(Ui.selected_index))
 
-            -- 2. Get the branch under the cursor in the left window
+            if Ui.mode ~= "branches" then
+               print("Fail: Not in branches mode")
+               return
+            end
+
             local target_branch = Ui.branches[Ui.selected_index]
-            if not target_branch then return end
+            if not target_branch then
+               print("Fail: target_branch is nil")
+               return
+            end
 
-            -- 3. Strip the "*" if it's the current branch (as seen in image_73fdb3.jpg)
             target_branch = target_branch:gsub("^%*%s*", "")
+            print("Cleaned target: " .. target_branch)
 
             local current_branch = run_git("git rev-parse --abbrev-ref HEAD")[1] or ""
 

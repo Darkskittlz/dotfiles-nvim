@@ -43,7 +43,6 @@ local function show_spinner()
 end
 
 
--- Local Language Model
 -- Toggle the floating chat window
 keymap.set({ "n", "v" }, "<leader>aa", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true })
 
@@ -56,39 +55,31 @@ keymap.set("v", "<leader>ai", ":CodeCompanion ", { noremap = true, silent = true
 -- Add selected text to the chat (useful for sending specific React components)
 keymap.set("v", "ac", "<cmd>CodeCompanionChat Add<cr>", { noremap = true, silent = true })
 
+
 -- Open the prompt selector (pre-defined actions like "Explain", "Fix", "Optimize")
 keymap.set("n", "<leader>ap", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
 
 vim.api.nvim_create_autocmd("FileType", {
    pattern = "codecompanion",
    callback = function()
-      -- 1. Native 'q' to stop the response (Built-in to CodeCompanion)
-      -- No extra mapping needed if you want to keep the default 'stop' behavior
-
-      -- 2. Use 'a' to close the floating window
+      -- Keymaps
       vim.keymap.set("n", "c", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true, buffer = true })
-   end,
-})
 
-vim.api.nvim_create_autocmd("FileType", {
-   pattern = "codecompanion",
-   callback = function()
-      -- Force the Markdown render plugin to activate
-      -- (Assuming you are using render-markdown.nvim based on your ToDo.md screenshot)
+      vim.keymap.set("n", "gh", function()
+         -- <C-u> clears any range, the rest runs the command and hits Enter
+         vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(":CodeCompanionChat Sessions<CR>", true, false, true), "n",
+            false)
+      end, { noremap = true, silent = true, buffer = true })
+
+      -- UI & Rendering
       local ok, render_markdown = pcall(require, "render-markdown")
-      if ok then
-         render_markdown.enable()
-      end
+      if ok then render_markdown.enable() end
 
-      -- Ensure conceal is on so ## actually disappears
       vim.opt_local.conceallevel = 2
       vim.opt_local.concealcursor = "nc"
-
-      -- Set syntax to markdown for treesitter support
       vim.treesitter.start(0, "markdown")
    end,
 })
-
 
 -- Time Tracker Keymaps
 keymap.set("n", "<leader>tt", "<cmd>TimeTracker<cr>", { desc = "Open Time Tracker UI" })
