@@ -336,7 +336,7 @@ local function render_left()
       true
    )
 
-   local lines = {}     -- lines to write
+   local lines = {}      -- lines to write
    local highlights = {} -- highlight info
 
    if Ui.mode == "branches" then
@@ -455,7 +455,7 @@ end
 local function convert_graph(line)
    line = line:gsub("%*%-", "*-") -- star + horizontal
    line = line:gsub("|\\", "|\\") -- merge down-right
-   line = line:gsub("|/", "|/")  -- merge down-left
+   line = line:gsub("|/", "|/")   -- merge down-left
    return line
 end
 
@@ -1403,11 +1403,11 @@ function M.open_git_ui()
    local editor_h = ui.height
 
    -- Define bottom and top window heights
-   local bottom_h = 5                   -- height of bottom window
+   local bottom_h = 5                    -- height of bottom window
    local top_h = editor_h - bottom_h - 8 -- height of top window, leave 2 lines for separation
 
    -- Compute centered horizontal position
-   local w = math.floor(editor_w * 0.9)      -- 60% of editor width
+   local w = math.floor(editor_w * 0.9)       -- 60% of editor width
    local col = math.floor((editor_w - w) / 2) -- center horizontally
 
    -- Create a blank buffer that covers the whole editor
@@ -1442,7 +1442,7 @@ function M.open_git_ui()
           col = 0,
           style = "minimal",
           border = "none",
-          zindex = 1,      -- LOW zindex
+          zindex = 1,        -- LOW zindex
           focusable = false, -- won't steal input
        })
 
@@ -1468,7 +1468,7 @@ function M.open_git_ui()
        vim.api.nvim_open_win(Ui.left_buf, true, {
           relative = "editor",
           width = w,
-          height = bottom_h + 2,       -- now the bigger panel is on bottom
+          height = bottom_h + 2,         -- now the bigger panel is on bottom
           row = editor_h - bottom_h - 6, -- move it below the top window
           col = col,
           style = "minimal",
@@ -1923,7 +1923,7 @@ function M.open_git_ui()
                if not choice then return end
                local local_name = choice:match("^[^/]+/(.*)$") or choice
                local out = vim.fn.system("git checkout -b " ..
-               vim.fn.shellescape(local_name) .. " " .. vim.fn.shellescape(choice))
+                  vim.fn.shellescape(local_name) .. " " .. vim.fn.shellescape(choice))
                if vim.v.shell_error == 0 then
                   show_centered_message("Checked out " .. local_name)
                   load_branches()
@@ -1956,31 +1956,36 @@ function M.open_git_ui()
 
          -- PR Creation Keymap
          vim.keymap.set("n", "O", function()
+            -- 1. Ensure we are in the correct mode
             if Ui.mode ~= "branches" then return end
-            local win = vim.api.nvim_get_current_win()
-            if win ~= Ui.left_win then return end
 
+            -- 2. Get the branch under the cursor in the left window
             local target_branch = Ui.branches[Ui.selected_index]
             if not target_branch then return end
+
+            -- 3. Strip the "*" if it's the current branch (as seen in image_73fdb3.jpg)
+            target_branch = target_branch:gsub("^%*%s*", "")
+
             local current_branch = run_git("git rev-parse --abbrev-ref HEAD")[1] or ""
 
             if target_branch == current_branch then
-               show_centered_error("Cannot PR to the same branch!")
+               show_centered_error("Branch '" .. target_branch .. "' is already your current branch!")
                return
             end
 
-            show_centered_message("Creating PR...")
-            vim.fn.jobstart({ "gh", "pr", "create", "--base", current_branch, "--head", target_branch, "--web" }, {
+            show_centered_message("Creating PR: " .. current_branch .. " -> " .. target_branch)
+
+            -- 4. Execute the GH CLI command
+            vim.fn.jobstart({ "gh", "pr", "create", "--base", target_branch, "--head", current_branch, "--web" }, {
                on_exit = function(_, exit_code)
                   if exit_code == 0 then
-                     vim.schedule(function() show_centered_message("Opened PR in browser!", "✅") end)
+                     vim.schedule(function() show_centered_message("PR Draft Opened!", "✅") end)
                   else
-                     vim.schedule(function() show_centered_error(
-                        "Failed to create PR.\nEnsure 'gh' CLI is installed and authenticated.") end)
+                     vim.schedule(function() show_centered_error("GH CLI Error: Check auth or branch push status.") end)
                   end
                end
             })
-         end, { buffer = Ui.left_buf, noremap = true, silent = true, desc = "Create PR to HEAD branch" })
+         end, { buffer = Ui.left_buf, noremap = true, silent = true, nowait = true })
 
          -- Commit Log Diff Viewer Keymap
          vim.keymap.set("n", "v", function()
