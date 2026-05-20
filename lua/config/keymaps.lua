@@ -142,6 +142,13 @@ end, {
    desc = "Switch to Catppuccin Latte colorscheme",
 })
 
+keymap.set("n", "<leader>mo", function()
+   vim.o.background = "light"
+   vim.cmd("colorscheme modus_operandi")
+end, { desc = "Switch to Modus Operandi (Stark White)" })
+
+
+
 keymap.set("n", "<leader>cs", function()
    vim.cmd("colorscheme solarized-osaka")
 end, {

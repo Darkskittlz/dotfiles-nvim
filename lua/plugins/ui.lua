@@ -541,16 +541,16 @@ return {
       opts = {
          terminal = {
             win = {
-            -- 'float' style adds padding. 'terminal' style is usually more flush.
-            style = "terminal", 
+               -- 'float' style adds padding. 'terminal' style is usually more flush.
+               style = "terminal",
             },
          },
          lazygit = {
             win = {
-            -- SETTING THESE TO 0 FORCES FULL SCREEN
-            width = 0, 
-            height = 0,
-            border = "none", -- Removes the Neovim border so only Lazygit's border shows
+               -- SETTING THESE TO 0 FORCES FULL SCREEN
+               width = 0,
+               height = 0,
+               border = "none", -- Removes the Neovim border so only Lazygit's border shows
             },
          },
       },
@@ -826,10 +826,12 @@ return {
 
                   -- 3. THE "HACKER GREEN" CODE BLOCKS
                   local hacker_green = "#006500"
+                  local gray_background = "#1e1e1e"
 
                   -- Full Code Blocks (Triple backticks)
                   hl.RenderMarkdownCode = {
-                     bg = "#1e1e1e",
+                     -- fg = hacker_green,
+                     bg = gray_background,
                      bold = true,
                   }
 
@@ -894,6 +896,88 @@ return {
       --   end,
       -- },
 
+      {
+         "miikanissi/modus-themes.nvim",
+         lazy = false,
+         priority = 1000,
+         config = function()
+            require("modus-themes").setup({
+               style = "modus_operandi",
+               variant = "default",
+
+               styles = {
+                  keywords = { bold = true },
+                  functions = { bold = true },
+                  variables = { bold = true },
+               },
+
+               on_highlights = function(highlights, colors)
+                  -- THE HIGH-GLARE HYPER-SATURATED PALETTE
+                  local neon_blue                     = "#0044ff" -- Piercing primary blue for control keywords
+                  local electric_cyan                 = "#0088cc" -- Bright, heavy sky blue for standard variables
+                  local neon_purple                   = "#9900ff" -- Deep, intense neon purple for functions and methods
+                  local neon_orange                   = "#ff5500" -- Blinding, saturated safety orange for object properties
+                  local neon_magenta                  = "#ff00aa" -- Loud magenta for booleans/numbers (true, false)
+                  local solid_black                   = "#000000" -- Pitch black for operators or text fallbacks
+                  local hacker_green                  = "#00cc33" -- Saturated matrix green for HTML/JSX tags
+                  local muted_gray                    = "#71717a" -- Muted gray for comments to hide them away
+
+                  -- 1. KEYWORDS (Neon Blue & Extra Heavy)
+                  highlights.Keyword                  = { fg = neon_blue, bold = true }
+                  highlights["@keyword"]              = { fg = neon_blue, bold = true }
+                  highlights["@keyword.modifier"]     = { fg = neon_blue, bold = true }
+                  highlights["@keyword.coroutine"]    = { fg = neon_blue, bold = true }
+                  highlights["@conditional"]          = { fg = neon_blue, bold = true }
+                  highlights["@repeat"]               = { fg = neon_blue, bold = true }
+
+                  -- 2. VARIABLES & CONSTANTS (Electric Cyan / Saturated Sky Blue)
+                  highlights.Identifier               = { fg = electric_cyan, bold = true }
+                  highlights["@variable"]             = { fg = electric_cyan, bold = true }
+                  highlights["@variable.builtin"]     = { fg = neon_blue, bold = true }
+                  highlights["@constant"]             = { fg = neon_blue, bold = true }
+
+                  -- LSP overrides to stop language servers from dulling the colors down
+                  highlights["@lsp.type.variable"]    = { fg = electric_cyan, bold = true }
+                  highlights["@lsp.type.parameter"]   = { fg = electric_cyan, bold = true }
+
+                  -- 3. COMMENTS (Back to Muted Gray)
+                  highlights.Comment                  = { fg = muted_gray, italic = true, bold = false }
+                  highlights["@comment"]              = { fg = muted_gray, italic = true, bold = false }
+
+                  -- 4. FUNCTIONS & METHODS (Neon Purple)
+                  highlights.Function                 = { fg = neon_purple, bold = true }
+                  highlights["@function"]             = { fg = neon_purple, bold = true }
+                  highlights["@function.call"]        = { fg = neon_purple, bold = true }
+                  highlights["@function.method"]      = { fg = neon_purple, bold = true }
+                  highlights["@function.method.call"] = { fg = neon_purple, bold = true }
+                  highlights["@lsp.type.function"]    = { fg = neon_purple, bold = true }
+
+                  -- 5. DISTINCT OBJECT PROPERTIES (Blinding Safety Orange)
+                  highlights["@property"]             = { fg = neon_orange, bold = true }
+                  highlights["@lsp.type.property"]    = { fg = neon_orange, bold = true }
+
+                  -- 6. VALUES & LITERALS (Hot Magenta & Pure Gold)
+                  highlights.String                   = { fg = "#a16207", bold = true } -- Heavy amber-gold
+                  highlights["@string"]               = { fg = "#a16207", bold = true }
+
+                  highlights.Number                   = { fg = neon_magenta, bold = true }
+                  highlights.Boolean                  = { fg = neon_magenta, bold = true }
+                  highlights["@number"]               = { fg = neon_magenta, bold = true }
+                  highlights["@boolean"]              = { fg = neon_magenta, bold = true }
+
+                  -- 7. HTML / JSX TAGS (Hacker Green Override)
+                  highlights["@tag"]                  = { fg = hacker_green, bold = true }
+                  highlights["@tag.builtin"]          = { fg = hacker_green, bold = true }
+                  highlights["@tag.attribute"]        = { fg = neon_orange, bold = true } -- Attributes like className pop in orange
+                  highlights.Tag                      = { fg = hacker_green, bold = true }
+
+                  -- 8. EXTRA UTILITIES (Equal signs, brackets, punctuation)
+                  highlights.Operator                 = { fg = solid_black, bold = true }
+                  highlights["@operator"]             = { fg = solid_black, bold = true }
+               end,
+            })
+         end,
+      },
       {
          "numToStr/Comment.nvim",
          dependencies = {
