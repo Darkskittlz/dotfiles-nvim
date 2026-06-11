@@ -42,329 +42,93 @@ local capabilities =
 -- MIT license, see LICENSE for more details.
 
 -- stylua: ignore
-local colors = {
-   blue        = '#80a0ff',
-   cyan        = '#79dac8',
-   black       = '#080808',
-   darkBlack   = "#111111",
-   white       = '#c6c6c6',
-   red         = '#ff5189',
-   violet      = '#8C4F92',
-   grey        = '#303030',
-   green       = '#50C878',
-   orange      = "#CC5500",
-   purple      = "#9370DB",
-   hackerGreen = "#005200",
-}
+-- local colors = {
+--    blue        = '#80a0ff',
+--    cyan        = '#79dac8',
+--    black       = '#080808',
+--    darkBlack   = "#111111",
+--    white       = '#c6c6c6',
+--    red         = '#ff5189',
+--    violet      = '#8C4F92',
+--    grey        = '#303030',
+--    green       = '#50C878',
+--    orange      = "#CC5500",
+--    purple      = "#9370DB",
+--    hackerGreen = "#005200",
+-- }
 
-local bubbles_theme = {
-   normal = {
-      a = { fg = colors.black, bg = colors.violet },
-      b = { fg = colors.white, bg = colors.black },
-      c = { fg = colors.white, bg = colors.darkBlack },
-   },
-
-   insert = {
-      a = { fg = colors.black, bg = colors.blue },
-   },
-   visual = {
-      a = { fg = colors.black, bg = colors.orange },
-   },
-   replace = {
-      a = { fg = colors.black, bg = colors.red },
-   },
-
-   inactive = {
-      a = { fg = colors.white, bg = colors.black },
-      b = { fg = colors.white, bg = colors.black },
-      c = { fg = colors.white },
-   },
-}
-
-require("lualine").setup({
-   options = {
-      theme = bubbles_theme,
-      component_separators = "",
-      section_separators = {
-         left = "",
-         right = "",
-      },
-   },
-   sections = {
-      lualine_a = {
-         {
-            "mode",
-            separator = { left = "" },
-            right_padding = 2,
-         },
-      },
-      lualine_b = { "branch" },
-      lualine_c = {
-         "%=", --[[ add your center compoentnts here in place of this comment ]]
-      },
-      lualine_x = {},
-      lualine_y = { "filetype", "progress" },
-      lualine_z = {
-         {
-            "location",
-            separator = { right = "" },
-            left_padding = 2,
-         },
-      },
-   },
-   inactive_sections = {
-      lualine_a = { "filename" },
-      lualine_b = {},
-      lualine_c = {},
-      lualine_x = {},
-      lualine_y = {},
-      lualine_z = { "location" },
-   },
-   tabline = {},
-   extensions = {},
-})
+-- local bubbles_theme = {
+--    normal = {
+--       -- Change these to "NONE"
+--       a = { fg = colors.black, bg = "NONE" },
+--       b = { fg = colors.white, bg = "NONE" },
+--       c = { fg = colors.white, bg = "NONE" },
+--    },
+--    insert = {
+--       -- Change these to "NONE"
+--       a = { fg = colors.black, bg = "NONE" },
+--       b = { fg = colors.white, bg = "NONE" },
+--       c = { fg = colors.white, bg = "NONE" },
+--    },
+--    inactive = {
+--       a = { fg = colors.white, bg = "NONE" },
+--       b = { fg = colors.white, bg = "NONE" },
+--       c = { fg = colors.white, bg = "NONE" },
+--    },
+-- }
+--
+-- require("lualine").setup({
+--    options = {
+--       theme = bubbles_theme,
+--       component_separators = "",
+--       section_separators = {
+--          left = "",
+--          right = "",
+--       },
+--    },
+--    sections = {
+--       lualine_a = {
+--          {
+--             "mode",
+--             separator = { left = "" },
+--             right_padding = 2,
+--          },
+--       },
+--       lualine_b = { "branch" },
+--       lualine_c = {
+--          "%=", --[[ add your center compoentnts here in place of this comment ]]
+--       },
+--       lualine_x = {},
+--       lualine_y = { "filetype", "progress" },
+--       lualine_z = {
+--          {
+--             "location",
+--             separator = { right = "" },
+--             left_padding = 2,
+--          },
+--       },
+--    },
+--    inactive_sections = {
+--       lualine_a = { "filename" },
+--       lualine_b = {},
+--       lualine_c = {},
+--       lualine_x = {},
+--       lualine_y = {},
+--       lualine_z = { "location" },
+--    },
+--    tabline = {},
+--    extensions = {},
+-- })
 --
 -- Eviline config for lualine
 -- Author: shadmansaleh
 -- Credit: glepnir
--- local lualine = require('lualine')
---
 -- -- Color table for highlights
 -- -- stylua: ignore
--- local colors = {
---    bg       = '#202328',
---    fg       = '#bbc2cf',
---    yellow   = '#ECBE7B',
---    cyan     = '#008080',
---    darkblue = '#081633',
---    green    = '#98be65',
---    orange   = '#FF8800',
---    violet   = '#a9a1e1',
---    magenta  = '#c678dd',
---    blue     = '#51afef',
---    red      = '#ec5f67',
--- }
-
--- local conditions = {
---    buffer_not_empty = function()
---       return vim.fn.empty(vim.fn.expand("%:t")) ~= 1
---    end,
---    hide_in_width = function()
---       return vim.fn.winwidth(0) > 80
---    end,
---    check_git_workspace = function()
---       local filepath = vim.fn.expand("%:p:h")
---       local gitdir =
---           vim.fn.finddir(".git", filepath .. ";")
---       return gitdir
---           and #gitdir > 0
---           and #gitdir < #filepath
---    end,
--- }
 --
 -- -- Config
--- local config = {
---    options = {
---       -- Disable sections and component separators
---       component_separators = "",
---       section_separators = "",
---       theme = {
---          -- We are going to use lualine_c an lualine_x as left and
---          -- right section. Both are highlighted by c theme .  So we
---          -- are just setting default looks o statusline
---          normal = {
---             c = { fg = colors.fg, bg = colors.bg },
---          },
---          inactive = {
---             c = { fg = colors.fg, bg = colors.bg },
---          },
---       },
---    },
---    sections = {
---       -- these are to remove the defaults
---       lualine_a = {},
---       lualine_b = {},
---       lualine_y = {},
---       lualine_z = {},
---       -- These will be filled later
---       lualine_c = {},
---       lualine_x = {},
---    },
---    inactive_sections = {
---       -- these are to remove the defaults
---       lualine_a = {},
---       lualine_b = {},
---       lualine_y = {},
---       lualine_z = {},
---       lualine_c = {},
---       lualine_x = {},
---    },
--- }
 --
 -- -- Inserts a component in lualine_c at left section
--- local function ins_left(component)
---    table.insert(
---       config.sections.lualine_c,
---       component
---    )
--- end
---
--- -- Inserts a component in lualine_x at right section
--- local function ins_right(component)
---    table.insert(
---       config.sections.lualine_x,
---       component
---    )
--- end
---
--- ins_left({
---    function()
---       return "▊"
---    end,
---    color = { fg = colors.blue },      -- Sets highlighting of component
---    padding = { left = 0, right = 1 }, -- We don't need space before this
--- })
---
--- ins_left({
---    -- mode component
---    function()
---       return ""
---    end,
---    color = function()
---       -- auto change color according to neovims mode
---       local mode_color = {
---          n = colors.red,
---          i = colors.green,
---          v = colors.blue,
---          [""] = colors.blue,
---          V = colors.blue,
---          c = colors.magenta,
---          no = colors.red,
---          s = colors.orange,
---          S = colors.orange,
---          [""] = colors.orange,
---          ic = colors.yellow,
---          R = colors.violet,
---          Rv = colors.violet,
---          cv = colors.red,
---          ce = colors.red,
---          r = colors.cyan,
---          rm = colors.cyan,
---          ["r?"] = colors.cyan,
---          ["!"] = colors.red,
---          t = colors.red,
---       }
---       return { fg = mode_color[vim.fn.mode()] }
---    end,
---    padding = { right = 1 },
--- })
---
--- ins_left({
---    -- filesize component
---    "filesize",
---    cond = conditions.buffer_not_empty,
--- })
---
--- ins_left({
---    "filename",
---    cond = conditions.buffer_not_empty,
---    color = { fg = colors.magenta, gui = "bold" },
--- })
---
--- ins_left({ "location" })
---
--- ins_left({
---    "progress",
---    color = { fg = colors.fg, gui = "bold" },
--- })
---
--- ins_left({
---    "diagnostics",
---    sources = { "nvim_diagnostic" },
---    symbols = {
---       error = " ",
---       warn = " ",
---       info = " ",
---    },
---    diagnostics_color = {
---       error = { fg = colors.red },
---       warn = { fg = colors.yellow },
---       info = { fg = colors.cyan },
---    },
--- })
---
--- -- Insert mid section. You can make any number of sections in neovim :)
--- -- for lualine it's any number greater then 2
--- ins_left({
---    function()
---       return "%="
---    end,
--- })
---
--- ins_left({
---    -- Lsp server name .
---    function()
---       local msg = "No Active Lsp"
---       local buf_ft = vim.api.nvim_get_option_value(
---          "filetype",
---          { buf = 0 }
---       )
---       local clients = vim.lsp.get_clients()
---       if next(clients) == nil then
---          return msg
---       end
---       for _, client in ipairs(clients) do
---          local filetypes = client.config.filetypes
---          if
---              filetypes
---              and vim.fn.index(filetypes, buf_ft)
---              ~= -1
---          then
---             return client.name
---          end
---       end
---       return msg
---    end,
---    icon = " LSP:",
---    color = { fg = "#ffffff", gui = "bold" },
--- })
---
--- -- Add components to right sections
--- ins_right({
---    "o:encoding",       -- option component same as &encoding in viml
---    fmt = string.upper, -- I'm not sure why it's upper case either ;)
---    cond = conditions.hide_in_width,
---    color = { fg = colors.green, gui = "bold" },
--- })
---
--- ins_right({
---    "fileformat",
---    fmt = string.upper,
---    icons_enabled = false, -- I think icons are cool but Eviline doesn't have them. sigh
---    color = { fg = colors.green, gui = "bold" },
--- })
---
--- ins_right({
---    "branch",
---    icon = "",
---    color = { fg = colors.violet, gui = "bold" },
--- })
---
---
--- ins_right({
---    function()
---       return "▊"
---    end,
---    color = { fg = colors.blue },
---    padding = { left = 1 },
--- })
--- --
--- -- -- Now don't forget to initialize lualine
--- local lualine = require("lualine")
--- lualine.setup(config)
-
--- Apply a white background
--- vim.cmd([[highlight Normal guibg=#00000]]) -- Set background color for normal text
 
 local focusConfig = {}
 
@@ -579,18 +343,100 @@ return {
       "nvim-lualine/lualine.nvim",
       dependencies = { "nvim-tree/nvim-web-devicons" },
       config = function()
-         local ui_config = require("plugins.ui")
-         local opts = ui_config.lualine or {}
+         local colors = {
+            bg = "#000000",
+            fg = "#bbc2cf",
+            yellow = "#ECBE7B",
+            cyan = "#008080",
+            darkblue = "#081633",
+            green = "#98be65",
+            orange = "#FF8800",
+            violet = "#a9a1e1",
+            magenta = "#c678dd",
+            blue = "#51afef",
+            red = "#ec5f67",
+         }
 
-         -- Ensure 'options' table exists
-         opts.options = opts.options or {}
+         local config = {
+            options = {
+               component_separators = "",
+               section_separators = "",
+               theme = {
+                  normal = { c = { fg = colors.fg, bg = colors.bg } },
+                  inactive = { c = { fg = colors.fg, bg = colors.bg } },
+               },
+            },
+            sections = {
+               lualine_a = {},
+               lualine_b = {},
+               lualine_y = {},
+               lualine_z = {},
+               lualine_c = {},
+               lualine_x = {},
+            },
+         }
 
-         -- Override the theme to remove the pink background
-         -- 'auto' will match your current colorscheme, 
-         -- or you can use a specific theme like 'gruvbox', 'onedark', etc.
-         opts.options.theme = 'auto' 
+         -- Helper functions to insert into the config table
+         local function ins_left(component) table.insert(config.sections.lualine_c, component) end
+         local function ins_right(component) table.insert(config.sections.lualine_x, component) end
 
-         require("lualine").setup(opts)
+         -- --- CUSTOM COMPONENTS ---
+         ins_left({
+            function() return "▊" end,
+            color = { fg = colors.blue },
+            padding = { left = 0, right = 1 },
+         })
+
+         ins_left({
+            function() return "" end,
+            color = function()
+               local mode_color = { n = colors.red, i = colors.green, v = colors.blue, [''] = colors.blue, V = colors
+               .blue, c = colors.magenta, R = colors.violet, t = colors.red }
+               return { fg = mode_color[vim.fn.mode()] or colors.blue }
+            end,
+            padding = { right = 1 },
+         })
+
+         ins_left({
+            "diagnostics",
+            sources = { "nvim_diagnostic" },
+            symbols = { error = " ", warn = " ", info = " " },
+            diagnostics_color = {
+               error = { fg = colors.red },
+               warn = { fg = colors.yellow },
+               info = { fg = colors.cyan },
+            },
+         })
+
+         ins_left({ function() return "%=" end })
+
+         ins_left({
+            "mode",
+            color = function()
+               local mode_color = { n = "#c678dd", i = "#98be65", v = "#51afef", V = "#51afef", c = "#ec5f67", R =
+               "#a9a1e1", t = "#ec5f67" }
+               return { fg = mode_color[vim.fn.mode()] or "#51afef", gui = "bold" }
+            end,
+            padding = { right = 1 },
+         })
+
+         ins_right({
+            "branch",
+            icon = "",
+            color = { fg = colors.violet, gui = "bold" },
+         })
+
+         ins_right({
+            function() return "▊" end,
+            color = { fg = colors.blue },
+            padding = { left = 1 },
+         })
+
+         -- Initialize
+         require("lualine").setup(config)
+
+         -- Ensure background transparency
+         vim.cmd([[highlight Normal guibg=NONE]])
       end,
    },
    {
@@ -903,88 +749,88 @@ return {
       --   end,
       -- },
 
-      {
-         "miikanissi/modus-themes.nvim",
-         lazy = false,
-         priority = 1000,
-         config = function()
-            require("modus-themes").setup({
-               style = "modus_operandi",
-               variant = "default",
-
-               styles = {
-                  keywords = { bold = true },
-                  functions = { bold = true },
-                  variables = { bold = true },
-               },
-
-               on_highlights = function(highlights, colors)
-                  -- THE HIGH-GLARE HYPER-SATURATED PALETTE
-                  local neon_blue                     = "#0044ff" -- Piercing primary blue for control keywords
-                  local electric_cyan                 = "#0088cc" -- Bright, heavy sky blue for standard variables
-                  local neon_purple                   = "#9900ff" -- Deep, intense neon purple for functions and methods
-                  local neon_orange                   = "#ff5500" -- Blinding, saturated safety orange for object properties
-                  local neon_magenta                  = "#ff00aa" -- Loud magenta for booleans/numbers (true, false)
-                  local solid_black                   = "#000000" -- Pitch black for operators or text fallbacks
-                  local hacker_green                  = "#00cc33" -- Saturated matrix green for HTML/JSX tags
-                  local muted_gray                    = "#71717a" -- Muted gray for comments to hide them away
-
-                  -- 1. KEYWORDS (Neon Blue & Extra Heavy)
-                  highlights.Keyword                  = { fg = neon_blue, bold = true }
-                  highlights["@keyword"]              = { fg = neon_blue, bold = true }
-                  highlights["@keyword.modifier"]     = { fg = neon_blue, bold = true }
-                  highlights["@keyword.coroutine"]    = { fg = neon_blue, bold = true }
-                  highlights["@conditional"]          = { fg = neon_blue, bold = true }
-                  highlights["@repeat"]               = { fg = neon_blue, bold = true }
-
-                  -- 2. VARIABLES & CONSTANTS (Electric Cyan / Saturated Sky Blue)
-                  highlights.Identifier               = { fg = electric_cyan, bold = true }
-                  highlights["@variable"]             = { fg = electric_cyan, bold = true }
-                  highlights["@variable.builtin"]     = { fg = neon_blue, bold = true }
-                  highlights["@constant"]             = { fg = neon_blue, bold = true }
-
-                  -- LSP overrides to stop language servers from dulling the colors down
-                  highlights["@lsp.type.variable"]    = { fg = electric_cyan, bold = true }
-                  highlights["@lsp.type.parameter"]   = { fg = electric_cyan, bold = true }
-
-                  -- 3. COMMENTS (Back to Muted Gray)
-                  highlights.Comment                  = { fg = muted_gray, italic = true, bold = false }
-                  highlights["@comment"]              = { fg = muted_gray, italic = true, bold = false }
-
-                  -- 4. FUNCTIONS & METHODS (Neon Purple)
-                  highlights.Function                 = { fg = neon_purple, bold = true }
-                  highlights["@function"]             = { fg = neon_purple, bold = true }
-                  highlights["@function.call"]        = { fg = neon_purple, bold = true }
-                  highlights["@function.method"]      = { fg = neon_purple, bold = true }
-                  highlights["@function.method.call"] = { fg = neon_purple, bold = true }
-                  highlights["@lsp.type.function"]    = { fg = neon_purple, bold = true }
-
-                  -- 5. DISTINCT OBJECT PROPERTIES (Blinding Safety Orange)
-                  highlights["@property"]             = { fg = neon_orange, bold = true }
-                  highlights["@lsp.type.property"]    = { fg = neon_orange, bold = true }
-
-                  -- 6. VALUES & LITERALS (Hot Magenta & Pure Gold)
-                  highlights.String                   = { fg = "#a16207", bold = true } -- Heavy amber-gold
-                  highlights["@string"]               = { fg = "#a16207", bold = true }
-
-                  highlights.Number                   = { fg = neon_magenta, bold = true }
-                  highlights.Boolean                  = { fg = neon_magenta, bold = true }
-                  highlights["@number"]               = { fg = neon_magenta, bold = true }
-                  highlights["@boolean"]              = { fg = neon_magenta, bold = true }
-
-                  -- 7. HTML / JSX TAGS (Hacker Green Override)
-                  highlights["@tag"]                  = { fg = hacker_green, bold = true }
-                  highlights["@tag.builtin"]          = { fg = hacker_green, bold = true }
-                  highlights["@tag.attribute"]        = { fg = neon_orange, bold = true } -- Attributes like className pop in orange
-                  highlights.Tag                      = { fg = hacker_green, bold = true }
-
-                  -- 8. EXTRA UTILITIES (Equal signs, brackets, punctuation)
-                  highlights.Operator                 = { fg = solid_black, bold = true }
-                  highlights["@operator"]             = { fg = solid_black, bold = true }
-               end,
-            })
-         end,
-      },
+      -- {
+      --    "miikanissi/modus-themes.nvim",
+      --    lazy = false,
+      --    priority = 1000,
+      --    config = function()
+      --       require("modus-themes").setup({
+      --          style = "modus_operandi",
+      --          variants = "default",
+      --
+      --          styles = {
+      --             keywords = { bold = true },
+      --             functions = { bold = true },
+      --             variables = { bold = true },
+      --          },
+      --
+      --          on_highlights = function(highlights, colors)
+      --             -- THE HIGH-GLARE HYPER-SATURATED PALETTE
+      --             local neon_blue                     = "#0044ff" -- Piercing primary blue for control keywords
+      --             local electric_cyan                 = "#0088cc" -- Bright, heavy sky blue for standard variables
+      --             local neon_purple                   = "#9900ff" -- Deep, intense neon purple for functions and methods
+      --             local neon_orange                   = "#ff5500" -- Blinding, saturated safety orange for object properties
+      --             local neon_magenta                  = "#ff00aa" -- Loud magenta for booleans/numbers (true, false)
+      --             local solid_black                   = "#000000" -- Pitch black for operators or text fallbacks
+      --             local hacker_green                  = "#00cc33" -- Saturated matrix green for HTML/JSX tags
+      --             local muted_gray                    = "#71717a" -- Muted gray for comments to hide them away
+      --
+      --             -- 1. KEYWORDS (Neon Blue & Extra Heavy)
+      --             highlights.Keyword                  = { fg = neon_blue, bold = true }
+      --             highlights["@keyword"]              = { fg = neon_blue, bold = true }
+      --             highlights["@keyword.modifier"]     = { fg = neon_blue, bold = true }
+      --             highlights["@keyword.coroutine"]    = { fg = neon_blue, bold = true }
+      --             highlights["@conditional"]          = { fg = neon_blue, bold = true }
+      --             highlights["@repeat"]               = { fg = neon_blue, bold = true }
+      --
+      --             -- 2. VARIABLES & CONSTANTS (Electric Cyan / Saturated Sky Blue)
+      --             highlights.Identifier               = { fg = electric_cyan, bold = true }
+      --             highlights["@variable"]             = { fg = electric_cyan, bold = true }
+      --             highlights["@variable.builtin"]     = { fg = neon_blue, bold = true }
+      --             highlights["@constant"]             = { fg = neon_blue, bold = true }
+      --
+      --             -- LSP overrides to stop language servers from dulling the colors down
+      --             highlights["@lsp.type.variable"]    = { fg = electric_cyan, bold = true }
+      --             highlights["@lsp.type.parameter"]   = { fg = electric_cyan, bold = true }
+      --
+      --             -- 3. COMMENTS (Back to Muted Gray)
+      --             highlights.Comment                  = { fg = muted_gray, italic = true, bold = false }
+      --             highlights["@comment"]              = { fg = muted_gray, italic = true, bold = false }
+      --
+      --             -- 4. FUNCTIONS & METHODS (Neon Purple)
+      --             highlights.Function                 = { fg = neon_purple, bold = true }
+      --             highlights["@function"]             = { fg = neon_purple, bold = true }
+      --             highlights["@function.call"]        = { fg = neon_purple, bold = true }
+      --             highlights["@function.method"]      = { fg = neon_purple, bold = true }
+      --             highlights["@function.method.call"] = { fg = neon_purple, bold = true }
+      --             highlights["@lsp.type.function"]    = { fg = neon_purple, bold = true }
+      --
+      --             -- 5. DISTINCT OBJECT PROPERTIES (Blinding Safety Orange)
+      --             highlights["@property"]             = { fg = neon_orange, bold = true }
+      --             highlights["@lsp.type.property"]    = { fg = neon_orange, bold = true }
+      --
+      --             -- 6. VALUES & LITERALS (Hot Magenta & Pure Gold)
+      --             highlights.String                   = { fg = "#a16207", bold = true } -- Heavy amber-gold
+      --             highlights["@string"]               = { fg = "#a16207", bold = true }
+      --
+      --             highlights.Number                   = { fg = neon_magenta, bold = true }
+      --             highlights.Boolean                  = { fg = neon_magenta, bold = true }
+      --             highlights["@number"]               = { fg = neon_magenta, bold = true }
+      --             highlights["@boolean"]              = { fg = neon_magenta, bold = true }
+      --
+      --             -- 7. HTML / JSX TAGS (Hacker Green Override)
+      --             highlights["@tag"]                  = { fg = hacker_green, bold = true }
+      --             highlights["@tag.builtin"]          = { fg = hacker_green, bold = true }
+      --             highlights["@tag.attribute"]        = { fg = neon_orange, bold = true } -- Attributes like className pop in orange
+      --             highlights.Tag                      = { fg = hacker_green, bold = true }
+      --
+      --             -- 8. EXTRA UTILITIES (Equal signs, brackets, punctuation)
+      --             highlights.Operator                 = { fg = solid_black, bold = true }
+      --             highlights["@operator"]             = { fg = solid_black, bold = true }
+      --          end,
+      --       })
+      --    end,
+      -- },
       {
          "numToStr/Comment.nvim",
          dependencies = {
@@ -1103,6 +949,7 @@ return {
       },
       {
          "b0o/incline.nvim",
+         event = "VeryLazy",
          opts = {
             window = {
                zindex = 41,
@@ -1111,119 +958,69 @@ return {
                   vertical = 0,
                },
             },
+            -- Define custom highlight groups here to avoid theme interference
+            highlight = {
+               groups = {
+                  InclineNormal = { guibg = "#1e1e1e", guifg = "#ffffff" },
+                  InclineNormalNC = { guibg = "#151515", guifg = "#666666" },
+               },
+            },
             hide = { cursorline = true },
-            -- ignore = { buftypes = function(bufnr, buftype) return false end },
             render = function(props)
-               if
-                   not vim.api.nvim_buf_is_valid(
-                      props.buf
-                   )
-               then
+               if not vim.api.nvim_buf_is_valid(props.buf) then
                   return {}
                end
 
-               if
-                   vim.bo[props.buf].buftype
-                   == "terminal"
-               then
+               if vim.bo[props.buf].buftype == "terminal" then
                   return {
-                     {
-                        " "
-                        .. vim.bo[props.buf].channel
-                        .. " ",
-                        group = "DevIconTerminal",
-                     },
-                     {
-                        " "
-                        .. vim.api.nvim_win_get_number(
-                           props.win
-                        ),
-                        group = "Special",
-                     },
+                     { " " .. vim.bo[props.buf].channel .. " ", group = "DevIconTerminal" },
+                     { " " .. vim.api.nvim_win_get_number(props.win), group = "Special" },
                   }
                end
 
-               local filename = vim.fn.fnamemodify(
-                  vim.api.nvim_buf_get_name(props.buf),
-                  ":t"
-               )
-               local ft_icon, ft_color = require(
-                  "nvim-web-devicons"
-               ).get_icon_color(filename)
-               local modified = vim.api.nvim_get_option_value(
-                  "modified",
-                  { buf = props.buf }
-               ) and "italic" or ""
+               local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(props.buf), ":t")
+               local ft_icon, ft_color = require("nvim-web-devicons").get_icon_color(filename)
+               local modified = vim.api.nvim_get_option_value("modified", { buf = props.buf }) and "italic" or ""
 
                local function get_git_diff()
-                  local icons =
-                      require("lazyvim.config").icons.git
+                  local icons = require("lazyvim.config").icons.git
                   icons["changed"] = icons.modified
-                  local signs =
-                      vim.b[props.buf].gitsigns_status_dict
+                  local signs = vim.b[props.buf].gitsigns_status_dict
                   local labels = {}
-                  if signs == nil then
-                     return labels
-                  end
+                  if signs == nil then return labels end
                   for name, icon in pairs(icons) do
-                     if
-                         tonumber(signs[name])
-                         and signs[name] > 1
-                     then
-                        table.insert(labels, {
-                           icon .. signs[name] .. " ",
-                           group = "Diff" .. name,
-                        })
+                     if tonumber(signs[name]) and signs[name] > 1 then
+                        table.insert(labels, { icon .. signs[name] .. " ", group = "Diff" .. name })
                      end
                   end
-                  if #labels > 1 then
-                     table.insert(labels, { "┊ " })
-                  end
+                  if #labels > 1 then table.insert(labels, { "┊ " }) end
                   return labels
                end
-               local function get_diagnostic_label()
-                  local icons = require(
-                     "lazyvim.config"
-                  ).icons.diagnostics
-                  local label = {}
 
+               local function get_diagnostic_label()
+                  local icons = require("lazyvim.config").icons.diagnostics
+                  local label = {}
                   for severity, icon in pairs(icons) do
-                     local n =
-                         #vim.diagnostic.get(props.buf, {
-                            severity = vim.diagnostic.severity[string.upper(
-                               severity
-                            )],
-                         })
+                     local n = #vim.diagnostic.get(props.buf,
+                        { severity = vim.diagnostic.severity[string.upper(severity)] })
                      if n > 1 then
-                        table.insert(label, {
-                           icon .. n .. " ",
-                           group = "DiagnosticSign"
-                               .. severity,
-                        })
+                        table.insert(label, { icon .. n .. " ", group = "DiagnosticSign" .. severity })
                      end
                   end
-                  if #label > 1 then
-                     table.insert(label, { "┊ " })
-                  end
+                  if #label > 1 then table.insert(label, { "┊ " }) end
                   return label
                end
 
                local buffer = {
-                  { get_diagnostic_label() },
+                  -- { get_diagnostic_label() },
                   { get_git_diff() },
-                  {
-                     ft_icon .. " ",
-                     guifg = ft_color,
-                     guibg = "none",
-                  },
+                  { ft_icon .. "  ", guifg = ft_color, guibg = "none" },
                   { filename .. " ", gui = modified },
-                  -- { " " .. vim.api.nvim_win_get_number(props.win), group = "Special" },
                }
                return buffer
             end,
          },
       },
-
       {
          "williamboman/mason.nvim",
          config = function()
