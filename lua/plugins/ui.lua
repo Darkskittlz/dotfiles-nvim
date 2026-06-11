@@ -582,7 +582,14 @@ return {
          local ui_config = require("plugins.ui")
          local opts = ui_config.lualine or {}
 
-         -- This restores your original look completely
+         -- Ensure 'options' table exists
+         opts.options = opts.options or {}
+
+         -- Override the theme to remove the pink background
+         -- 'auto' will match your current colorscheme, 
+         -- or you can use a specific theme like 'gruvbox', 'onedark', etc.
+         opts.options.theme = 'auto' 
+
          require("lualine").setup(opts)
       end,
    },
