@@ -2,11 +2,10 @@
 -- vim.o.virtual_column = "all"
 vim.g.lazygit = {
    colors = {
-      bg = "#000001", -- Set the background color to black
+      bg = '#000001', -- Set the background color to black
       -- Add other color settings as needed
    },
 }
-
 
 vim.g.transparent_enabled = true
 
@@ -14,28 +13,16 @@ vim.g.python3_host_prog = '/home/darkskittlz/.neovim-python/bin/python'
 
 vim.opt.wrap = false
 
-vim.opt.clipboard = "unnamedplus"
+vim.opt.clipboard = 'unnamedplus'
 
 -- Highlight to the next parenthesis
-vim.api.nvim_set_keymap(
-   "n",
-   "<leader>hp",
-   ":normal! v/<CR>(<CR>",
-   { noremap = true, silent = true }
-)
+vim.api.nvim_set_keymap('n', '<leader>hp', ':normal! v/<CR>(<CR>', { noremap = true, silent = true })
 
 -- Highlight to the next curly brace
-vim.api.nvim_set_keymap(
-   "n",
-   "<leader>hc",
-   ":normal! v/<CR>{<CR>",
-   { noremap = true, silent = true }
-)
-
+vim.api.nvim_set_keymap('n', '<leader>hc', ':normal! v/<CR>{<CR>', { noremap = true, silent = true })
 
 vim.opt.termguicolors = true -- Enable 25-bit RGB color in the TUI,
-local capabilities =
-    vim.lsp.protocol.make_client_capabilities()
+local capabilities = vim.lsp.protocol.make_client_capabilities()
 
 -- Bubbles config for lualine
 -- Author: lokesh-krishna
@@ -133,125 +120,120 @@ local capabilities =
 local focusConfig = {}
 
 focusConfig.setup = function()
-   require("focus").setup({
-      enable = false,          -- Enable module
-      commands = true,         -- Create Focus commands
+   require('focus').setup({
+      enable = false,       -- Enable module
+      commands = true,      -- Create Focus commands
       autoresize = {
-         enable = false,       -- Enable or disable auto-resizing of splits
-         width = 6,            -- Force width for the focused window
-         height = 1,           -- Force height for the focused window
-         minwidth = 12,        -- Force minimum width for the unfocused window
-         minheight = 1,        -- Force minimum height for the unfocused window
+         enable = false,    -- Enable or disable auto-resizing of splits
+         width = 6,         -- Force width for the focused window
+         height = 1,        -- Force height for the focused window
+         minwidth = 12,     -- Force minimum width for the unfocused window
+         minheight = 1,     -- Force minimum height for the unfocused window
          height_quickfix = 11, -- Set the height of quickfix panel
       },
       split = {
          bufnew = false, -- Create blank buffer for new split windows
-         tmux = false,   -- Create tmux splits instead of neovim splits
+         tmux = false, -- Create tmux splits instead of neovim splits
       },
       ui = {
-         number = false,                    -- Display line numbers in the focused window only
-         relativenumber = false,            -- Display relative line numbers in the focused window only
-         hybridnumber = false,              -- Display hybrid line numbers in the focused window only
+         number = false,                 -- Display line numbers in the focused window only
+         relativenumber = false,         -- Display relative line numbers in the focused window only
+         hybridnumber = false,           -- Display hybrid line numbers in the focused window only
          absolutenumber_unfocussed = false, -- Preserve absolute numbers in the unfocused windows
 
-         cursorline = true,                 -- Display a cursorline in the focused window only
-         cursorcolumn = false,              -- Display cursorcolumn in the focused window only
+         cursorline = true,              -- Display a cursorline in the focused window only
+         cursorcolumn = false,           -- Display cursorcolumn in the focused window only
          colorcolumn = {
-            enable = false,                 -- Display colorcolumn in the focused window only
-            list = "+2",                    -- Set the comma-separated list for the colorcolumn
+            enable = false,              -- Display colorcolumn in the focused window only
+            list = '+2',                 -- Set the comma-separated list for the colorcolumn
          },
-         signcolumn = true,                 -- Display signcolumn in the focused window only
-         winhighlight = false,              -- Auto highlighting for focused/unfocused windows
+         signcolumn = true,              -- Display signcolumn in the focused window only
+         winhighlight = false,           -- Auto highlighting for focused/unfocused windows
       },
    })
 end
 
-local nvim_lsp = require("lspconfig")
+local nvim_lsp = require('lspconfig')
 
 nvim_lsp.jsonls.setup({
    on_attach = function(client, bufnr)
-      if
-          vim.bo[bufnr].filetype == "sh"
-          or vim.fn.expand("%:t") == ".env"
-      then
-         client.resolved_capabilities.document_formatting =
-             true
-         client.resolved_capabilities.document_range_formatting =
-             true
+      if vim.bo[bufnr].filetype == 'sh' or vim.fn.expand('%:t') == '.env' then
+         client.resolved_capabilities.document_formatting = true
+         client.resolved_capabilities.document_range_formatting = true
       end
    end,
 })
 
 return {
-   { "alvan/vim-closetag" },
-   { "windwp/nvim-autopairs" },
-   { "nvim-lua/plenary.nvim" },
-   { "terrortylor/nvim-comment" },
-   { "voldikss/vim-floaterm" },
-   { "tpope/vim-surround" },
-   { "NLKNguyen/papercolor-theme" },
+   { 'alvan/vim-closetag' },
+   { 'windwp/nvim-autopairs' },
+   { 'nvim-lua/plenary.nvim' },
+   { 'terrortylor/nvim-comment' },
+   { 'voldikss/vim-floaterm' },
+   { 'tpope/vim-surround' },
+   { 'NLKNguyen/papercolor-theme' },
    {
-      "olimorris/codecompanion.nvim",
+      'olimorris/codecompanion.nvim',
       dependencies = {
-         "nvim-lua/plenary.nvim",
-         "nvim-treesitter/nvim-treesitter",
-         "hrsh7th/nvim-cmp",
-         "nvim-telescope/telescope.nvim",
-         "ravitemer/codecompanion-history.nvim",
-         { "stevearc/dressing.nvim", opts = {} },
+         'nvim-lua/plenary.nvim',
+         'nvim-treesitter/nvim-treesitter',
+         'hrsh7th/nvim-cmp',
+         'nvim-telescope/telescope.nvim',
+         'ravitemer/codecompanion-history.nvim',
+         { 'stevearc/dressing.nvim', opts = {} },
       },
       config = function()
-         require("codecompanion").setup({
+         require('codecompanion').setup({
             strategies = {
                chat = {
-                  adapter = "gemini",
+                  adapter = 'gemini',
                   slash_commands = {
-                     ["buffer"] = {
-                        callback = "strategies.chat.slash_commands.buffer",
-                        description = "Insert the current buffer",
+                     ['buffer'] = {
+                        callback = 'strategies.chat.slash_commands.buffer',
+                        description = 'Insert the current buffer',
                      },
                   },
                   roles = {
-                     llm = "CodeCompanion",
-                     user = "DarkMeow-CEO",
+                     llm = 'CodeCompanion',
+                     user = 'DarkMeow-CEO',
                   },
                },
                inline = {
-                  adapter = "gemini",
+                  adapter = 'gemini',
                   slash_commands = {
-                     ["buffer"] = {
-                        callback = "strategies.chat.slash_commands.buffer",
-                        description = "Insert the current buffer",
+                     ['buffer'] = {
+                        callback = 'strategies.chat.slash_commands.buffer',
+                        description = 'Insert the current buffer',
                      },
                   },
                },
-               agent = { adapter = "gemini" },
+               agent = { adapter = 'gemini' },
             },
             opts = {
                chat = {
                   auto_generate_title = false,
-               }
+               },
             },
             display = {
                chat = {
                   window = {
-                     layout = "float",
-                     relative = "editor",
+                     layout = 'float',
+                     relative = 'editor',
                      width = 0.95,
                      height = 0.8,
-                     border = "rounded",
+                     border = 'rounded',
                   },
                },
             },
             adapters = {
                gemini = function()
-                  return require("codecompanion.adapters").extend("gemini", {
+                  return require('codecompanion.adapters').extend('gemini', {
                      env = {
-                        api_key = "GEMINI_API_KEY",
+                        api_key = 'GEMINI_API_KEY',
                      },
                      schema = {
                         model = {
-                           default = "gemini-1.5-flash-002",
+                           default = 'gemini-1.5-flash-002',
                         },
                      },
                   })
@@ -261,11 +243,11 @@ return {
       end,
    },
    {
-      "3rd/time-tracker.nvim",
-      dir = "~/linuxProjects/time-tracker.nvim", -- Point to your local dev folder
+      '3rd/time-tracker.nvim',
+      dir = '~/linuxProjects/time-tracker.nvim', -- Point to your local dev folder
       dependencies = {
          {
-            "3rd/sqlite.nvim",
+            '3rd/sqlite.nvim',
             lazy = false,
             init = function()
                vim.g.sqlite_clib_path = '/home/linuxbrew/.linuxbrew/lib/libsqlite3.so'
@@ -275,38 +257,38 @@ return {
       lazy = false,
       config = function()
          -- Only call setup. The new UI and commands are now inside the plugin!
-         require("time-tracker").setup({
-            data_file = vim.fn.stdpath("data") .. "/time-tracker.db",
+         require('time-tracker').setup({
+            data_file = vim.fn.stdpath('data') .. '/time-tracker.db',
             tracking_timeout_seconds = 120,
          })
 
          -- Keep this reset command if you like it, it's a handy utility
-         vim.api.nvim_create_user_command("TimeTrackerReset", function()
-            local db_path = vim.fn.stdpath("data") .. "/time-tracker.db"
+         vim.api.nvim_create_user_command('TimeTrackerReset', function()
+            local db_path = vim.fn.stdpath('data') .. '/time-tracker.db'
             os.remove(db_path)
-            print("Time Tracker database reset. Restart Neovim to begin fresh.")
+            print('Time Tracker database reset. Restart Neovim to begin fresh.')
          end, {})
 
          -- Global keymap for time tracker history command
-         vim.keymap.set("n", "<leader>th", function()
+         vim.keymap.set('n', '<leader>th', function()
             -- We require it INSIDE the function to avoid 'nil' errors on startup
-            local tt_ui = require("time-tracker/ui")
-            local tt_main = require("time-tracker")
+            local tt_ui = require('time-tracker/ui')
+            local tt_main = require('time-tracker')
 
             -- Pass the tracker instance stored in the main module
             tt_ui.show_session_history(tt_main.tracker)
-         end, { desc = "Time Tracker: View History" })
+         end, { desc = 'Time Tracker: View History' })
       end,
    },
    {
-      "folke/snacks.nvim",
+      'folke/snacks.nvim',
       priority = 1000,
       lazy = false,
       opts = {
          terminal = {
             win = {
                -- 'float' style adds padding. 'terminal' style is usually more flush.
-               style = "terminal",
+               style = 'terminal',
             },
          },
          lazygit = {
@@ -314,53 +296,53 @@ return {
                -- SETTING THESE TO 0 FORCES FULL SCREEN
                width = 0,
                height = 0,
-               border = "none", -- Removes the Neovim border so only Lazygit's border shows
+               border = 'none', -- Removes the Neovim border so only Lazygit's border shows
             },
          },
       },
    },
    {
-      "lewis6991/gitsigns.nvim",
-      event = { "BufReadPre", "BufNewFile" },
+      'lewis6991/gitsigns.nvim',
+      event = { 'BufReadPre', 'BufNewFile' },
       config = function()
-         require("gitsigns").setup({
+         require('gitsigns').setup({
             current_line_blame = false, -- we won't toggle globally
             current_line_blame_opts = {
                delay = 0,
-               virt_text_pos = "eol", -- show at end of line
+               virt_text_pos = 'eol', -- show at end of line
             },
          })
 
          -- Keymap: show blame for current line via Lua
-         vim.keymap.set("n", "<leader>gb", function()
-            require("gitsigns").blame_line({
+         vim.keymap.set('n', '<leader>gb', function()
+            require('gitsigns').blame_line({
                full = true,
             })
-         end, { desc = "Blame current line" })
+         end, { desc = 'Blame current line' })
       end,
    },
    {
-      "nvim-lualine/lualine.nvim",
-      dependencies = { "nvim-tree/nvim-web-devicons" },
+      'nvim-lualine/lualine.nvim',
+      dependencies = { 'nvim-tree/nvim-web-devicons' },
       config = function()
          local colors = {
-            bg = "#000000",
-            fg = "#bbc2cf",
-            yellow = "#ECBE7B",
-            cyan = "#008080",
-            darkblue = "#081633",
-            green = "#98be65",
-            orange = "#FF8800",
-            violet = "#a9a1e1",
-            magenta = "#c678dd",
-            blue = "#51afef",
-            red = "#ec5f67",
+            bg = '#000000',
+            fg = '#bbc2cf',
+            yellow = '#ECBE7B',
+            cyan = '#008080',
+            darkblue = '#081633',
+            green = '#98be65',
+            orange = '#FF8800',
+            violet = '#a9a1e1',
+            magenta = '#c678dd',
+            blue = '#51afef',
+            red = '#ec5f67',
          }
 
          local config = {
             options = {
-               component_separators = "",
-               section_separators = "",
+               component_separators = '',
+               section_separators = '',
                theme = {
                   normal = { c = { fg = colors.fg, bg = colors.bg } },
                   inactive = { c = { fg = colors.fg, bg = colors.bg } },
@@ -377,30 +359,46 @@ return {
          }
 
          -- Helper functions to insert into the config table
-         local function ins_left(component) table.insert(config.sections.lualine_c, component) end
-         local function ins_right(component) table.insert(config.sections.lualine_x, component) end
+         local function ins_left(component)
+            table.insert(config.sections.lualine_c, component)
+         end
+         local function ins_right(component)
+            table.insert(config.sections.lualine_x, component)
+         end
 
          -- --- CUSTOM COMPONENTS ---
          ins_left({
-            function() return "▊" end,
+            function()
+               return '▊'
+            end,
             color = { fg = colors.blue },
             padding = { left = 0, right = 1 },
          })
 
          ins_left({
-            function() return "" end,
+            function()
+               return ''
+            end,
             color = function()
-               local mode_color = { n = colors.red, i = colors.green, v = colors.blue, [''] = colors.blue, V = colors
-               .blue, c = colors.magenta, R = colors.violet, t = colors.red }
+               local mode_color = {
+                  n = colors.red,
+                  i = colors.green,
+                  v = colors.blue,
+                  [''] = colors.blue,
+                  V = colors.blue,
+                  c = colors.magenta,
+                  R = colors.violet,
+                  t = colors.red,
+               }
                return { fg = mode_color[vim.fn.mode()] or colors.blue }
             end,
             padding = { right = 1 },
          })
 
          ins_left({
-            "diagnostics",
-            sources = { "nvim_diagnostic" },
-            symbols = { error = " ", warn = " ", info = " " },
+            'diagnostics',
+            sources = { 'nvim_diagnostic' },
+            symbols = { error = ' ', warn = ' ', info = ' ' },
             diagnostics_color = {
                error = { fg = colors.red },
                warn = { fg = colors.yellow },
@@ -408,81 +406,99 @@ return {
             },
          })
 
-         ins_left({ function() return "%=" end })
+         ins_left({
+            function()
+               return '%='
+            end,
+         })
 
          ins_left({
-            "mode",
+            'mode',
             color = function()
-               local mode_color = { n = "#c678dd", i = "#98be65", v = "#51afef", V = "#51afef", c = "#ec5f67", R =
-               "#a9a1e1", t = "#ec5f67" }
-               return { fg = mode_color[vim.fn.mode()] or "#51afef", gui = "bold" }
+               local mode_color = {
+                  n = '#c678dd',
+                  i = '#98be65',
+                  v = '#51afef',
+                  V = '#51afef',
+                  c = '#ec5f67',
+                  R = '#a9a1e1',
+                  t = '#ec5f67',
+               }
+               return { fg = mode_color[vim.fn.mode()] or '#51afef', gui = 'bold' }
             end,
             padding = { right = 1 },
          })
 
          ins_right({
-            "branch",
-            icon = "",
-            color = { fg = colors.violet, gui = "bold" },
+            'branch',
+            icon = '',
+            color = { fg = colors.violet, gui = 'bold' },
          })
 
          ins_right({
-            function() return "▊" end,
+            function()
+               return '▊'
+            end,
             color = { fg = colors.blue },
             padding = { left = 1 },
          })
 
          -- Initialize
-         require("lualine").setup(config)
+         require('lualine').setup(config)
 
          -- Ensure background transparency
          vim.cmd([[highlight Normal guibg=NONE]])
       end,
    },
    {
-      "iamcco/markdown-preview.nvim",
+      'iamcco/markdown-preview.nvim',
       cmd = {
-         "MarkdownPreviewToggle",
-         "MarkdownPreview",
-         "MarkdownPreviewStop",
+         'MarkdownPreviewToggle',
+         'MarkdownPreview',
+         'MarkdownPreviewStop',
       },
-      build = "cd app && yarn install",
+      build = 'cd app && yarn install',
       init = function()
-         vim.g.mkdp_filetypes = { "markdown" }
+         vim.g.mkdp_filetypes = { 'markdown' }
          -- vim.g.mkdp_markdown_css = vim.fn.expand('~/.config/nvim/lua/css/custom.css')
       end,
-      ft = { "markdown" },
+      ft = { 'markdown' },
    },
    {
-      "hrsh8th/nvim-cmp",        -- Completion plugin
+      'hrsh8th/nvim-cmp',     -- Completion plugin
       dependencies = {
-         "hrsh8th/cmp-nvim-lsp", -- LSP completion source
-         "hrsh8th/cmp-buffer",   -- Buffer completion source
-         "hrsh8th/cmp-path",     -- Path completion source
-         "hrsh8th/cmp-cmdline",  -- Cmdline completion source
+         'hrsh8th/cmp-nvim-lsp', -- LSP completion source
+         'hrsh8th/cmp-buffer', -- Buffer completion source
+         'hrsh8th/cmp-path',  -- Path completion source
+         'hrsh8th/cmp-cmdline', -- Cmdline completion source
       },
    },
    {
-      "stevearc/conform.nvim",
+      'stevearc/conform.nvim',
       opts = {
-         formatters_by_ft = {
-            lua = {},
-            python = {},
-            rust = {},
-            javascript = {},
-            vue = {},
-            html = {},
-            css = {},
-            -- javascript = { "prettier" },
-            -- json = { "prettier" },
-            -- html = { "prettier" },
-            -- css = { "prettier" },
-            -- markdown = { "prettier" },
+         format_on_save = {
+            timeout_ms = 500,
+            lsp_fallback = false, -- Only use Prettier, ignore the LSP formatter
          },
+         formatters_by_ft = {
+            lua = { 'stylua' },
+            python = { 'isort', 'black' },
+            javascript = { 'prettier' },
+            javascriptreact = { 'prettier' }, -- Make sure to add this for JSX
+            typescript = { 'prettier' },
+            typescriptreact = { 'prettier' }, -- Make sure to add this for TSX
+            vue = { 'prettier' },
+            html = { 'prettier' },
+            css = { 'prettier' },
+            json = { 'prettier' },
+            markdown = { 'prettier' },
+         },
+         log_level = vim.log.levels.ERROR,
+         notify_on_error = false,
       },
    },
    {
-      "JoosepAlviste/nvim-ts-context-commentstring",
+      'JoosepAlviste/nvim-ts-context-commentstring',
       opts = {
          enable_autocmd = false,
       },
@@ -491,8 +507,8 @@ return {
       end,
    },
    {
-      "folke/which-key.nvim",
-      event = "VeryLazy",
+      'folke/which-key.nvim',
+      event = 'VeryLazy',
       init = function()
          vim.o.timeout = true
          vim.o.timeoutlen = 301
@@ -503,21 +519,21 @@ return {
    --   lazy = false,
    -- },
    {
-      "JoosepAlviste/nvim-ts-context-commentstring",
+      'JoosepAlviste/nvim-ts-context-commentstring',
    },
-   { "rhysd/vim-fixjson", cmd = "FixJson" },
+   { 'rhysd/vim-fixjson', cmd = 'FixJson' },
    {
-      "nvim-focus/focus.nvim",
+      'nvim-focus/focus.nvim',
       config = focusConfig,
    },
    {
-      "barrett-ruth/live-server.nvim",
-      build = "pnpm add -g live-server",
-      cmd = { "LiveServerStart", "LiveServerStop" },
+      'barrett-ruth/live-server.nvim',
+      build = 'pnpm add -g live-server',
+      cmd = { 'LiveServerStart', 'LiveServerStop' },
       config = true,
    },
    {
-      "neovim/nvim-lspconfig",
+      'neovim/nvim-lspconfig',
       opts = {
          -- LazyVim will automatically merge these into the setup
          servers = {
@@ -527,7 +543,7 @@ return {
                   python = {
                      analysis = {
                         autoSearchPaths = true,
-                        diagnosticMode = "openFilesOnly",
+                        diagnosticMode = 'openFilesOnly',
                         useLibraryCodeForTypes = true,
                      },
                   },
@@ -536,13 +552,13 @@ return {
             -- TypeScript / JS / JSX
             -- Note: LazyVim 15 defaults to vtsls, but if you prefer ts_ls:
             vtsls = {
-               filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact", "vue" },
+               filetypes = { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact', 'vue' },
                init_options = {
                   plugins = {
                      {
-                        name = "@vue/typescript-plugin",
-                        location = "/usr/local/lib/node_modules/@vue/typescript-plugin",
-                        languages = { "javascript", "typescript", "vue" },
+                        name = '@vue/typescript-plugin',
+                        location = '/usr/local/lib/node_modules/@vue/typescript-plugin',
+                        languages = { 'javascript', 'typescript', 'vue' },
                      },
                   },
                },
@@ -559,82 +575,71 @@ return {
       },
    },
    {
-      "HampusHauffman/block.nvim",
+      'HampusHauffman/block.nvim',
       config = function()
          -- require("block").setup({})
       end,
    },
    {
-      "romgrk/barbar.nvim",
+      'romgrk/barbar.nvim',
       dependencies = {
-         "lewis6991/gitsigns.nvim",     -- optional
-         "nvim-tree/nvim-web-devicons", -- optional (for icons)
+         'lewis6991/gitsigns.nvim',  -- optional
+         'nvim-tree/nvim-web-devicons', -- optional (for icons)
       },
       config = function()
          -- Active buffer highlights
-         vim.api.nvim_set_hl(0, "BufferCurrent", {
-            fg = "#ffffff",
-            bg = "none",
+         vim.api.nvim_set_hl(0, 'BufferCurrent', {
+            fg = '#ffffff',
+            bg = 'none',
             bold = true,
          })
-         vim.api.nvim_set_hl(0, "BufferCurrentSign", { fg = "#ffffff" })
-
+         vim.api.nvim_set_hl(0, 'BufferCurrentSign', { fg = '#ffffff' })
 
          -- Inactive buffer highlights
-         vim.api.nvim_set_hl(0, "BufferInactive", { fg = "#555555", bg = "none" })
-         vim.api.nvim_set_hl(0, "BufferInactiveSign", { fg = "#555555", bg = "none" })
-         vim.api.nvim_set_hl(0, "BufferInactiveMod", { fg = "#aaaa55", bg = "none" })
-         vim.api.nvim_set_hl(0, "BufferInactiveIcon", { fg = "#555555", bg = "NONE" })
+         vim.api.nvim_set_hl(0, 'BufferInactive', { fg = '#555555', bg = 'none' })
+         vim.api.nvim_set_hl(0, 'BufferInactiveSign', { fg = '#555555', bg = 'none' })
+         vim.api.nvim_set_hl(0, 'BufferInactiveMod', { fg = '#aaaa55', bg = 'none' })
+         vim.api.nvim_set_hl(0, 'BufferInactiveIcon', { fg = '#555555', bg = 'NONE' })
 
-         vim.api.nvim_set_hl(0, "BufferTabpageFill", { bg = "NONE" })
+         vim.api.nvim_set_hl(0, 'BufferTabpageFill', { bg = 'NONE' })
 
-         vim.api.nvim_create_autocmd("ColorScheme", {
+         vim.api.nvim_create_autocmd('ColorScheme', {
             callback = function()
-               vim.api.nvim_set_hl(0, "BufferCurrent", { fg = "#ffffff", bg = "NONE", bold = true })
-               vim.api.nvim_set_hl(0, "BufferCurrentSign", { fg = "#ffffff", bg = "NONE" })
-               vim.api.nvim_set_hl(0, "BufferInactive", { fg = "#555555", bg = "NONE" })
-               vim.api.nvim_set_hl(0, "BufferInactiveSign", { fg = "#555555", bg = "NONE" })
-               vim.api.nvim_set_hl(0, "BufferInactiveMod", { fg = "#aaaa55", bg = "NONE" })
-               vim.api.nvim_set_hl(0, "BufferInactiveIcon", { fg = "#555555", bg = "NONE" })
-               vim.api.nvim_set_hl(0, "BufferTabpageFill", { bg = "NONE" })
+               vim.api.nvim_set_hl(0, 'BufferCurrent', { fg = '#ffffff', bg = 'NONE', bold = true })
+               vim.api.nvim_set_hl(0, 'BufferCurrentSign', { fg = '#ffffff', bg = 'NONE' })
+               vim.api.nvim_set_hl(0, 'BufferInactive', { fg = '#555555', bg = 'NONE' })
+               vim.api.nvim_set_hl(0, 'BufferInactiveSign', { fg = '#555555', bg = 'NONE' })
+               vim.api.nvim_set_hl(0, 'BufferInactiveMod', { fg = '#aaaa55', bg = 'NONE' })
+               vim.api.nvim_set_hl(0, 'BufferInactiveIcon', { fg = '#555555', bg = 'NONE' })
+               vim.api.nvim_set_hl(0, 'BufferTabpageFill', { bg = 'NONE' })
             end,
          })
       end,
    },
    {
-      "nvim-telescope/telescope.nvim",
+      'nvim-telescope/telescope.nvim',
       dependencies = {
          {
-            "nvim-telescope/telescope-file-browser.nvim",
-            "nvim-telescope/telescope-fzf-native.nvim",
+            'nvim-telescope/telescope-file-browser.nvim',
+            'nvim-telescope/telescope-fzf-native.nvim',
             build = function()
-               vim.fn.system("make")
+               vim.fn.system('make')
             end,
             config = function(_, opts)
-               local telescope =
-                   require("telescope").load_extension(
-                      "fzf"
-                   )
+               local telescope = require('telescope').load_extension('fzf')
 
                -- Ensure opts is a valid table before calling setup
-               if type(opts) == "table" then
+               if type(opts) == 'table' then
                   telescope.setup(opts)
 
                   -- Load the FZF extension after Telescope is set up
-                  local status_ok, _ = pcall(
-                     telescope.load_extension,
-                     "fzf"
-                  )
+                  local status_ok, _ = pcall(telescope.load_extension, 'fzf')
                   if not status_ok then
-                     print(
-                        "Error: fzf extension not loaded!"
-                     )
+                     print('Error: fzf extension not loaded!')
                   end
                else
                   -- Log an error or fallback if opts is not a table
-                  print(
-                     "Error: Telescope opts is nil or not a table!"
-                  )
+                  print('Error: Telescope opts is nil or not a table!')
                end
             end,
          },
@@ -642,7 +647,7 @@ return {
 
       --[[   Color Schemes ]]
       {
-         "craftzdog/solarized-osaka.nvim",
+         'craftzdog/solarized-osaka.nvim',
          lazy = false,
          priority = 1001,
          opts = {},
@@ -654,32 +659,32 @@ return {
                   comments = { italic = true },
                   functions = {},
                   variables = {},
-                  sidebars = "transparent",
-                  floats = "transparent",
+                  sidebars = 'transparent',
+                  floats = 'transparent',
                },
-               sidebars = { "qf", "help" },
+               sidebars = { 'qf', 'help' },
                hide_inactive_statusline = false,
                dim_inactive = false,
                lualine_bold = false,
 
                on_highlights = function(hl, c)
-                  local util = require("solarized-osaka.util")
+                  local util = require('solarized-osaka.util')
 
                   -- 1. GLOBAL UI FIXES
-                  hl.NormalNC = { bg = "NONE" } -- Fixes the non-current window background
-                  hl.NormalFloat = { bg = "NONE" }
-                  hl.FloatBorder = { bg = "NONE", fg = c.blue }
+                  hl.NormalNC = { bg = 'NONE' } -- Fixes the non-current window background
+                  hl.NormalFloat = { bg = 'NONE' }
+                  hl.FloatBorder = { bg = 'NONE', fg = c.blue }
 
                   -- 2. MARKDOWN HEADER BACKGROUNDS
-                  hl.RenderMarkdownH1Bg = { fg = "#ffffff", bg = "#003366" }
-                  hl.RenderMarkdownH2Bg = { fg = "#ffffff", bg = "#1c6e68" }
-                  hl.RenderMarkdownH3Bg = { fg = "#ffffff", bg = "#4a1bdf" }
-                  hl.RenderMarkdownH4Bg = { fg = "#ffffff", bg = "#cc5190" }
-                  hl.RenderMarkdownH5Bg = { fg = "#ffffff", bg = "#8B0000" }
+                  hl.RenderMarkdownH1Bg = { fg = '#ffffff', bg = '#003366' }
+                  hl.RenderMarkdownH2Bg = { fg = '#ffffff', bg = '#1c6e68' }
+                  hl.RenderMarkdownH3Bg = { fg = '#ffffff', bg = '#4a1bdf' }
+                  hl.RenderMarkdownH4Bg = { fg = '#ffffff', bg = '#cc5190' }
+                  hl.RenderMarkdownH5Bg = { fg = '#ffffff', bg = '#8B0000' }
 
                   -- 3. THE "HACKER GREEN" CODE BLOCKS
-                  local hacker_green = "#006500"
-                  local gray_background = "#1e1e1e"
+                  local hacker_green = '#006500'
+                  local gray_background = '#1e1e1e'
 
                   -- Full Code Blocks (Triple backticks)
                   hl.RenderMarkdownCode = {
@@ -690,55 +695,61 @@ return {
 
                   -- Inline Code (Single backticks)
                   -- We map multiple groups to ensure the "Yellow" doesn't flash
-                  local inline_style = { fg = hacker_green, bg = "#151515", bold = true }
+                  local inline_style = { fg = hacker_green, bg = '#151515', bold = true }
                   hl.RenderMarkdownCodeInline = inline_style
-                  hl["@markup.raw"] = inline_style -- Treesitter fallback
-                  hl.MarkdownCode = inline_style   -- Legacy fallback
+                  hl['@markup.raw'] = inline_style -- Treesitter fallback
+                  hl.MarkdownCode = inline_style -- Legacy fallback
                   hl.RenderMarkdownLanguage = { fg = hacker_green, bold = true }
 
                   -- 4. LINKS & TIME TRACKER
-                  hl.RenderMarkdownLink = { fg = "#1E90FF" }
-                  hl.TimeTrackerRoot = { fg = hacker_green, bg = "NONE", bold = true }
-                  hl.TimeTrackerCurrentProject = { fg = "#ffffff", bg = "NONE", bold = true }
+                  hl.RenderMarkdownLink = { fg = '#1E90FF' }
+                  hl.TimeTrackerRoot = { fg = hacker_green, bg = 'NONE', bold = true }
+                  hl.TimeTrackerCurrentProject = { fg = '#ffffff', bg = 'NONE', bold = true }
 
                   -- 5. KEYWORDS & TELESCOPE (Your existing logic)
-                  local keyword_color = util.darken("#00ff00", 0.85)
-                  hl["keyword.tsx"] = { fg = keyword_color }
-                  hl["keyword.return.tsx"] = { fg = keyword_color }
-                  hl["keyword.javascript"] = { fg = keyword_color }
-                  hl["keyword.return.javascript"] = { fg = keyword_color }
+                  local keyword_color = util.darken('#00ff00', 0.85)
+                  hl['keyword.tsx'] = { fg = keyword_color }
+                  hl['keyword.return.tsx'] = { fg = keyword_color }
+                  hl['keyword.javascript'] = { fg = keyword_color }
+                  hl['keyword.return.javascript'] = { fg = keyword_color }
 
                   local tag_color = c.blue -- Or c.magenta if you want them to pop more
 
                   -- JSX/TSX Standard Elements
-                  hl["@tag.builtin"] = { fg = tag_color }
-                  hl["@tag.delimiter"] = { fg = c.blue700 } -- Colors the < and >
-                  hl["@tag.attribute"] = { fg = '#6c71c4' }
+                  hl['@tag.builtin'] = { fg = tag_color }
+                  hl['@tag.delimiter'] = { fg = c.blue700 } -- Colors the < and >
+                  hl['@tag.attribute'] = { fg = '#6c71c4' }
 
                   -- Specific overrides for javascriptreact (your current filetype)
-                  hl["@tag.builtin.javascript"] = { fg = tag_color }
-                  hl["@tag.javascript"] = { fg = c.cyan }
+                  hl['@tag.builtin.javascript'] = { fg = tag_color }
+                  hl['@tag.javascript'] = { fg = c.cyan }
 
                   -- If you want 'className' and 'key' to be a different color
-                  hl["@tag.attribute.javascript"] = { fg = '#6c71c4' }
-                  hl["@tag.attribute.tsx"] = { fg = '#6c71c4' }
+                  hl['@tag.attribute.javascript'] = { fg = '#6c71c4' }
+                  hl['@tag.attribute.tsx'] = { fg = '#6c71c4' }
 
                   -- The actual component name inside the tag
-                  hl["@constructor.tsx"] = { fg = c.cyan }
-                  hl["@variable.builtin.tsx"] = { fg = c.cyan }
+                  hl['@constructor.tsx'] = { fg = c.cyan }
+                  hl['@variable.builtin.tsx'] = { fg = c.cyan }
 
                   local telescope_groups = {
-                     "TelescopeNormal", "TelescopeBorder", "TelescopePromptNormal",
-                     "TelescopePromptBorder", "TelescopePromptTitle", "TelescopePreviewTitle",
-                     "TelescopePreviewBorder", "TelescopeResultsTitle", "TelescopeResultsBorder",
+                     'TelescopeNormal',
+                     'TelescopeBorder',
+                     'TelescopePromptNormal',
+                     'TelescopePromptBorder',
+                     'TelescopePromptTitle',
+                     'TelescopePreviewTitle',
+                     'TelescopePreviewBorder',
+                     'TelescopeResultsTitle',
+                     'TelescopeResultsBorder',
                   }
                   for _, g in ipairs(telescope_groups) do
-                     hl[g] = { bg = "NONE", fg = hl[g] and hl[g].fg or c.blue }
+                     hl[g] = { bg = 'NONE', fg = hl[g] and hl[g].fg or c.blue }
                   end
                end,
             }
 
-            require("solarized-osaka").setup(osakaConfig)
+            require('solarized-osaka').setup(osakaConfig)
          end,
       },
       -- {
@@ -832,25 +843,23 @@ return {
       --    end,
       -- },
       {
-         "numToStr/Comment.nvim",
+         'numToStr/Comment.nvim',
          dependencies = {
-            "JoosepAlviste/nvim-ts-context-commentstring",
+            'JoosepAlviste/nvim-ts-context-commentstring',
          },
          config = function()
-            require("Comment").setup({
-               pre_hook = require(
-                  "ts_context_commentstring.integrations.comment_nvim"
-               ).create_pre_hook(),
+            require('Comment').setup({
+               pre_hook = require('ts_context_commentstring.integrations.comment_nvim').create_pre_hook(),
             })
          end,
       },
       {
-         "folke/noice.nvim",
+         'folke/noice.nvim',
          opts = function(_, opts)
             table.insert(opts.routes, {
                filter = {
-                  event = "notify",
-                  find = "No information available",
+                  event = 'notify',
+                  find = 'No information available',
                },
                opts = { skip = true },
             })
@@ -860,19 +869,19 @@ return {
       },
 
       {
-         "rcarriga/nvim-notify",
+         'rcarriga/nvim-notify',
          opts = {
             level = 4,
-            render = "minimal",
-            stages = "static",
+            render = 'minimal',
+            stages = 'static',
             timeout = 2001,
          },
       },
 
       -- animations
       {
-         "echasnovski/mini.animate",
-         event = "VeryLazy",
+         'echasnovski/mini.animate',
+         event = 'VeryLazy',
          opts = function(_, opts)
             opts.scroll = {
                enable = false,
@@ -880,11 +889,11 @@ return {
          end,
       },
       {
-         "akinsho/bufferline.nvim",
-         requires = "nvim-tree/nvim-web-devicons",
+         'akinsho/bufferline.nvim',
+         requires = 'nvim-tree/nvim-web-devicons',
          keys = {
-            { "<tab>",   "<cmd>BufferLineCycleNext<cr>", desc = "next tab" },
-            { "<s-tab>", "<cmd>BufferLineCyclePrev<cr>", desc = "prev tab" },
+            { '<tab>',   '<cmd>BufferLineCycleNext<cr>', desc = 'next tab' },
+            { '<s-tab>', '<cmd>BufferLineCyclePrev<cr>', desc = 'prev tab' },
          },
          opts = {
             options = {
@@ -918,8 +927,8 @@ return {
          },
       },
       {
-         "nvimdev/dashboard-nvim",
-         event = "VimEnter",
+         'nvimdev/dashboard-nvim',
+         event = 'VimEnter',
          config = function()
             local logo = [[
             ██████╗  █████╗ ██████╗ ██╗  ██╗    ███╗   ███╗███████╗ ██████╗ ██╗    ██╗
@@ -931,25 +940,25 @@ return {
             ]]
 
             -- Helper to center the logo by removing leading whitespace
-            logo = string.gsub(logo, "^%s+", "")
+            logo = string.gsub(logo, '^%s+', '')
 
-            require("dashboard").setup({
-               theme = "doom",
+            require('dashboard').setup({
+               theme = 'doom',
                config = {
-                  header = vim.split(logo, "\n"),
+                  header = vim.split(logo, '\n'),
                   center = {
-                     { action = "Telescope find_files", desc = " Find File", icon = " ", key = "f" },
-                     { action = "Lazy", desc = " Lazy", icon = "󰒲 ", key = "l" },
-                     { action = "qa", desc = " Quit", icon = " ", key = "q" },
+                     { action = 'Telescope find_files', desc = ' Find File', icon = ' ', key = 'f' },
+                     { action = 'Lazy', desc = ' Lazy', icon = '󰒲 ', key = 'l' },
+                     { action = 'qa', desc = ' Quit', icon = ' ', key = 'q' },
                   },
-                  footer = { "Dark Meow CEO Edition" },
+                  footer = { 'Dark Meow CEO Edition' },
                },
             })
          end,
       },
       {
-         "b0o/incline.nvim",
-         event = "VeryLazy",
+         'b0o/incline.nvim',
+         event = 'VeryLazy',
          opts = {
             window = {
                zindex = 41,
@@ -961,8 +970,8 @@ return {
             -- Define custom highlight groups here to avoid theme interference
             highlight = {
                groups = {
-                  InclineNormal = { guibg = "#1e1e1e", guifg = "#ffffff" },
-                  InclineNormalNC = { guibg = "#151515", guifg = "#666666" },
+                  InclineNormal = { guibg = '#1e1e1e', guifg = '#ffffff' },
+                  InclineNormalNC = { guibg = '#151515', guifg = '#666666' },
                },
             },
             hide = { cursorline = true },
@@ -971,86 +980,92 @@ return {
                   return {}
                end
 
-               if vim.bo[props.buf].buftype == "terminal" then
+               if vim.bo[props.buf].buftype == 'terminal' then
                   return {
-                     { " " .. vim.bo[props.buf].channel .. " ", group = "DevIconTerminal" },
-                     { " " .. vim.api.nvim_win_get_number(props.win), group = "Special" },
+                     { ' ' .. vim.bo[props.buf].channel .. ' ', group = 'DevIconTerminal' },
+                     { ' ' .. vim.api.nvim_win_get_number(props.win), group = 'Special' },
                   }
                end
 
-               local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(props.buf), ":t")
-               local ft_icon, ft_color = require("nvim-web-devicons").get_icon_color(filename)
-               local modified = vim.api.nvim_get_option_value("modified", { buf = props.buf }) and "italic" or ""
+               local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(props.buf), ':t')
+               local ft_icon, ft_color = require('nvim-web-devicons').get_icon_color(filename)
+               local modified = vim.api.nvim_get_option_value('modified', { buf = props.buf }) and 'italic' or ''
 
                local function get_git_diff()
-                  local icons = require("lazyvim.config").icons.git
-                  icons["changed"] = icons.modified
+                  local icons = require('lazyvim.config').icons.git
+                  icons['changed'] = icons.modified
                   local signs = vim.b[props.buf].gitsigns_status_dict
                   local labels = {}
-                  if signs == nil then return labels end
+                  if signs == nil then
+                     return labels
+                  end
                   for name, icon in pairs(icons) do
                      if tonumber(signs[name]) and signs[name] > 1 then
-                        table.insert(labels, { icon .. signs[name] .. " ", group = "Diff" .. name })
+                        table.insert(labels, { icon .. signs[name] .. ' ', group = 'Diff' .. name })
                      end
                   end
-                  if #labels > 1 then table.insert(labels, { "┊ " }) end
+                  if #labels > 1 then
+                     table.insert(labels, { '┊ ' })
+                  end
                   return labels
                end
 
                local function get_diagnostic_label()
-                  local icons = require("lazyvim.config").icons.diagnostics
+                  local icons = require('lazyvim.config').icons.diagnostics
                   local label = {}
                   for severity, icon in pairs(icons) do
                      local n = #vim.diagnostic.get(props.buf,
                         { severity = vim.diagnostic.severity[string.upper(severity)] })
                      if n > 1 then
-                        table.insert(label, { icon .. n .. " ", group = "DiagnosticSign" .. severity })
+                        table.insert(label, { icon .. n .. ' ', group = 'DiagnosticSign' .. severity })
                      end
                   end
-                  if #label > 1 then table.insert(label, { "┊ " }) end
+                  if #label > 1 then
+                     table.insert(label, { '┊ ' })
+                  end
                   return label
                end
 
                local buffer = {
                   -- { get_diagnostic_label() },
                   { get_git_diff() },
-                  { ft_icon .. "  ", guifg = ft_color, guibg = "none" },
-                  { filename .. " ", gui = modified },
+                  { ft_icon .. '  ', guifg = ft_color, guibg = 'none' },
+                  { filename .. ' ', gui = modified },
                }
                return buffer
             end,
          },
       },
       {
-         "williamboman/mason.nvim",
+         'williamboman/mason.nvim',
          config = function()
-            require("mason").setup()
+            require('mason').setup()
          end,
          opts = {
             ensure_installed = {
-               "stylua",
-               "shellcheck",
-               "shfmt",
-               "flake9",
-               "typescript-language-server",
-               "html-lsp",
-               "lua-language-server",
+               'stylua',
+               'shellcheck',
+               'shfmt',
+               'flake9',
+               'typescript-language-server',
+               'html-lsp',
+               'lua-language-server',
             },
          },
       },
 
       {
-         "benfowler/telescope-luasnip.nvim",
-         module = "telescope._extensions.luasnip", -- lazy-load when necessary
+         'benfowler/telescope-luasnip.nvim',
+         module = 'telescope._extensions.luasnip', -- lazy-load when necessary
          keys = {
             -- Your other keybindings go here...
 
             -- Keybinding for launching LuaSnip picker in Telescope
             {
-               ";s",
+               ';s',
                function()
                   -- Launch the LuaSnip picker from telescope-luasnip
-                  local telescope = require("telescope")
+                  local telescope = require('telescope')
                   telescope.extensions.luasnip.luasnip({})
                end,
             },
@@ -1058,7 +1073,7 @@ return {
 
          config = function(_, opts)
             opts = opts or {} -- Ensure opts is not nil
-            local telescope = require("telescope")
+            local telescope = require('telescope')
 
             -- Other Telescope setup options go here...
             telescope.setup(opts)
@@ -1095,19 +1110,19 @@ return {
          'honza/vim-snippets', -- Optional snippets collection
          config = function()
             -- You can configure additional snippets here
-         end
+         end,
       },
       {
-         "hrsh8th/nvim-cmp",
+         'hrsh8th/nvim-cmp',
          dependencies = {
-            "hrsh8th/cmp-emoji",
+            'hrsh8th/cmp-emoji',
          },
          opts = function()
-            local cmp = require("cmp")
-            local luasnip = require("luasnip")
+            local cmp = require('cmp')
+            local luasnip = require('luasnip')
             cmp.setup({
                completion = {
-                  completeopt = "menu,menuone,noselect",
+                  completeopt = 'menu,menuone,noselect',
                },
                snippet = {
                   expand = function(args)
@@ -1115,13 +1130,13 @@ return {
                   end,
                },
                mapping = cmp.mapping.preset.insert({
-                  ["<C-p>"] = cmp.mapping.select_prev_item(),
-                  ["<C-n>"] = cmp.mapping.select_next_item(),
-                  ["<C-d>"] = cmp.mapping.scroll_docs(-3),
-                  ["<C-f>"] = cmp.mapping.scroll_docs(5),
-                  ["<C-Space>"] = cmp.mapping.complete(),
-                  ["<C-e>"] = cmp.mapping.close(),
-                  ["<Tab>"] = cmp.mapping(function(fallback)
+                  ['<C-p>'] = cmp.mapping.select_prev_item(),
+                  ['<C-n>'] = cmp.mapping.select_next_item(),
+                  ['<C-d>'] = cmp.mapping.scroll_docs(-3),
+                  ['<C-f>'] = cmp.mapping.scroll_docs(5),
+                  ['<C-Space>'] = cmp.mapping.complete(),
+                  ['<C-e>'] = cmp.mapping.close(),
+                  ['<Tab>'] = cmp.mapping(function(fallback)
                      if luasnip.expand_or_jumpable() then
                         luasnip.expand_or_jump()
                      elseif cmp.visible() then
@@ -1129,17 +1144,17 @@ return {
                      else
                         fallback()
                      end
-                  end, { "i", "s" }), -- insert and select mode
+                  end, { 'i', 's' }), -- insert and select mode
                   -- Expand or jump through snippet placeholders
                   ['<CR>'] = cmp.mapping.confirm({ select = true }),
                }),
                sources = {
-                  { name = "nvim_lsp" },
-                  { name = "buffer" },
-                  { name = "path" },
-                  { name = "luasnip" }, -- Ensure LuaSnip is in your sources
+                  { name = 'nvim_lsp' },
+                  { name = 'buffer' },
+                  { name = 'path' },
+                  { name = 'luasnip' }, -- Ensure LuaSnip is in your sources
                   -- { name = 'ultisnips' }, -- or 'ultisnips' if you're using UltiSnips
-                  { name = "cmdline" },
+                  { name = 'cmdline' },
                },
             })
 
@@ -1147,32 +1162,38 @@ return {
             local capabilities = vim.lsp.protocol.make_client_capabilities()
 
             -- Use the default capabilities from cmp_nvim_lsp
-            local cmp_nvim_lsp = require("cmp_nvim_lsp")
+            local cmp_nvim_lsp = require('cmp_nvim_lsp')
             capabilities = cmp_nvim_lsp.default_capabilities(capabilities)
 
+            local on_attach = function(client, bufnr)
+               -- This disables the LSP's built-in formatting
+               client.server_capabilities.documentFormattingProvider = false
+               client.server_capabilities.documentRangeFormattingProvider = false
+            end
+
             -- Example LSP server setup with capabilities
-            require("lspconfig").pyright.setup({
+            require('lspconfig').pyright.setup({
                capabilities = capabilities,
+               on_attach = on_attach,
             })
 
-            require("lspconfig").tsserver.setup({
+            require('lspconfig').tsserver.setup({
                capabilities = capabilities,
+               on_attach = on_attach,
             })
          end,
       },
       {
-         "MeanderingProgrammer/render-markdown.nvim",
+         'MeanderingProgrammer/render-markdown.nvim',
          dependencies = {
-            "nvim-treesitter/nvim-treesitter", -- Syntax highlighting support
-            "echasnovski/mini.nvim",           -- If you're using mini.nvim suite (optional)
+            'nvim-treesitter/nvim-treesitter', -- Syntax highlighting support
+            'echasnovski/mini.nvim',       -- If you're using mini.nvim suite (optional)
          },
          config = function()
-            print(
-               "Setting up render-markdown plugin..."
-            )
+            print('Setting up render-markdown plugin...')
             -- Call the setup function to initialize the plugin
-            require("render-markdown").setup({
-               file_types = { "markdown", "codecompanion" },
+            require('render-markdown').setup({
+               file_types = { 'markdown', 'codecompanion' },
                heading = {
                   -- Turn on / off heading icon & background rendering
                   enabled = true,
@@ -1182,27 +1203,27 @@ return {
                   --  right:   '#'s are concealed and icon is appended to right side
                   --  inline:  '#'s are concealed and icon is inlined on left side
                   --  overlay: icon is left padded with spaces and inserted on left hiding any additional '#'
-                  position = "overlay",
+                  position = 'overlay',
                   -- Replaces '#+' of 'atx_h._marker'
                   -- The number of '#' in the heading determines the 'level'
                   -- The 'level' is used to index into the list using a cycle
                   icons = {
-                     "󰲡 ",
-                     "󰲣 ",
-                     "󰲥 ",
-                     "󰲧 ",
-                     "󰲩 ",
-                     "󰲫 ",
+                     '󰲡 ',
+                     '󰲣 ',
+                     '󰲥 ',
+                     '󰲧 ',
+                     '󰲩 ',
+                     '󰲫 ',
                   },
                   -- Added to the sign column if enabled
                   -- The 'level' is used to index into the list using a cycle
-                  signs = { "󰫎 " },
+                  signs = { '󰫎 ' },
                   -- Width of the heading background:
                   --  block: width of the heading text
                   --  full:  full width of the window
                   -- Can also be a list of the above values in which case the 'level' is used
                   -- to index into the list using a clamp
-                  width = "full",
+                  width = 'full',
                   -- Amount of margin to add to the left of headings
                   -- If a floating point value < 1 is provided it is treated as a percentage of the available window space
                   -- Margin available space is computed after accounting for padding
@@ -1227,49 +1248,49 @@ return {
                   -- Highlight the start of the border using the foreground highlight
                   border_prefix = false,
                   -- Used above heading for border
-                  above = "▄",
+                  above = '▄',
                   -- Used below heading for border
-                  below = "▀",
+                  below = '▀',
                   -- The 'level' is used to index into the list using a clamp
                   -- Highlight for the heading icon and extends through the entire line
                   backgrounds = {
-                     "RenderMarkdownH1Bg",
-                     "RenderMarkdownH2Bg",
-                     "RenderMarkdownH3Bg",
-                     "RenderMarkdownH4Bg",
-                     "RenderMarkdownH5Bg",
-                     "RenderMarkdownH6Bg",
+                     'RenderMarkdownH1Bg',
+                     'RenderMarkdownH2Bg',
+                     'RenderMarkdownH3Bg',
+                     'RenderMarkdownH4Bg',
+                     'RenderMarkdownH5Bg',
+                     'RenderMarkdownH6Bg',
                   },
                   -- The 'level' is used to index into the list using a clamp
                   -- Highlight for the heading and sign icons
                   foregrounds = {
-                     "RenderMarkdownH1",
-                     "RenderMarkdownH2",
-                     "RenderMarkdownH3",
-                     "RenderMarkdownH4",
-                     "RenderMarkdownH5",
-                     "RenderMarkdownH6",
+                     'RenderMarkdownH1',
+                     'RenderMarkdownH2',
+                     'RenderMarkdownH3',
+                     'RenderMarkdownH4',
+                     'RenderMarkdownH5',
+                     'RenderMarkdownH6',
                   },
                },
                code = {
                   enabled = true,
                   sign = true,
-                  style = "full",    -- You can use 'full' to show the language icon and name, or 'normal' for just basic rendering
-                  position = "left", -- Position of the language icon (left or right)
+                  style = 'full', -- You can use 'full' to show the language icon and name, or 'normal' for just basic rendering
+                  position = 'left', -- Position of the language icon (left or right)
                   language_pad = 0,
                   language_name = true,
-                  disable_background = { "diff" },
-                  width = "full",
+                  disable_background = { 'diff' },
+                  width = 'full',
                   left_margin = 0,
                   left_pad = 0,
                   right_pad = 0,
                   min_width = 0,
-                  border = "thin", -- Border above and below code blocks
-                  above = "▄", -- Character for the top border
-                  below = "▀", -- Character for the bottom border
-                  highlight = "RenderMarkdownCode", -- Highlight for the entire code block
-                  highlight_inline = "RenderMarkdownCodeInline", -- Highlight for inline code
-                  highlight_language = "RenderMarkdownCodeLanguage", -- Optional: Highlight for language text (if you use language name)
+                  border = 'thin', -- Border above and below code blocks
+                  above = '▄', -- Character for the top border
+                  below = '▀', -- Character for the bottom border
+                  highlight = 'RenderMarkdownCode', -- Highlight for the entire code block
+                  highlight_inline = 'RenderMarkdownCodeInline', -- Highlight for inline code
+                  highlight_language = 'RenderMarkdownCodeLanguage', -- Optional: Highlight for language text (if you use language name)
                },
             })
          end,
