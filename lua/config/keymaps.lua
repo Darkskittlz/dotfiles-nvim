@@ -1,26 +1,29 @@
 local keymap = vim.keymap
 local opts = { noremap = true, silent = true }
-vim.g.maplocalleader = " "
+vim.g.maplocalleader = ' '
 
-keymap.set("n", "-", "<C-a>")
-keymap.set("n", "+", "<C-x>")
+keymap.set('n', '-', '<C-a>')
+keymap.set('n', '+', '<C-x>')
 
-keymap.set("n", "<leader>tw",
+keymap.set(
+   'n',
+   '<leader>tw',
    [[:s/\(\s\+\)className=\(['"]\)\(.\{-}\)\2/\=submatch(1) . "className=" . submatch(2) . "\r" . submatch(1) . "  " . substitute(submatch(3), ' ', '\r' . submatch(1) . "  ", 'g') . "\r" . submatch(1) . submatch(2)/g<CR>]],
-   { desc = "Split Tailwind classes into block" })
+   { desc = 'Split Tailwind classes into block' }
+)
 
 -- A simple spinner helper
 local spinner_frames = {
-   "⠋",
-   "⠙",
-   "⠹",
-   "⠸",
-   "⠼",
-   "⠴",
-   "⠦",
-   "⠧",
-   "⠇",
-   "⠏",
+   '⠋',
+   '⠙',
+   '⠹',
+   '⠸',
+   '⠼',
+   '⠴',
+   '⠦',
+   '⠧',
+   '⠇',
+   '⠏',
 }
 
 local function show_spinner()
@@ -30,129 +33,132 @@ local function show_spinner()
       0,
       100,
       vim.schedule_wrap(function()
-         vim.notify(
-            "Reloading Neovim config "
-            .. spinner_frames[i],
-            vim.log.levels.INFO,
-            { timeout = 100 }
-         )
+         vim.notify('Reloading Neovim config ' .. spinner_frames[i], vim.log.levels.INFO, { timeout = 100 })
          i = (i % #spinner_frames) + 1
       end)
    )
    return timer
 end
 
+-- toggle wrap lines and unwrap lines
+keymap.set('n', '<leader>cw', function()
+   vim.wo.wrap = not vim.wo.wrap
+   local status = vim.wo.wrap and 'enabled' or 'disabled'
+   vim.notify('Line wrap ' .. status, vim.log.levels.INFO)
+end, { desc = 'Toggle line wrap' })
+
+-- Open CodeCompanion Chat History from anywhere
+keymap.set(
+   'n',
+   '<leader>ah',
+   '<cmd>CodeCompanionHistory<cr>',
+   { noremap = true, silent = true, desc = 'CodeCompanion Chat History' }
+)
 
 -- Toggle the floating chat window
-keymap.set({ "n", "v" }, "<leader>aa", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true })
+keymap.set({ 'n', 'v' }, '<leader>aa', '<cmd>CodeCompanionChat Toggle<cr>', { noremap = true, silent = true })
 
 -- Normal mode: Just opens the prompt
-keymap.set("n", "<leader>ai", "<cmd>CodeCompanion <cr>", { noremap = true, silent = true })
+keymap.set('n', '<leader>ai', '<cmd>CodeCompanion <cr>', { noremap = true, silent = true })
 
 -- Visual mode: Automatically sends the selection to the LLM
-keymap.set("v", "<leader>ai", ":CodeCompanion ", { noremap = true, silent = true })
+keymap.set('v', '<leader>ai', ':CodeCompanion ', { noremap = true, silent = true })
 
 -- Add selected text to the chat (useful for sending specific React components)
-keymap.set("v", "ac", "<cmd>CodeCompanionChat Add<cr>", { noremap = true, silent = true })
-
+keymap.set('v', 'ac', '<cmd>CodeCompanionChat Add<cr>', { noremap = true, silent = true })
 
 -- Open the prompt selector (pre-defined actions like "Explain", "Fix", "Optimize")
-keymap.set("n", "<leader>ap", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true })
+keymap.set('n', '<leader>ap', '<cmd>CodeCompanionActions<cr>', { noremap = true, silent = true })
 
-vim.api.nvim_create_autocmd("FileType", {
-   pattern = "codecompanion",
+vim.api.nvim_create_autocmd('FileType', {
+   pattern = 'codecompanion',
    callback = function()
       -- Keymaps
-      vim.keymap.set("n", "c", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true, buffer = true })
+      vim.keymap.set('n', 'c', '<cmd>CodeCompanionChat Toggle<cr>', { noremap = true, silent = true, buffer = true })
 
-      vim.keymap.set("n", "gh", function()
+      vim.keymap.set('n', 'as', function()
          -- <C-u> clears any range, the rest runs the command and hits Enter
-         vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(":CodeCompanionChat Sessions<CR>", true, false, true), "n",
-            false)
+         vim.api.nvim_feedkeys(
+            vim.api.nvim_replace_termcodes(':CodeCompanionChat Sessions<CR>', true, false, true),
+            'n',
+            false
+         )
       end, { noremap = true, silent = true, buffer = true })
 
       -- UI & Rendering
-      local ok, render_markdown = pcall(require, "render-markdown")
-      if ok then render_markdown.enable() end
+      local ok, render_markdown = pcall(require, 'render-markdown')
+      if ok then
+         render_markdown.enable()
+      end
 
       vim.opt_local.conceallevel = 2
-      vim.opt_local.concealcursor = "nc"
-      vim.treesitter.start(0, "markdown")
+      vim.opt_local.concealcursor = 'nc'
+      vim.treesitter.start(0, 'markdown')
    end,
 })
 
 -- Time Tracker Keymaps
-keymap.set("n", "<leader>tt", "<cmd>TimeTracker<cr>", { desc = "Open Time Tracker UI" })
-keymap.set("n", "<leader>tr", function()
-   local db_path = vim.fn.stdpath("data") .. "/time-tracker.db"
+keymap.set('n', '<leader>tt', '<cmd>TimeTracker<cr>', { desc = 'Open Time Tracker UI' })
+keymap.set('n', '<leader>tr', function()
+   local db_path = vim.fn.stdpath('data') .. '/time-tracker.db'
    local success = os.remove(db_path)
    if success then
-      vim.notify("Time Tracker Reset: Restart Neovim to begin fresh session.", vim.log.levels.INFO)
+      vim.notify('Time Tracker Reset: Restart Neovim to begin fresh session.', vim.log.levels.INFO)
    else
-      vim.notify("Reset failed: Database file not found or currently in use.", vim.log.levels.WARN)
+      vim.notify('Reset failed: Database file not found or currently in use.', vim.log.levels.WARN)
    end
-end, { desc = "Reset Time Tracker Database" })
+end, { desc = 'Reset Time Tracker Database' })
 
-
-
-keymap.set("n", "<leader>rl", function()
+keymap.set('n', '<leader>rl', function()
    local spinner = show_spinner()
 
    -- Source init.lua
-   vim.cmd("source $MYVIMRC")
+   vim.cmd('source $MYVIMRC')
 
    -- Reload all custom utils/config modules
    for name, _ in pairs(package.loaded) do
-      if name:match("^utils") or name:match("^config") then
+      if name:match('^utils') or name:match('^config') then
          package.loaded[name] = nil
       end
    end
 
    -- Re-require key files
-   require("utils.git_picker")
+   require('utils.git_picker')
 
    spinner:stop()
    spinner:close()
 
    vim.o.background = original_bg
-   vim.notify("Config reloaded ✅", vim.log.levels.INFO)
-end, { desc = "Reload Neovim config with spinner" })
+   vim.notify('Config reloaded ✅', vim.log.levels.INFO)
+end, { desc = 'Reload Neovim config with spinner' })
 
 -- Mason --
-vim.api.nvim_set_keymap(
-   "n",
-   "<leader>M",
-   ':lua require("mason.ui").open()<CR>',
-   { noremap = true, silent = true }
-)
+vim.api.nvim_set_keymap('n', '<leader>M', ':lua require("mason.ui").open()<CR>', { noremap = true, silent = true })
 
-
-keymap.set("n", "<leader>gb", function()
+keymap.set('n', '<leader>gb', function()
    -- require('gitsigns').blame_line({ full = true })
-   require("gitsigns").blame_line()
-end, { desc = "Git blameline" })
+   require('gitsigns').blame_line()
+end, { desc = 'Git blameline' })
 
-keymap.set("n", "<leader>gh", function()
-   require("utils.git_picker").open_git_ui()
-end, { desc = "Git branch picker" })
+keymap.set('n', '<leader>gh', function()
+   require('utils.git_picker').open_git_ui()
+end, { desc = 'Git branch picker' })
 
-keymap.set("n", "<leader>cc", function()
-   vim.cmd("colorscheme catppuccin-latte")
+keymap.set('n', '<leader>cc', function()
+   vim.cmd('colorscheme catppuccin-latte')
 end, {
-   desc = "Switch to Catppuccin Latte colorscheme",
+   desc = 'Switch to Catppuccin Latte colorscheme',
 })
 
-keymap.set("n", "<leader>mo", function()
-   vim.o.background = "light"
-   vim.cmd("colorscheme modus_operandi")
-end, { desc = "Switch to Modus Operandi (Stark White)" })
+keymap.set('n', '<leader>mo', function()
+   vim.o.background = 'light'
+   vim.cmd('colorscheme modus_operandi')
+end, { desc = 'Switch to Modus Operandi (Stark White)' })
 
-
-
-keymap.set("n", "<leader>cs", function()
-   vim.cmd("colorscheme solarized-osaka")
+keymap.set('n', '<leader>cs', function()
+   vim.cmd('colorscheme solarized-osaka')
 end, {
-   desc = "Switch to solarized-osaka colorscheme",
+   desc = 'Switch to solarized-osaka colorscheme',
 })
 
 -- Neogit Keymap
@@ -161,87 +167,65 @@ end, {
 -- end, { desc = "Open Neogit (floating window)" })
 
 -- copy --
-keymap.set("v", "y", '"+y', opts)
+keymap.set('v', 'y', '"+y', opts)
 
 -- delete line above --
-keymap.set("n", "dw", "vb_d")
+keymap.set('n', 'dw', 'vb_d')
 
 -- Select All
-keymap.set("n", "<C-a>", "gg<S-v>G")
+keymap.set('n', '<C-a>', 'gg<S-v>G')
 
 -- Jumplist
-keymap.set("n", "<C-m>", "<C-i>", opts)
+keymap.set('n', '<C-m>', '<C-i>', opts)
 
 -- New tab
-keymap.set("n", "te", "tabedit", opts)
+keymap.set('n', 'te', 'tabedit', opts)
 
 -- Split Window
-keymap.set("n", "ss", ":split<Return>", opts)
-keymap.set("n", "sv", ":vsplit<Return>", opts)
+keymap.set('n', 'ss', ':split<Return>', opts)
+keymap.set('n', 'sv', ':vsplit<Return>', opts)
 
 -- Move window
-keymap.set("n", "sh", "<C-w>h")
-keymap.set("n", "sk", "<C-w>k")
-keymap.set("n", "sj", "<C-w>j")
-keymap.set("n", "sl", "<C-w>l")
+keymap.set('n', 'sh', '<C-w>h')
+keymap.set('n', 'sk', '<C-w>k')
+keymap.set('n', 'sj', '<C-w>j')
+keymap.set('n', 'sl', '<C-w>l')
 
 -- Resize window
-keymap.set("n", "<C-w><left>", "<C-w><")
-keymap.set("n", "<C-w><right>", "<C-w>>")
-keymap.set("n", "<C-w><up>", "<C-w>+")
-keymap.set("n", "<C-w><down>", "<C-w>-")
+keymap.set('n', '<C-w><left>', '<C-w><')
+keymap.set('n', '<C-w><right>', '<C-w>>')
+keymap.set('n', '<C-w><up>', '<C-w>+')
+keymap.set('n', '<C-w><down>', '<C-w>-')
 
 -- Diagnostics
-keymap.set("n", "<C-j>", function()
+keymap.set('n', '<C-j>', function()
    vim.diagnostic.goto_next()
 end, opts)
 
 -- Press jk fast to exit insert mode
-keymap.set("i", "jk", "<ESC>", opts)
-keymap.set("i", "kj", "<ESC>", opts)
+keymap.set('i', 'jk', '<ESC>', opts)
+keymap.set('i', 'kj', '<ESC>', opts)
 
 -- Visual Block --
 -- Move text up and down
-keymap.set("x", "J", ":m '>+1<CR>gv=gv")
-keymap.set("x", "K", ":m '<-2<CR>gv=gv")
-keymap.set("x", "<A-j>", ":m '>+1<CR>gv=gv")
-keymap.set("x", "<A-k>", ":m '<-2<CR>gv=gv")
+keymap.set('x', 'J', ":m '>+1<CR>gv=gv")
+keymap.set('x', 'K', ":m '<-2<CR>gv=gv")
+keymap.set('x', '<A-j>', ":m '>+1<CR>gv=gv")
+keymap.set('x', '<A-k>', ":m '<-2<CR>gv=gv")
 
 -- Surround selection with parentheses
-keymap.set(
-   "v",
-   "<leader>(",
-   'c(<C-R>")<Esc>',
-   { noremap = true, silent = true }
-)
+keymap.set('v', '<leader>(', 'c(<C-R>")<Esc>', { noremap = true, silent = true })
 
 -- Surround selection with single quotes
-keymap.set(
-   "v",
-   "<leader>'",
-   "c'<C-R>\"'<Esc>",
-   { noremap = true, silent = true }
-)
+keymap.set('v', "<leader>'", "c'<C-R>\"'<Esc>", { noremap = true, silent = true })
 
 -- Surround selection with double quotes
-keymap.set(
-   "v",
-   '<leader>"',
-   'c"<C-R>""<Esc>',
-   { noremap = true, silent = true }
-)
+keymap.set('v', '<leader>"', 'c"<C-R>""<Esc>', { noremap = true, silent = true })
 
 -- Surround selection with []
-keymap.set(
-   "v",
-   '<leader>[',
-   'c[<C-R>"]<Esc>',
-   { noremap = true, silent = true }
-)
+keymap.set('v', '<leader>[', 'c[<C-R>"]<Esc>', { noremap = true, silent = true })
 
-
-
-keymap.set("n", "<leader>cn", function()
+keymap.set('n', '<leader>cn', function()
    if vim.wo.number then
       -- hide both absolute and relative numbers
       vim.wo.number = false
@@ -251,65 +235,24 @@ keymap.set("n", "<leader>cn", function()
       vim.wo.number = true
       vim.wo.relativenumber = false
    end
-end, { desc = "Toggle line numbers" })
-
+end, { desc = 'Toggle line numbers' })
 
 -- Switch (cycle) between buffers with uppercase H/L
-keymap.set(
-   "n",
-   "H",
-   "<Cmd>BufferPrevious<CR>",
-   { silent = true }
-)
+keymap.set('n', 'H', '<Cmd>BufferPrevious<CR>', { silent = true })
 
-keymap.set(
-   "n",
-   "L",
-   "<Cmd>BufferNext<CR>",
-   { silent = true }
-)
+keymap.set('n', 'L', '<Cmd>BufferNext<CR>', { silent = true })
 
 -- Reorder buffers with Alt+h / Alt+l
-keymap.set(
-   "n",
-   "<A-h>",
-   "<Cmd>BufferMovePrevious<CR>",
-   { silent = true }
-)
+keymap.set('n', '<A-h>', '<Cmd>BufferMovePrevious<CR>', { silent = true })
 
-keymap.set(
-   "n",
-   "<A-l>",
-   "<Cmd>BufferMoveNext<CR>",
-   { silent = true }
-)
+keymap.set('n', '<A-l>', '<Cmd>BufferMoveNext<CR>', { silent = true })
 
-keymap.set(
-   "n",
-   "<A-p>",
-   "<Cmd>BufferPin<CR>",
-   { silent = true }
-)
+keymap.set('n', '<A-p>', '<Cmd>BufferPin<CR>', { silent = true })
 
 -- Reorder buffers with Alt+h / Alt+l
-keymap.set(
-   "n",
-   "<A-h>",
-   "<Cmd>BufferMovePrevious<CR>",
-   { silent = true }
-)
-keymap.set(
-   "n",
-   "<A-l>",
-   "<Cmd>BufferMoveNext<CR>",
-   { silent = true }
-)
-keymap.set(
-   "n",
-   "<A-p>",
-   "<Cmd>BufferPin<CR>",
-   { silent = true }
-)
+keymap.set('n', '<A-h>', '<Cmd>BufferMovePrevious<CR>', { silent = true })
+keymap.set('n', '<A-l>', '<Cmd>BufferMoveNext<CR>', { silent = true })
+keymap.set('n', '<A-p>', '<Cmd>BufferPin<CR>', { silent = true })
 
 -- Telescope Keymaps
 -- keymap.set("n", ";f", "<cmd>Telescope find_files<cr>", { desc = "Find files" })

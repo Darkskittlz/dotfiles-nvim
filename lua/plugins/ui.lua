@@ -184,8 +184,38 @@ return {
       },
       config = function()
          require('codecompanion').setup({
+            extensions = {
+               history = {
+                  enabled = true,
+                  opts = {
+                     picker = 'telescope',
+                     keymap = 'ah',
+                     save_chat_keymap = 'sc',
+                     auto_save = true,
+                  },
+               },
+            },
+            keys = {
+               {
+                  '<leader>ah',
+                  '<cmd>CodeCompanionHistory<cr>',
+                  desc = 'CodeCompanion Chat History',
+               },
+            },
             strategies = {
                chat = {
+                  tools = {
+                     -- Enable reading/diagnostics tools
+                     ['editor'] = { enabled = true },
+                     ['cmd_runner'] = { enabled = true },
+
+                     -- Disable direct file modifications
+                     ['files'] = {
+                        opts = {
+                           read_only = true, -- Prevents overwriting or editing files
+                        },
+                     },
+                  },
                   adapter = 'gemini',
                   slash_commands = {
                      ['buffer'] = {
@@ -229,7 +259,7 @@ return {
                gemini = function()
                   return require('codecompanion.adapters').extend('gemini', {
                      env = {
-                        api_key = 'GEMINI_API_KEY',
+                        api_key = os.getenv('GEMINI_API_KEY'),
                      },
                      schema = {
                         model = {
