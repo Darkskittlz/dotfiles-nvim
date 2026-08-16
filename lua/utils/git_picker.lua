@@ -853,23 +853,25 @@ local function init_ui()
 end
 
 local function update_window_layout()
-   if not Ui.right_win or not Ui.diff_win or not vim.api.nvim_win_is_valid(Ui.right_win) then
-      return
-   end
-   local ui = vim.api.nvim_list_uis()[1]
-   local editor_h = ui.height
-   local branch_h = 5
-   local log_h = 8
-   local diff_h = math.max(10, editor_h - branch_h - log_h - 12)
+  if not Ui.right_win or not Ui.diff_win or not vim.api.nvim_win_is_valid(Ui.right_win) then
+    return
+  end
+  local ui = vim.api.nvim_list_uis()[1]
+  local editor_h = ui.height
+  local branch_h = 5
+  local log_h = 8
+  local help_h = 1
+  local diff_h = math.max(10, editor_h - branch_h - log_h - help_h - 15)
 
-   if Ui.mode == 'files' or Ui.mode == 'stashes' then
-      vim.api.nvim_win_set_config(Ui.right_win, { hide = true })
-      vim.api.nvim_win_set_config(Ui.diff_win, { height = diff_h + log_h + 2 })
-   else
-      vim.api.nvim_win_set_config(Ui.right_win, { hide = false })
-      vim.api.nvim_win_set_config(Ui.diff_win, { height = diff_h })
-   end
+  if Ui.mode == 'files' or Ui.mode == 'stashes' then
+    vim.api.nvim_win_set_config(Ui.right_win, { hide = true })
+    vim.api.nvim_win_set_config(Ui.diff_win, { height = diff_h + log_h + 2 })
+  else
+    vim.api.nvim_win_set_config(Ui.right_win, { hide = false })
+    vim.api.nvim_win_set_config(Ui.diff_win, { height = diff_h })
+  end
 end
+
 
 local function toggle_mode(dir)
    if not Ui then
@@ -1266,97 +1268,127 @@ end
 
 -- Open UI
 function M.open_git_ui()
-   -- 1. Buffer Initialization
-   Ui = Ui or {}
+  -- 1. Buffer Initialization
+  Ui = Ui or {}
 
-   if not Ui.diff_buf or not vim.api.nvim_buf_is_valid(Ui.diff_buf) then
-      Ui.diff_buf = vim.api.nvim_create_buf(false, true)
-   end
-   if not Ui.right_buf or not vim.api.nvim_buf_is_valid(Ui.right_buf) then
-      Ui.right_buf = vim.api.nvim_create_buf(false, true)
-   end
-   if not Ui.left_buf or not vim.api.nvim_buf_is_valid(Ui.left_buf) then
-      Ui.left_buf = vim.api.nvim_create_buf(false, true)
-   end
+  if not Ui.diff_buf or not vim.api.nvim_buf_is_valid(Ui.diff_buf) then
+    Ui.diff_buf = vim.api.nvim_create_buf(false, true)
+  end
+  if not Ui.right_buf or not vim.api.nvim_buf_is_valid(Ui.right_buf) then
+    Ui.right_buf = vim.api.nvim_create_buf(false, true)
+  end
+  if not Ui.left_buf or not vim.api.nvim_buf_is_valid(Ui.left_buf) then
+    Ui.left_buf = vim.api.nvim_create_buf(false, true)
+  end
+  if not Ui.help_buf or not vim.api.nvim_buf_is_valid(Ui.help_buf) then
+    Ui.help_buf = vim.api.nvim_create_buf(false, true)
+  end
 
-   for _, buf in ipairs({ Ui.left_buf, Ui.right_buf, Ui.diff_buf }) do
-      vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
-      vim.api.nvim_buf_set_option(buf, 'bufhidden', 'wipe')
-      vim.api.nvim_buf_set_option(buf, 'modifiable', true)
-   end
+  for _, buf in ipairs({ Ui.left_buf, Ui.right_buf, Ui.diff_buf, Ui.help_buf }) do
+    vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
+    vim.api.nvim_buf_set_option(buf, 'bufhidden', 'wipe')
+    vim.api.nvim_buf_set_option(buf, 'modifiable', true)
+  end
 
-   -- 2. Dimensions & Window Math
-   local ui = vim.api.nvim_list_uis()[1]
-   local editor_w = ui.width
-   local editor_h = ui.height
+  -- 2. Dimensions & Window Math
+  local ui = vim.api.nvim_list_uis()[1]
+  local editor_w = ui.width
+  local editor_h = ui.height
 
-   local w = math.floor(editor_w * 0.9)
-   local col = math.floor((editor_w - w) / 2)
+  local w = math.floor(editor_w * 0.9)
+  local col = math.floor((editor_w - w) / 2)
 
-   local branch_h = 5
-   local log_h = 8
-   local diff_h = math.max(10, editor_h - branch_h - log_h - 12)
+  local branch_h = 5
+  local log_h = 8
+  local help_h = 1
+  local diff_h = math.max(10, editor_h - branch_h - log_h - help_h - 15)
 
-   local diff_row = 2
-   local log_row = diff_row + diff_h + 2
-   local branch_row = log_row + log_h + 2
+  local diff_row = 2
+  local log_row = diff_row + diff_h + 2
+  local branch_row = log_row + log_h + 2
+  local help_row = branch_row + branch_h + 2
 
-   -- 3. Open Floating Windows
-   Ui.diff_win = vim.api.nvim_open_win(Ui.diff_buf, false, {
-      relative = 'editor',
-      width = w,
-      height = diff_h,
-      row = diff_row,
-      col = col,
-      style = 'minimal',
-      border = 'rounded',
-      title = ' Code Changes ',
-      title_pos = 'center',
-      zindex = 10,
-   })
+  -- 3. Open Floating Windows
+  Ui.diff_win = vim.api.nvim_open_win(Ui.diff_buf, false, {
+    relative = 'editor',
+    width = w,
+    height = diff_h,
+    row = diff_row,
+    col = col,
+    style = 'minimal',
+    border = 'rounded',
+    title = ' Code Changes ',
+    title_pos = 'center',
+    zindex = 10,
+  })
 
-   Ui.right_win = vim.api.nvim_open_win(Ui.right_buf, false, {
-      relative = 'editor',
-      width = w,
-      height = log_h,
-      row = log_row,
-      col = col,
-      style = 'minimal',
-      border = 'rounded',
-      title = ' Commit Log ',
-      title_pos = 'center',
-      zindex = 10,
-   })
+  Ui.right_win = vim.api.nvim_open_win(Ui.right_buf, false, {
+    relative = 'editor',
+    width = w,
+    height = log_h,
+    row = log_row,
+    col = col,
+    style = 'minimal',
+    border = 'rounded',
+    title = ' Commit Log ',
+    title_pos = 'center',
+    zindex = 10,
+  })
 
-   Ui.left_win = vim.api.nvim_open_win(Ui.left_buf, true, {
-      relative = 'editor',
-      width = w,
-      height = branch_h,
-      row = branch_row,
-      col = col,
-      style = 'minimal',
-      border = 'rounded',
-      title = (Ui.mode == 'branches') and ' Git Branches '
-          or ((Ui.mode == 'stashes') and ' Stashes ' or ' Files Changed '),
-      title_pos = 'center',
-      zindex = 10,
-   })
+  Ui.left_win = vim.api.nvim_open_win(Ui.left_buf, true, {
+    relative = 'editor',
+    width = w,
+    height = branch_h,
+    row = branch_row,
+    col = col,
+    style = 'minimal',
+    border = 'rounded',
+    title = (Ui.mode == 'branches') and ' Git Branches '
+        or ((Ui.mode == 'stashes') and ' Stashes ' or ' Files Changed '),
+    title_pos = 'center',
+    zindex = 10,
+  })
+
+  Ui.help_win = vim.api.nvim_open_win(Ui.help_buf, false, {
+    relative = 'editor',
+    width = w,
+    height = help_h,
+    row = help_row,
+    col = col,
+    style = 'minimal',
+    border = 'rounded',
+    zindex = 10,
+  })
+
+  local left_text = "[H] Branches ↔ Files Changed ↔ Stashes [L]"
+  local right_text = "Press ? For Help"
+  
+  -- Calculate dynamic padding using visual display width, not raw bytes
+  local left_width = vim.fn.strdisplaywidth(left_text)
+  local right_width = vim.fn.strdisplaywidth(right_text)
+  local pad_len = math.max(0, w - left_width - right_width)
+  local pad = string.rep(" ", pad_len)
+  
+  vim.api.nvim_buf_set_lines(Ui.help_buf, 0, -1, false, { left_text .. pad .. right_text })
+  vim.api.nvim_buf_set_option(Ui.help_buf, 'modifiable', false)
+  vim.api.nvim_buf_add_highlight(Ui.help_buf, -1, 'GitMsg', 0, 0, -1)
+
 
    -- 4. Close Handler
-   local function close_ui()
-      for _, win in ipairs({ Ui.left_win, Ui.right_win, Ui.diff_win, Ui.full_win }) do
-         if win and vim.api.nvim_win_is_valid(win) then
-            vim.api.nvim_win_close(win, true)
-         end
+  local function close_ui()
+    for _, win in ipairs({ Ui.left_win, Ui.right_win, Ui.diff_win, Ui.help_win, Ui.full_win }) do
+      if win and vim.api.nvim_win_is_valid(win) then
+        vim.api.nvim_win_close(win, true)
       end
-      for _, buf in ipairs({ Ui.left_buf, Ui.right_buf, Ui.diff_buf }) do
-         if buf and vim.api.nvim_buf_is_valid(buf) then
-            vim.api.nvim_buf_delete(buf, { force = true })
-         end
+    end
+    for _, buf in ipairs({ Ui.left_buf, Ui.right_buf, Ui.diff_buf, Ui.help_buf }) do
+      if buf and vim.api.nvim_buf_is_valid(buf) then
+        vim.api.nvim_buf_delete(buf, { force = true })
       end
-      Ui.left_win, Ui.right_win, Ui.diff_win = nil, nil, nil
-      Ui.left_buf, Ui.right_buf, Ui.diff_buf = nil, nil, nil
-   end
+    end
+    Ui.left_win, Ui.right_win, Ui.diff_win, Ui.help_win = nil, nil, nil, nil
+    Ui.left_buf, Ui.right_buf, Ui.diff_buf, Ui.help_buf = nil, nil, nil, nil
+  end
 
    -- 5. Window Navigation Keymaps (J/K to move between windows vertically)
    local active_bufs = { Ui.left_buf, Ui.right_buf, Ui.diff_buf }
