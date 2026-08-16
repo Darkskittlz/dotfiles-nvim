@@ -855,26 +855,6 @@ local function init_ui()
   focus_left()
 end
 
-local function update_window_layout()
-  if not Ui.right_win or not Ui.diff_win or not vim.api.nvim_win_is_valid(Ui.right_win) then
-    return
-  end
-  local ui = vim.api.nvim_list_uis()[1]
-  local editor_h = ui.height
-  local branch_h = 5
-  local log_h = 8
-  local diff_h = math.max(10, editor_h - branch_h - log_h - 12)
-
-  if Ui.mode == 'files' or Ui.mode == 'stashes' then
-    vim.api.nvim_win_set_config(Ui.right_win, { hide = true })
-    vim.api.nvim_win_set_config(Ui.diff_win, { height = diff_h + log_h + 2 })
-  else
-    vim.api.nvim_win_set_config(Ui.right_win, { hide = false })
-    vim.api.nvim_win_set_config(Ui.diff_win, { height = diff_h })
-  end
-end
-
--- Toggle between branches and files mode
 local function toggle_mode(dir)
   if not Ui then
     return
@@ -904,9 +884,30 @@ local function toggle_mode(dir)
     load_stashes()
   end
 
-  update_window_layout()
+  if type(update_window_layout) == 'function' then
+    update_window_layout()
+  end
   refresh_ui()
   focus_left()
+end
+
+local function update_window_layout()
+  if not Ui.right_win or not Ui.diff_win or not vim.api.nvim_win_is_valid(Ui.right_win) then
+    return
+  end
+  local ui = vim.api.nvim_list_uis()[1]
+  local editor_h = ui.height
+  local branch_h = 5
+  local log_h = 8
+  local diff_h = math.max(10, editor_h - branch_h - log_h - 12)
+
+  if Ui.mode == 'files' or Ui.mode == 'stashes' then
+    vim.api.nvim_win_set_config(Ui.right_win, { hide = true })
+    vim.api.nvim_win_set_config(Ui.diff_win, { height = diff_h + log_h + 2 })
+  else
+    vim.api.nvim_win_set_config(Ui.right_win, { hide = false })
+    vim.api.nvim_win_set_config(Ui.diff_win, { height = diff_h })
+  end
 end
 
 -- Stage or unstage the selected file
@@ -1466,12 +1467,16 @@ function M.open_git_ui()
   -- Keymaps
   local function set_keymaps(buf)
     -- Navigation & mode toggle
-    vim.keymap.set('n', 'H', toggle_mode, {
+    vim.keymap.set('n', 'H', function()
+      toggle_mode('prev')
+    end, {
       buffer = buf,
       noremap = true,
       silent = true,
     })
-    vim.keymap.set('n', 'L', toggle_mode, {
+    vim.keymap.set('n', 'L', function()
+      toggle_mode('next')
+    end, {
       buffer = buf,
       noremap = true,
       silent = true,
