@@ -1945,10 +1945,94 @@ function M.open_git_ui()
           return
         end
 
-        vim.ui.select(missing, { prompt = 'Checkout Remote Branch:' }, function(choice)
-          if not choice then
+        local ui_info = vim.api.nvim_list_uis()[1]
+        local width = math.floor(ui_info.width * 0.6) -- Adjust width here (0.6 = 60% of screen)
+        local max_height = math.floor(ui_info.height * 0.6) -- Adjust max vertical height here
+        local height = math.max(10, math.min(max_height, #missing + 3))
+
+        local row = math.floor((ui_info.height - height) / 2)
+        local col = math.floor((ui_info.width - width) / 2)
+
+        local buf = vim.api.nvim_create_buf(false, true)
+        local win = vim.api.nvim_open_win(buf, true, {
+          relative = 'editor',
+          width = width,
+          height = height,
+          row = row,
+          col = col,
+          style = 'minimal',
+          border = 'rounded',
+          title = ' Checkout Remote Branch ',
+          title_pos = 'center',
+          zindex = 500,
+        })
+
+        -- Initial setup
+        vim.api.nvim_buf_set_lines(buf, 0, -1, false, { '> ' })
+
+        local query = ''
+        local filtered = vim.deepcopy(missing)
+        local selected = 1
+
+        local function render()
+          local lines = { string.rep('─', width) }
+          for i, b in ipairs(filtered) do
+            local prefix = (i == selected) and '  ' or '   '
+            table.insert(lines, prefix .. b)
+          end
+          vim.api.nvim_buf_set_lines(buf, 1, -1, false, lines)
+          vim.api.nvim_buf_clear_namespace(buf, -1, 1, -1)
+          if #filtered > 0 then
+            vim.api.nvim_buf_add_highlight(buf, -1, 'MergeBlue', selected + 1, 0, -1)
+          end
+        end
+
+        render()
+
+        -- Live filtering
+        vim.api.nvim_create_autocmd({ 'TextChanged', 'TextChangedI' }, {
+          buffer = buf,
+          callback = function()
+            local line = vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1] or ''
+            local q = line
+            if q:sub(1, 2) == '> ' then
+              q = q:sub(3)
+            else
+              -- Prevent user from deleting the prompt prefix
+              vim.api.nvim_buf_set_lines(buf, 0, 1, false, { '> ' .. q })
+              vim.api.nvim_win_set_cursor(win, { 1, #q + 2 })
+            end
+
+            if q == query then
+              return
+            end
+            query = q
+
+            filtered = {}
+            for _, b in ipairs(missing) do
+              if b:lower():find(query:lower(), 1, true) then
+                table.insert(filtered, b)
+              end
+            end
+            selected = math.min(selected, math.max(1, #filtered))
+            render()
+          end,
+        })
+
+        local function close_popup()
+          if vim.api.nvim_win_is_valid(win) then
+            vim.api.nvim_win_close(win, true)
+          end
+          vim.cmd('stopinsert')
+        end
+
+        local function confirm_selection()
+          if #filtered == 0 then
             return
           end
+          local choice = filtered[selected]
+          close_popup()
+
           local cmd = 'git switch ' .. vim.fn.shellescape(choice)
           local result = vim.fn.system(cmd)
           if vim.v.shell_error ~= 0 then
@@ -1960,7 +2044,43 @@ function M.open_git_ui()
           load_branches()
           Ui.selected_index = 1
           refresh_ui()
-        end)
+        end
+
+        local opts = { buffer = buf, noremap = true, silent = true }
+
+        local function move_down()
+          selected = math.min(#filtered, selected + 1)
+          render()
+        end
+
+        local function move_up()
+          selected = math.max(1, selected - 1)
+          render()
+        end
+
+        -- Insert mode navigation
+        vim.keymap.set('i', '<C-j>', move_down, opts)
+        vim.keymap.set('i', '<C-n>', move_down, opts)
+        vim.keymap.set('i', '<Down>', move_down, opts)
+
+        vim.keymap.set('i', '<C-k>', move_up, opts)
+        vim.keymap.set('i', '<C-p>', move_up, opts)
+        vim.keymap.set('i', '<Up>', move_up, opts)
+
+        vim.keymap.set('i', '<CR>', confirm_selection, opts)
+        vim.keymap.set('i', '<Esc>', close_popup, opts)
+        vim.keymap.set('i', '<C-c>', close_popup, opts)
+
+        -- Normal mode fallbacks
+        vim.keymap.set('n', 'j', move_down, opts)
+        vim.keymap.set('n', 'k', move_up, opts)
+        vim.keymap.set('n', '<CR>', confirm_selection, opts)
+        vim.keymap.set('n', 'q', close_popup, opts)
+        vim.keymap.set('n', '<Esc>', close_popup, opts)
+
+        -- Start in insert mode at the end of the prompt
+        vim.cmd('startinsert!')
+        vim.api.nvim_win_set_cursor(win, { 1, 2 })
 
         return
       end
