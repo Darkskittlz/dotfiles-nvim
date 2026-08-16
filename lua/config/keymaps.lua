@@ -128,9 +128,6 @@ keymap.set('n', '<leader>rl', function()
       end
    end
 
-   -- Re-require key files
-   require('utils.git_picker')
-
    spinner:stop()
    spinner:close()
 
@@ -145,10 +142,6 @@ keymap.set('n', '<leader>gb', function()
    -- require('gitsigns').blame_line({ full = true })
    require('gitsigns').blame_line()
 end, { desc = 'Git blameline' })
-
-keymap.set('n', '<leader>gh', function()
-   require('utils.git_picker').open_git_ui()
-end, { desc = 'Git branch picker' })
 
 keymap.set('n', '<leader>cc', function()
    vim.cmd('colorscheme catppuccin-latte')
