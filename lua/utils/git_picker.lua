@@ -1375,6 +1375,10 @@ function M.open_git_ui()
     -- Quit picker
     vim.keymap.set('n', 'q', close_ui, { buffer = buf, silent = true, nowait = true })
 
+    -- Trap horizontal split navigation so it doesn't break out of the UI
+    vim.keymap.set('n', 'sh', function() end, { buffer = buf, silent = true, nowait = true })
+    vim.keymap.set('n', 'sl', function() end, { buffer = buf, silent = true, nowait = true })
+
     -- Navigate Down visually (Diff -> [Log] -> Branch)
     vim.keymap.set('n', 'sj', function()
       local cur = vim.api.nvim_get_current_win()
