@@ -1,10 +1,10 @@
 -- set the virtual_column option to keep cursor column numbers the same
 -- vim.o.virtual_column = "all"
 vim.g.lazygit = {
-   colors = {
-      bg = '#000001', -- Set the background color to black
-      -- Add other color settings as needed
-   },
+  colors = {
+    bg = '#000001', -- Set the background color to black
+    -- Add other color settings as needed
+  },
 }
 
 vim.g.transparent_enabled = true
@@ -120,847 +120,855 @@ local capabilities = vim.lsp.protocol.make_client_capabilities()
 local focusConfig = {}
 
 focusConfig.setup = function()
-   require('focus').setup({
-      enable = false,       -- Enable module
-      commands = true,      -- Create Focus commands
-      autoresize = {
-         enable = false,    -- Enable or disable auto-resizing of splits
-         width = 6,         -- Force width for the focused window
-         height = 1,        -- Force height for the focused window
-         minwidth = 12,     -- Force minimum width for the unfocused window
-         minheight = 1,     -- Force minimum height for the unfocused window
-         height_quickfix = 11, -- Set the height of quickfix panel
-      },
-      split = {
-         bufnew = false, -- Create blank buffer for new split windows
-         tmux = false, -- Create tmux splits instead of neovim splits
-      },
-      ui = {
-         number = false,                 -- Display line numbers in the focused window only
-         relativenumber = false,         -- Display relative line numbers in the focused window only
-         hybridnumber = false,           -- Display hybrid line numbers in the focused window only
-         absolutenumber_unfocussed = false, -- Preserve absolute numbers in the unfocused windows
+  require('focus').setup({
+    enable = false, -- Enable module
+    commands = true, -- Create Focus commands
+    autoresize = {
+      enable = false, -- Enable or disable auto-resizing of splits
+      width = 6, -- Force width for the focused window
+      height = 1, -- Force height for the focused window
+      minwidth = 12, -- Force minimum width for the unfocused window
+      minheight = 1, -- Force minimum height for the unfocused window
+      height_quickfix = 11, -- Set the height of quickfix panel
+    },
+    split = {
+      bufnew = false, -- Create blank buffer for new split windows
+      tmux = false, -- Create tmux splits instead of neovim splits
+    },
+    ui = {
+      number = false, -- Display line numbers in the focused window only
+      relativenumber = false, -- Display relative line numbers in the focused window only
+      hybridnumber = false, -- Display hybrid line numbers in the focused window only
+      absolutenumber_unfocussed = false, -- Preserve absolute numbers in the unfocused windows
 
-         cursorline = true,              -- Display a cursorline in the focused window only
-         cursorcolumn = false,           -- Display cursorcolumn in the focused window only
-         colorcolumn = {
-            enable = false,              -- Display colorcolumn in the focused window only
-            list = '+2',                 -- Set the comma-separated list for the colorcolumn
-         },
-         signcolumn = true,              -- Display signcolumn in the focused window only
-         winhighlight = false,           -- Auto highlighting for focused/unfocused windows
+      cursorline = true, -- Display a cursorline in the focused window only
+      cursorcolumn = false, -- Display cursorcolumn in the focused window only
+      colorcolumn = {
+        enable = false, -- Display colorcolumn in the focused window only
+        list = '+2', -- Set the comma-separated list for the colorcolumn
       },
-   })
+      signcolumn = true, -- Display signcolumn in the focused window only
+      winhighlight = false, -- Auto highlighting for focused/unfocused windows
+    },
+  })
 end
 
 local nvim_lsp = require('lspconfig')
 
 nvim_lsp.jsonls.setup({
-   on_attach = function(client, bufnr)
-      if vim.bo[bufnr].filetype == 'sh' or vim.fn.expand('%:t') == '.env' then
-         client.resolved_capabilities.document_formatting = true
-         client.resolved_capabilities.document_range_formatting = true
-      end
-   end,
+  on_attach = function(client, bufnr)
+    if vim.bo[bufnr].filetype == 'sh' or vim.fn.expand('%:t') == '.env' then
+      client.resolved_capabilities.document_formatting = true
+      client.resolved_capabilities.document_range_formatting = true
+    end
+  end,
 })
 
 return {
-   { 'alvan/vim-closetag' },
-   { 'windwp/nvim-autopairs' },
-   { 'nvim-lua/plenary.nvim' },
-   { 'terrortylor/nvim-comment' },
-   { 'voldikss/vim-floaterm' },
-   { 'tpope/vim-surround' },
-   { 'NLKNguyen/papercolor-theme' },
-   {
-      'olimorris/codecompanion.nvim',
-      dependencies = {
-         'nvim-lua/plenary.nvim',
-         'nvim-treesitter/nvim-treesitter',
-         'hrsh7th/nvim-cmp',
-         'nvim-telescope/telescope.nvim',
-         'ravitemer/codecompanion-history.nvim',
-         { 'stevearc/dressing.nvim', opts = {} },
-      },
-      config = function()
-         require('codecompanion').setup({
-            extensions = {
-               history = {
-                  enabled = true,
-                  opts = {
-                     picker = 'telescope',
-                     keymap = 'ah',
-                     save_chat_keymap = 'sc',
-                     auto_save = true,
-                  },
-               },
-            },
-            keys = {
-               {
-                  '<leader>ah',
-                  '<cmd>CodeCompanionHistory<cr>',
-                  desc = 'CodeCompanion Chat History',
-               },
-            },
-            strategies = {
-               chat = {
-                  tools = {
-                     -- Enable reading/diagnostics tools
-                     ['editor'] = { enabled = true },
-                     ['cmd_runner'] = { enabled = true },
-
-                     -- Disable direct file modifications
-                     ['files'] = {
-                        opts = {
-                           read_only = true, -- Prevents overwriting or editing files
-                        },
-                     },
-                  },
-                  adapter = 'gemini',
-                  slash_commands = {
-                     ['buffer'] = {
-                        callback = 'strategies.chat.slash_commands.buffer',
-                        description = 'Insert the current buffer',
-                     },
-                  },
-                  roles = {
-                     llm = 'CodeCompanion',
-                     user = 'DarkMeow-CEO',
-                  },
-               },
-               inline = {
-                  adapter = 'gemini',
-                  slash_commands = {
-                     ['buffer'] = {
-                        callback = 'strategies.chat.slash_commands.buffer',
-                        description = 'Insert the current buffer',
-                     },
-                  },
-               },
-               agent = { adapter = 'gemini' },
-            },
-            opts = {
-               chat = {
-                  auto_generate_title = false,
-               },
-            },
-            display = {
-               chat = {
-                  window = {
-                     layout = 'float',
-                     relative = 'editor',
-                     width = 0.95,
-                     height = 0.8,
-                     border = 'rounded',
-                  },
-               },
-            },
-            adapters = {
-               gemini = function()
-                  return require('codecompanion.adapters').extend('gemini', {
-                     env = {
-                        api_key = os.getenv('GEMINI_API_KEY'),
-                     },
-                     schema = {
-                        model = {
-                           default = 'gemini-1.5-flash-002',
-                        },
-                     },
-                  })
-               end,
-            },
-         })
-      end,
-   },
-   {
-      '3rd/time-tracker.nvim',
-      dir = '~/linuxProjects/time-tracker.nvim', -- Point to your local dev folder
-      dependencies = {
-         {
-            '3rd/sqlite.nvim',
-            lazy = false,
-            init = function()
-               vim.g.sqlite_clib_path = '/home/linuxbrew/.linuxbrew/lib/libsqlite3.so'
-            end,
-         },
-      },
-      lazy = false,
-      config = function()
-         -- Only call setup. The new UI and commands are now inside the plugin!
-         require('time-tracker').setup({
-            data_file = vim.fn.stdpath('data') .. '/time-tracker.db',
-            tracking_timeout_seconds = 120,
-         })
-
-         -- Keep this reset command if you like it, it's a handy utility
-         vim.api.nvim_create_user_command('TimeTrackerReset', function()
-            local db_path = vim.fn.stdpath('data') .. '/time-tracker.db'
-            os.remove(db_path)
-            print('Time Tracker database reset. Restart Neovim to begin fresh.')
-         end, {})
-
-         -- Global keymap for time tracker history command
-         vim.keymap.set('n', '<leader>th', function()
-            -- We require it INSIDE the function to avoid 'nil' errors on startup
-            local tt_ui = require('time-tracker/ui')
-            local tt_main = require('time-tracker')
-
-            -- Pass the tracker instance stored in the main module
-            tt_ui.show_session_history(tt_main.tracker)
-         end, { desc = 'Time Tracker: View History' })
-      end,
-   },
-   {
-      'folke/snacks.nvim',
-      priority = 1000,
-      lazy = false,
-      opts = {
-         terminal = {
-            win = {
-               -- 'float' style adds padding. 'terminal' style is usually more flush.
-               style = 'terminal',
-            },
-         },
-         lazygit = {
-            win = {
-               -- SETTING THESE TO 0 FORCES FULL SCREEN
-               width = 0,
-               height = 0,
-               border = 'none', -- Removes the Neovim border so only Lazygit's border shows
-            },
-         },
-      },
-   },
-   {
-      'lewis6991/gitsigns.nvim',
-      event = { 'BufReadPre', 'BufNewFile' },
-      config = function()
-         require('gitsigns').setup({
-            current_line_blame = false, -- we won't toggle globally
-            current_line_blame_opts = {
-               delay = 0,
-               virt_text_pos = 'eol', -- show at end of line
-            },
-         })
-
-         -- Keymap: show blame for current line via Lua
-         vim.keymap.set('n', '<leader>gb', function()
-            require('gitsigns').blame_line({
-               full = true,
-            })
-         end, { desc = 'Blame current line' })
-      end,
-   },
-   {
-      'nvim-lualine/lualine.nvim',
-      dependencies = { 'nvim-tree/nvim-web-devicons' },
-      config = function()
-         local colors = {
-            bg = '#000000',
-            fg = '#bbc2cf',
-            yellow = '#ECBE7B',
-            cyan = '#008080',
-            darkblue = '#081633',
-            green = '#98be65',
-            orange = '#FF8800',
-            violet = '#a9a1e1',
-            magenta = '#c678dd',
-            blue = '#51afef',
-            red = '#ec5f67',
-         }
-
-         local config = {
-            options = {
-               component_separators = '',
-               section_separators = '',
-               theme = {
-                  normal = { c = { fg = colors.fg, bg = colors.bg } },
-                  inactive = { c = { fg = colors.fg, bg = colors.bg } },
-               },
-            },
-            sections = {
-               lualine_a = {},
-               lualine_b = {},
-               lualine_y = {},
-               lualine_z = {},
-               lualine_c = {},
-               lualine_x = {},
-            },
-         }
-
-         -- Helper functions to insert into the config table
-         local function ins_left(component)
-            table.insert(config.sections.lualine_c, component)
-         end
-         local function ins_right(component)
-            table.insert(config.sections.lualine_x, component)
-         end
-
-         -- --- CUSTOM COMPONENTS ---
-         ins_left({
-            function()
-               return '▊'
-            end,
-            color = { fg = colors.blue },
-            padding = { left = 0, right = 1 },
-         })
-
-         ins_left({
-            function()
-               return ''
-            end,
-            color = function()
-               local mode_color = {
-                  n = colors.red,
-                  i = colors.green,
-                  v = colors.blue,
-                  [''] = colors.blue,
-                  V = colors.blue,
-                  c = colors.magenta,
-                  R = colors.violet,
-                  t = colors.red,
-               }
-               return { fg = mode_color[vim.fn.mode()] or colors.blue }
-            end,
-            padding = { right = 1 },
-         })
-
-         ins_left({
-            'diagnostics',
-            sources = { 'nvim_diagnostic' },
-            symbols = { error = ' ', warn = ' ', info = ' ' },
-            diagnostics_color = {
-               error = { fg = colors.red },
-               warn = { fg = colors.yellow },
-               info = { fg = colors.cyan },
-            },
-         })
-
-         ins_left({
-            function()
-               return '%='
-            end,
-         })
-
-         ins_left({
-            'mode',
-            color = function()
-               local mode_color = {
-                  n = '#c678dd',
-                  i = '#98be65',
-                  v = '#51afef',
-                  V = '#51afef',
-                  c = '#ec5f67',
-                  R = '#a9a1e1',
-                  t = '#ec5f67',
-               }
-               return { fg = mode_color[vim.fn.mode()] or '#51afef', gui = 'bold' }
-            end,
-            padding = { right = 1 },
-         })
-
-         ins_right({
-            'branch',
-            icon = '',
-            color = { fg = colors.violet, gui = 'bold' },
-         })
-
-         ins_right({
-            function()
-               return '▊'
-            end,
-            color = { fg = colors.blue },
-            padding = { left = 1 },
-         })
-
-         -- Initialize
-         require('lualine').setup(config)
-
-         -- Ensure background transparency
-         vim.cmd([[highlight Normal guibg=NONE]])
-      end,
-   },
-   {
-      'iamcco/markdown-preview.nvim',
-      cmd = {
-         'MarkdownPreviewToggle',
-         'MarkdownPreview',
-         'MarkdownPreviewStop',
-      },
-      build = 'cd app && yarn install',
-      init = function()
-         vim.g.mkdp_filetypes = { 'markdown' }
-         -- vim.g.mkdp_markdown_css = vim.fn.expand('~/.config/nvim/lua/css/custom.css')
-      end,
-      ft = { 'markdown' },
-   },
-   {
-      'hrsh8th/nvim-cmp',     -- Completion plugin
-      dependencies = {
-         'hrsh8th/cmp-nvim-lsp', -- LSP completion source
-         'hrsh8th/cmp-buffer', -- Buffer completion source
-         'hrsh8th/cmp-path',  -- Path completion source
-         'hrsh8th/cmp-cmdline', -- Cmdline completion source
-      },
-   },
-   {
-      'stevearc/conform.nvim',
-      opts = {
-         format_on_save = {
-            timeout_ms = 500,
-            lsp_fallback = false, -- Only use Prettier, ignore the LSP formatter
-         },
-         formatters_by_ft = {
-            lua = { 'stylua' },
-            python = { 'isort', 'black' },
-            javascript = { 'prettier' },
-            javascriptreact = { 'prettier' }, -- Make sure to add this for JSX
-            typescript = { 'prettier' },
-            typescriptreact = { 'prettier' }, -- Make sure to add this for TSX
-            vue = { 'prettier' },
-            html = { 'prettier' },
-            css = { 'prettier' },
-            json = { 'prettier' },
-            markdown = { 'prettier' },
-         },
-         log_level = vim.log.levels.ERROR,
-         notify_on_error = false,
-      },
-   },
-   {
-      'JoosepAlviste/nvim-ts-context-commentstring',
-      opts = {
-         enable_autocmd = false,
-      },
-      config = function(_, opts)
-         require('ts_context_commentstring').setup(opts)
-      end,
-   },
-   {
-      'folke/which-key.nvim',
-      event = 'VeryLazy',
-      init = function()
-         vim.o.timeout = true
-         vim.o.timeoutlen = 301
-      end,
-   },
-   -- {
-   --   "christoomey/vim-tmux-navigator",
-   --   lazy = false,
-   -- },
-   {
-      'JoosepAlviste/nvim-ts-context-commentstring',
-   },
-   { 'rhysd/vim-fixjson', cmd = 'FixJson' },
-   {
-      'nvim-focus/focus.nvim',
-      config = focusConfig,
-   },
-   {
-      'barrett-ruth/live-server.nvim',
-      build = 'pnpm add -g live-server',
-      cmd = { 'LiveServerStart', 'LiveServerStop' },
-      config = true,
-   },
-   {
-      'neovim/nvim-lspconfig',
-      opts = {
-         -- LazyVim will automatically merge these into the setup
-         servers = {
-            -- Python
-            pyright = {
-               settings = {
-                  python = {
-                     analysis = {
-                        autoSearchPaths = true,
-                        diagnosticMode = 'openFilesOnly',
-                        useLibraryCodeForTypes = true,
-                     },
-                  },
-               },
-            },
-            -- TypeScript / JS / JSX
-            -- Note: LazyVim 15 defaults to vtsls, but if you prefer ts_ls:
-            vtsls = {
-               filetypes = { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact', 'vue' },
-               init_options = {
-                  plugins = {
-                     {
-                        name = '@vue/typescript-plugin',
-                        location = '/usr/local/lib/node_modules/@vue/typescript-plugin',
-                        languages = { 'javascript', 'typescript', 'vue' },
-                     },
-                  },
-               },
-            },
-            -- Vue
-            volar = {}, -- 'vuels' is very old; 'volar' is the modern standard for Vue 3
-            -- Lua
-            lua_ls = {},
-         },
-         -- This replaces your manual autocmd for formatting
-         setup = {
-            -- You can put custom setup logic here if needed
-         },
-      },
-   },
-   {
-      'HampusHauffman/block.nvim',
-      config = function()
-         -- require("block").setup({})
-      end,
-   },
-   {
-      'romgrk/barbar.nvim',
-      dependencies = {
-         'lewis6991/gitsigns.nvim',  -- optional
-         'nvim-tree/nvim-web-devicons', -- optional (for icons)
-      },
-      config = function()
-         -- Active buffer highlights
-         vim.api.nvim_set_hl(0, 'BufferCurrent', {
-            fg = '#ffffff',
-            bg = 'none',
-            bold = true,
-         })
-         vim.api.nvim_set_hl(0, 'BufferCurrentSign', { fg = '#ffffff' })
-
-         -- Inactive buffer highlights
-         vim.api.nvim_set_hl(0, 'BufferInactive', { fg = '#555555', bg = 'none' })
-         vim.api.nvim_set_hl(0, 'BufferInactiveSign', { fg = '#555555', bg = 'none' })
-         vim.api.nvim_set_hl(0, 'BufferInactiveMod', { fg = '#aaaa55', bg = 'none' })
-         vim.api.nvim_set_hl(0, 'BufferInactiveIcon', { fg = '#555555', bg = 'NONE' })
-
-         vim.api.nvim_set_hl(0, 'BufferTabpageFill', { bg = 'NONE' })
-
-         vim.api.nvim_create_autocmd('ColorScheme', {
-            callback = function()
-               vim.api.nvim_set_hl(0, 'BufferCurrent', { fg = '#ffffff', bg = 'NONE', bold = true })
-               vim.api.nvim_set_hl(0, 'BufferCurrentSign', { fg = '#ffffff', bg = 'NONE' })
-               vim.api.nvim_set_hl(0, 'BufferInactive', { fg = '#555555', bg = 'NONE' })
-               vim.api.nvim_set_hl(0, 'BufferInactiveSign', { fg = '#555555', bg = 'NONE' })
-               vim.api.nvim_set_hl(0, 'BufferInactiveMod', { fg = '#aaaa55', bg = 'NONE' })
-               vim.api.nvim_set_hl(0, 'BufferInactiveIcon', { fg = '#555555', bg = 'NONE' })
-               vim.api.nvim_set_hl(0, 'BufferTabpageFill', { bg = 'NONE' })
-            end,
-         })
-      end,
-   },
-   {
+  { 'alvan/vim-closetag' },
+  { 'windwp/nvim-autopairs' },
+  { 'nvim-lua/plenary.nvim' },
+  { 'terrortylor/nvim-comment' },
+  { 'voldikss/vim-floaterm' },
+  { 'tpope/vim-surround' },
+  { 'NLKNguyen/papercolor-theme' },
+  {
+    'olimorris/codecompanion.nvim',
+    dependencies = {
+      'nvim-lua/plenary.nvim',
+      'nvim-treesitter/nvim-treesitter',
+      'hrsh7th/nvim-cmp',
       'nvim-telescope/telescope.nvim',
+      'ravitemer/codecompanion-history.nvim',
+      { 'stevearc/dressing.nvim', opts = {} },
+    },
+    config = function()
+      require('codecompanion').setup({
+        extensions = {
+          history = {
+            enabled = true,
+            opts = {
+              picker = 'telescope',
+              keymap = 'ah',
+              save_chat_keymap = 'sc',
+              auto_save = true,
+            },
+          },
+        },
+        keys = {
+          {
+            '<leader>ah',
+            '<cmd>CodeCompanionHistory<cr>',
+            desc = 'CodeCompanion Chat History',
+          },
+        },
+        strategies = {
+          chat = {
+            tools = {
+              -- Enable reading/diagnostics tools
+              ['editor'] = { enabled = true },
+              ['cmd_runner'] = { enabled = true },
+
+              -- Disable direct file modifications
+              ['files'] = {
+                opts = {
+                  read_only = true, -- Prevents overwriting or editing files
+                },
+              },
+            },
+            adapter = 'gemini',
+            slash_commands = {
+              ['buffer'] = {
+                callback = 'strategies.chat.slash_commands.buffer',
+                description = 'Insert the current buffer',
+              },
+            },
+            roles = {
+              llm = 'CodeCompanion',
+              user = 'DarkMeow-CEO',
+            },
+          },
+          inline = {
+            adapter = 'gemini',
+            slash_commands = {
+              ['buffer'] = {
+                callback = 'strategies.chat.slash_commands.buffer',
+                description = 'Insert the current buffer',
+              },
+            },
+          },
+          agent = { adapter = 'gemini' },
+        },
+        opts = {
+          chat = {
+            auto_generate_title = false,
+          },
+        },
+        display = {
+          chat = {
+            window = {
+              layout = 'float',
+              relative = 'editor',
+              width = 0.95,
+              height = 0.8,
+              border = 'rounded',
+            },
+          },
+        },
+        adapters = {
+          vim.api.nvim_create_autocmd('FileType', {
+            pattern = 'codecompanion',
+            callback = function()
+              vim.opt_local.number = false
+              vim.opt_local.relativenumber = false
+            end,
+          }),
+
+          gemini = function()
+            return require('codecompanion.adapters').extend('gemini', {
+              env = {
+                api_key = os.getenv('GEMINI_API_KEY'),
+              },
+              schema = {
+                model = {
+                  default = 'gemini-1.5-flash-002',
+                },
+              },
+            })
+          end,
+        },
+      })
+    end,
+  },
+  {
+    '3rd/time-tracker.nvim',
+    dir = '~/linuxProjects/time-tracker.nvim', -- Point to your local dev folder
+    dependencies = {
+      {
+        '3rd/sqlite.nvim',
+        lazy = false,
+        init = function()
+          vim.g.sqlite_clib_path = '/home/linuxbrew/.linuxbrew/lib/libsqlite3.so'
+        end,
+      },
+    },
+    lazy = false,
+    config = function()
+      -- Only call setup. The new UI and commands are now inside the plugin!
+      require('time-tracker').setup({
+        data_file = vim.fn.stdpath('data') .. '/time-tracker.db',
+        tracking_timeout_seconds = 120,
+      })
+
+      -- Keep this reset command if you like it, it's a handy utility
+      vim.api.nvim_create_user_command('TimeTrackerReset', function()
+        local db_path = vim.fn.stdpath('data') .. '/time-tracker.db'
+        os.remove(db_path)
+        print('Time Tracker database reset. Restart Neovim to begin fresh.')
+      end, {})
+
+      -- Global keymap for time tracker history command
+      vim.keymap.set('n', '<leader>th', function()
+        -- We require it INSIDE the function to avoid 'nil' errors on startup
+        local tt_ui = require('time-tracker/ui')
+        local tt_main = require('time-tracker')
+
+        -- Pass the tracker instance stored in the main module
+        tt_ui.show_session_history(tt_main.tracker)
+      end, { desc = 'Time Tracker: View History' })
+    end,
+  },
+  {
+    'folke/snacks.nvim',
+    priority = 1000,
+    lazy = false,
+    opts = {
+      terminal = {
+        win = {
+          -- 'float' style adds padding. 'terminal' style is usually more flush.
+          style = 'terminal',
+        },
+      },
+      lazygit = {
+        win = {
+          -- SETTING THESE TO 0 FORCES FULL SCREEN
+          width = 0,
+          height = 0,
+          border = 'none', -- Removes the Neovim border so only Lazygit's border shows
+        },
+      },
+    },
+  },
+  {
+    'lewis6991/gitsigns.nvim',
+    event = { 'BufReadPre', 'BufNewFile' },
+    config = function()
+      require('gitsigns').setup({
+        current_line_blame = false, -- we won't toggle globally
+        current_line_blame_opts = {
+          delay = 0,
+          virt_text_pos = 'eol', -- show at end of line
+        },
+      })
+
+      -- Keymap: show blame for current line via Lua
+      vim.keymap.set('n', '<leader>gb', function()
+        require('gitsigns').blame_line({
+          full = true,
+        })
+      end, { desc = 'Blame current line' })
+    end,
+  },
+  {
+    'nvim-lualine/lualine.nvim',
+    dependencies = { 'nvim-tree/nvim-web-devicons' },
+    config = function()
+      local colors = {
+        bg = '#000000',
+        fg = '#bbc2cf',
+        yellow = '#ECBE7B',
+        cyan = '#008080',
+        darkblue = '#081633',
+        green = '#98be65',
+        orange = '#FF8800',
+        violet = '#a9a1e1',
+        magenta = '#c678dd',
+        blue = '#51afef',
+        red = '#ec5f67',
+      }
+
+      local config = {
+        options = {
+          component_separators = '',
+          section_separators = '',
+          theme = {
+            normal = { c = { fg = colors.fg, bg = colors.bg } },
+            inactive = { c = { fg = colors.fg, bg = colors.bg } },
+          },
+        },
+        sections = {
+          lualine_a = {},
+          lualine_b = {},
+          lualine_y = {},
+          lualine_z = {},
+          lualine_c = {},
+          lualine_x = {},
+        },
+      }
+
+      -- Helper functions to insert into the config table
+      local function ins_left(component)
+        table.insert(config.sections.lualine_c, component)
+      end
+      local function ins_right(component)
+        table.insert(config.sections.lualine_x, component)
+      end
+
+      -- --- CUSTOM COMPONENTS ---
+      ins_left({
+        function()
+          return '▊'
+        end,
+        color = { fg = colors.blue },
+        padding = { left = 0, right = 1 },
+      })
+
+      ins_left({
+        function()
+          return ''
+        end,
+        color = function()
+          local mode_color = {
+            n = colors.red,
+            i = colors.green,
+            v = colors.blue,
+            [''] = colors.blue,
+            V = colors.blue,
+            c = colors.magenta,
+            R = colors.violet,
+            t = colors.red,
+          }
+          return { fg = mode_color[vim.fn.mode()] or colors.blue }
+        end,
+        padding = { right = 1 },
+      })
+
+      ins_left({
+        'diagnostics',
+        sources = { 'nvim_diagnostic' },
+        symbols = { error = ' ', warn = ' ', info = ' ' },
+        diagnostics_color = {
+          error = { fg = colors.red },
+          warn = { fg = colors.yellow },
+          info = { fg = colors.cyan },
+        },
+      })
+
+      ins_left({
+        function()
+          return '%='
+        end,
+      })
+
+      ins_left({
+        'mode',
+        color = function()
+          local mode_color = {
+            n = '#c678dd',
+            i = '#98be65',
+            v = '#51afef',
+            V = '#51afef',
+            c = '#ec5f67',
+            R = '#a9a1e1',
+            t = '#ec5f67',
+          }
+          return { fg = mode_color[vim.fn.mode()] or '#51afef', gui = 'bold' }
+        end,
+        padding = { right = 1 },
+      })
+
+      ins_right({
+        'branch',
+        icon = '',
+        color = { fg = colors.violet, gui = 'bold' },
+      })
+
+      ins_right({
+        function()
+          return '▊'
+        end,
+        color = { fg = colors.blue },
+        padding = { left = 1 },
+      })
+
+      -- Initialize
+      require('lualine').setup(config)
+
+      -- Ensure background transparency
+      vim.cmd([[highlight Normal guibg=NONE]])
+    end,
+  },
+  {
+    'iamcco/markdown-preview.nvim',
+    cmd = {
+      'MarkdownPreviewToggle',
+      'MarkdownPreview',
+      'MarkdownPreviewStop',
+    },
+    build = 'cd app && yarn install',
+    init = function()
+      vim.g.mkdp_filetypes = { 'markdown' }
+      -- vim.g.mkdp_markdown_css = vim.fn.expand('~/.config/nvim/lua/css/custom.css')
+    end,
+    ft = { 'markdown' },
+  },
+  {
+    'hrsh8th/nvim-cmp', -- Completion plugin
+    dependencies = {
+      'hrsh8th/cmp-nvim-lsp', -- LSP completion source
+      'hrsh8th/cmp-buffer', -- Buffer completion source
+      'hrsh8th/cmp-path', -- Path completion source
+      'hrsh8th/cmp-cmdline', -- Cmdline completion source
+    },
+  },
+  {
+    'stevearc/conform.nvim',
+    opts = {
+      format_on_save = {
+        timeout_ms = 500,
+        lsp_fallback = false, -- Only use Prettier, ignore the LSP formatter
+      },
+      formatters_by_ft = {
+        lua = { 'stylua' },
+        python = { 'isort', 'black' },
+        javascript = { 'prettier' },
+        javascriptreact = { 'prettier' }, -- Make sure to add this for JSX
+        typescript = { 'prettier' },
+        typescriptreact = { 'prettier' }, -- Make sure to add this for TSX
+        vue = { 'prettier' },
+        html = { 'prettier' },
+        css = { 'prettier' },
+        json = { 'prettier' },
+        markdown = { 'prettier' },
+      },
+      log_level = vim.log.levels.ERROR,
+      notify_on_error = false,
+    },
+  },
+  {
+    'JoosepAlviste/nvim-ts-context-commentstring',
+    opts = {
+      enable_autocmd = false,
+    },
+    config = function(_, opts)
+      require('ts_context_commentstring').setup(opts)
+    end,
+  },
+  {
+    'folke/which-key.nvim',
+    event = 'VeryLazy',
+    init = function()
+      vim.o.timeout = true
+      vim.o.timeoutlen = 301
+    end,
+  },
+  -- {
+  --   "christoomey/vim-tmux-navigator",
+  --   lazy = false,
+  -- },
+  {
+    'JoosepAlviste/nvim-ts-context-commentstring',
+  },
+  { 'rhysd/vim-fixjson', cmd = 'FixJson' },
+  {
+    'nvim-focus/focus.nvim',
+    config = focusConfig,
+  },
+  {
+    'barrett-ruth/live-server.nvim',
+    build = 'pnpm add -g live-server',
+    cmd = { 'LiveServerStart', 'LiveServerStop' },
+    config = true,
+  },
+  {
+    'neovim/nvim-lspconfig',
+    opts = {
+      -- LazyVim will automatically merge these into the setup
+      servers = {
+        -- Python
+        pyright = {
+          settings = {
+            python = {
+              analysis = {
+                autoSearchPaths = true,
+                diagnosticMode = 'openFilesOnly',
+                useLibraryCodeForTypes = true,
+              },
+            },
+          },
+        },
+        -- TypeScript / JS / JSX
+        -- Note: LazyVim 15 defaults to vtsls, but if you prefer ts_ls:
+        vtsls = {
+          filetypes = { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact', 'vue' },
+          init_options = {
+            plugins = {
+              {
+                name = '@vue/typescript-plugin',
+                location = '/usr/local/lib/node_modules/@vue/typescript-plugin',
+                languages = { 'javascript', 'typescript', 'vue' },
+              },
+            },
+          },
+        },
+        -- Vue
+        volar = {}, -- 'vuels' is very old; 'volar' is the modern standard for Vue 3
+        -- Lua
+        lua_ls = {},
+      },
+      -- This replaces your manual autocmd for formatting
+      setup = {
+        -- You can put custom setup logic here if needed
+      },
+    },
+  },
+  {
+    'HampusHauffman/block.nvim',
+    config = function()
+      -- require("block").setup({})
+    end,
+  },
+  {
+    'romgrk/barbar.nvim',
+    dependencies = {
+      'lewis6991/gitsigns.nvim', -- optional
+      'nvim-tree/nvim-web-devicons', -- optional (for icons)
+    },
+    config = function()
+      -- Active buffer highlights
+      vim.api.nvim_set_hl(0, 'BufferCurrent', {
+        fg = '#ffffff',
+        bg = 'none',
+        bold = true,
+      })
+      vim.api.nvim_set_hl(0, 'BufferCurrentSign', { fg = '#ffffff' })
+
+      -- Inactive buffer highlights
+      vim.api.nvim_set_hl(0, 'BufferInactive', { fg = '#555555', bg = 'none' })
+      vim.api.nvim_set_hl(0, 'BufferInactiveSign', { fg = '#555555', bg = 'none' })
+      vim.api.nvim_set_hl(0, 'BufferInactiveMod', { fg = '#aaaa55', bg = 'none' })
+      vim.api.nvim_set_hl(0, 'BufferInactiveIcon', { fg = '#555555', bg = 'NONE' })
+
+      vim.api.nvim_set_hl(0, 'BufferTabpageFill', { bg = 'NONE' })
+
+      vim.api.nvim_create_autocmd('ColorScheme', {
+        callback = function()
+          vim.api.nvim_set_hl(0, 'BufferCurrent', { fg = '#ffffff', bg = 'NONE', bold = true })
+          vim.api.nvim_set_hl(0, 'BufferCurrentSign', { fg = '#ffffff', bg = 'NONE' })
+          vim.api.nvim_set_hl(0, 'BufferInactive', { fg = '#555555', bg = 'NONE' })
+          vim.api.nvim_set_hl(0, 'BufferInactiveSign', { fg = '#555555', bg = 'NONE' })
+          vim.api.nvim_set_hl(0, 'BufferInactiveMod', { fg = '#aaaa55', bg = 'NONE' })
+          vim.api.nvim_set_hl(0, 'BufferInactiveIcon', { fg = '#555555', bg = 'NONE' })
+          vim.api.nvim_set_hl(0, 'BufferTabpageFill', { bg = 'NONE' })
+        end,
+      })
+    end,
+  },
+  {
+    'nvim-telescope/telescope.nvim',
+    dependencies = {
+      {
+        'nvim-telescope/telescope-file-browser.nvim',
+        'nvim-telescope/telescope-fzf-native.nvim',
+        build = function()
+          vim.fn.system('make')
+        end,
+        config = function(_, opts)
+          local telescope = require('telescope').load_extension('fzf')
+
+          -- Ensure opts is a valid table before calling setup
+          if type(opts) == 'table' then
+            telescope.setup(opts)
+
+            -- Load the FZF extension after Telescope is set up
+            local status_ok, _ = pcall(telescope.load_extension, 'fzf')
+            if not status_ok then
+              print('Error: fzf extension not loaded!')
+            end
+          else
+            -- Log an error or fallback if opts is not a table
+            print('Error: Telescope opts is nil or not a table!')
+          end
+        end,
+      },
+    },
+
+    --[[   Color Schemes ]]
+    {
+      'craftzdog/solarized-osaka.nvim',
+      lazy = false,
+      priority = 1001,
+      opts = {},
+      config = function()
+        local osakaConfig = {
+          transparent = true,
+          terminal_colors = true,
+          styles = {
+            comments = { italic = true },
+            functions = {},
+            variables = {},
+            sidebars = 'transparent',
+            floats = 'transparent',
+          },
+          sidebars = { 'qf', 'help' },
+          hide_inactive_statusline = false,
+          dim_inactive = false,
+          lualine_bold = false,
+
+          on_highlights = function(hl, c)
+            local util = require('solarized-osaka.util')
+
+            -- 1. GLOBAL UI FIXES
+            hl.NormalNC = { bg = 'NONE' } -- Fixes the non-current window background
+            hl.NormalFloat = { bg = 'NONE' }
+            hl.FloatBorder = { bg = 'NONE', fg = c.blue }
+
+            -- 2. MARKDOWN HEADER BACKGROUNDS
+            hl.RenderMarkdownH1Bg = { fg = '#ffffff', bg = '#003366' }
+            hl.RenderMarkdownH2Bg = { fg = '#ffffff', bg = '#1c6e68' }
+            hl.RenderMarkdownH3Bg = { fg = '#ffffff', bg = '#4a1bdf' }
+            hl.RenderMarkdownH4Bg = { fg = '#ffffff', bg = '#cc5190' }
+            hl.RenderMarkdownH5Bg = { fg = '#ffffff', bg = '#8B0000' }
+
+            -- 3. THE "HACKER GREEN" CODE BLOCKS
+            local hacker_green = '#006500'
+            local gray_background = '#1e1e1e'
+
+            -- Full Code Blocks (Triple backticks)
+            hl.RenderMarkdownCode = {
+              -- fg = hacker_green,
+              bg = gray_background,
+              bold = true,
+            }
+
+            -- Inline Code (Single backticks)
+            -- We map multiple groups to ensure the "Yellow" doesn't flash
+            local inline_style = { fg = hacker_green, bg = '#151515', bold = true }
+            hl.RenderMarkdownCodeInline = inline_style
+            hl['@markup.raw'] = inline_style -- Treesitter fallback
+            hl.MarkdownCode = inline_style -- Legacy fallback
+            hl.RenderMarkdownLanguage = { fg = hacker_green, bold = true }
+
+            -- 4. LINKS & TIME TRACKER
+            hl.RenderMarkdownLink = { fg = '#1E90FF' }
+            hl.TimeTrackerRoot = { fg = hacker_green, bg = 'NONE', bold = true }
+            hl.TimeTrackerCurrentProject = { fg = '#ffffff', bg = 'NONE', bold = true }
+
+            -- 5. KEYWORDS & TELESCOPE (Your existing logic)
+            local keyword_color = util.darken('#00ff00', 0.85)
+            hl['keyword.tsx'] = { fg = keyword_color }
+            hl['keyword.return.tsx'] = { fg = keyword_color }
+            hl['keyword.javascript'] = { fg = keyword_color }
+            hl['keyword.return.javascript'] = { fg = keyword_color }
+
+            local tag_color = c.blue -- Or c.magenta if you want them to pop more
+
+            -- JSX/TSX Standard Elements
+            hl['@tag.builtin'] = { fg = tag_color }
+            hl['@tag.delimiter'] = { fg = c.blue700 } -- Colors the < and >
+            hl['@tag.attribute'] = { fg = '#6c71c4' }
+
+            -- Specific overrides for javascriptreact (your current filetype)
+            hl['@tag.builtin.javascript'] = { fg = tag_color }
+            hl['@tag.javascript'] = { fg = c.cyan }
+
+            -- If you want 'className' and 'key' to be a different color
+            hl['@tag.attribute.javascript'] = { fg = '#6c71c4' }
+            hl['@tag.attribute.tsx'] = { fg = '#6c71c4' }
+
+            -- The actual component name inside the tag
+            hl['@constructor.tsx'] = { fg = c.cyan }
+            hl['@variable.builtin.tsx'] = { fg = c.cyan }
+
+            local telescope_groups = {
+              'TelescopeNormal',
+              'TelescopeBorder',
+              'TelescopePromptNormal',
+              'TelescopePromptBorder',
+              'TelescopePromptTitle',
+              'TelescopePreviewTitle',
+              'TelescopePreviewBorder',
+              'TelescopeResultsTitle',
+              'TelescopeResultsBorder',
+            }
+            for _, g in ipairs(telescope_groups) do
+              hl[g] = { bg = 'NONE', fg = hl[g] and hl[g].fg or c.blue }
+            end
+          end,
+        }
+
+        require('solarized-osaka').setup(osakaConfig)
+      end,
+    },
+    -- {
+    --   "habamax/vim-habanight",
+    --   config = function()
+    --     vim.cmd("colorscheme habanight")
+    --     vim.cmd("hi Normal guibg=NONE ctermbg=NONE")
+    --   end,
+    -- },
+
+    -- {
+    --    "miikanissi/modus-themes.nvim",
+    --    lazy = false,
+    --    priority = 1000,
+    --    config = function()
+    --       require("modus-themes").setup({
+    --          style = "modus_operandi",
+    --          variants = "default",
+    --
+    --          styles = {
+    --             keywords = { bold = true },
+    --             functions = { bold = true },
+    --             variables = { bold = true },
+    --          },
+    --
+    --          on_highlights = function(highlights, colors)
+    --             -- THE HIGH-GLARE HYPER-SATURATED PALETTE
+    --             local neon_blue                     = "#0044ff" -- Piercing primary blue for control keywords
+    --             local electric_cyan                 = "#0088cc" -- Bright, heavy sky blue for standard variables
+    --             local neon_purple                   = "#9900ff" -- Deep, intense neon purple for functions and methods
+    --             local neon_orange                   = "#ff5500" -- Blinding, saturated safety orange for object properties
+    --             local neon_magenta                  = "#ff00aa" -- Loud magenta for booleans/numbers (true, false)
+    --             local solid_black                   = "#000000" -- Pitch black for operators or text fallbacks
+    --             local hacker_green                  = "#00cc33" -- Saturated matrix green for HTML/JSX tags
+    --             local muted_gray                    = "#71717a" -- Muted gray for comments to hide them away
+    --
+    --             -- 1. KEYWORDS (Neon Blue & Extra Heavy)
+    --             highlights.Keyword                  = { fg = neon_blue, bold = true }
+    --             highlights["@keyword"]              = { fg = neon_blue, bold = true }
+    --             highlights["@keyword.modifier"]     = { fg = neon_blue, bold = true }
+    --             highlights["@keyword.coroutine"]    = { fg = neon_blue, bold = true }
+    --             highlights["@conditional"]          = { fg = neon_blue, bold = true }
+    --             highlights["@repeat"]               = { fg = neon_blue, bold = true }
+    --
+    --             -- 2. VARIABLES & CONSTANTS (Electric Cyan / Saturated Sky Blue)
+    --             highlights.Identifier               = { fg = electric_cyan, bold = true }
+    --             highlights["@variable"]             = { fg = electric_cyan, bold = true }
+    --             highlights["@variable.builtin"]     = { fg = neon_blue, bold = true }
+    --             highlights["@constant"]             = { fg = neon_blue, bold = true }
+    --
+    --             -- LSP overrides to stop language servers from dulling the colors down
+    --             highlights["@lsp.type.variable"]    = { fg = electric_cyan, bold = true }
+    --             highlights["@lsp.type.parameter"]   = { fg = electric_cyan, bold = true }
+    --
+    --             -- 3. COMMENTS (Back to Muted Gray)
+    --             highlights.Comment                  = { fg = muted_gray, italic = true, bold = false }
+    --             highlights["@comment"]              = { fg = muted_gray, italic = true, bold = false }
+    --
+    --             -- 4. FUNCTIONS & METHODS (Neon Purple)
+    --             highlights.Function                 = { fg = neon_purple, bold = true }
+    --             highlights["@function"]             = { fg = neon_purple, bold = true }
+    --             highlights["@function.call"]        = { fg = neon_purple, bold = true }
+    --             highlights["@function.method"]      = { fg = neon_purple, bold = true }
+    --             highlights["@function.method.call"] = { fg = neon_purple, bold = true }
+    --             highlights["@lsp.type.function"]    = { fg = neon_purple, bold = true }
+    --
+    --             -- 5. DISTINCT OBJECT PROPERTIES (Blinding Safety Orange)
+    --             highlights["@property"]             = { fg = neon_orange, bold = true }
+    --             highlights["@lsp.type.property"]    = { fg = neon_orange, bold = true }
+    --
+    --             -- 6. VALUES & LITERALS (Hot Magenta & Pure Gold)
+    --             highlights.String                   = { fg = "#a16207", bold = true } -- Heavy amber-gold
+    --             highlights["@string"]               = { fg = "#a16207", bold = true }
+    --
+    --             highlights.Number                   = { fg = neon_magenta, bold = true }
+    --             highlights.Boolean                  = { fg = neon_magenta, bold = true }
+    --             highlights["@number"]               = { fg = neon_magenta, bold = true }
+    --             highlights["@boolean"]              = { fg = neon_magenta, bold = true }
+    --
+    --             -- 7. HTML / JSX TAGS (Hacker Green Override)
+    --             highlights["@tag"]                  = { fg = hacker_green, bold = true }
+    --             highlights["@tag.builtin"]          = { fg = hacker_green, bold = true }
+    --             highlights["@tag.attribute"]        = { fg = neon_orange, bold = true } -- Attributes like className pop in orange
+    --             highlights.Tag                      = { fg = hacker_green, bold = true }
+    --
+    --             -- 8. EXTRA UTILITIES (Equal signs, brackets, punctuation)
+    --             highlights.Operator                 = { fg = solid_black, bold = true }
+    --             highlights["@operator"]             = { fg = solid_black, bold = true }
+    --          end,
+    --       })
+    --    end,
+    -- },
+    {
+      'numToStr/Comment.nvim',
       dependencies = {
-         {
-            'nvim-telescope/telescope-file-browser.nvim',
-            'nvim-telescope/telescope-fzf-native.nvim',
-            build = function()
-               vim.fn.system('make')
-            end,
-            config = function(_, opts)
-               local telescope = require('telescope').load_extension('fzf')
-
-               -- Ensure opts is a valid table before calling setup
-               if type(opts) == 'table' then
-                  telescope.setup(opts)
-
-                  -- Load the FZF extension after Telescope is set up
-                  local status_ok, _ = pcall(telescope.load_extension, 'fzf')
-                  if not status_ok then
-                     print('Error: fzf extension not loaded!')
-                  end
-               else
-                  -- Log an error or fallback if opts is not a table
-                  print('Error: Telescope opts is nil or not a table!')
-               end
-            end,
-         },
+        'JoosepAlviste/nvim-ts-context-commentstring',
       },
+      config = function()
+        require('Comment').setup({
+          pre_hook = require('ts_context_commentstring.integrations.comment_nvim').create_pre_hook(),
+        })
+      end,
+    },
+    {
+      'folke/noice.nvim',
+      opts = function(_, opts)
+        table.insert(opts.routes, {
+          filter = {
+            event = 'notify',
+            find = 'No information available',
+          },
+          opts = { skip = true },
+        })
 
-      --[[   Color Schemes ]]
-      {
-         'craftzdog/solarized-osaka.nvim',
-         lazy = false,
-         priority = 1001,
-         opts = {},
-         config = function()
-            local osakaConfig = {
-               transparent = true,
-               terminal_colors = true,
-               styles = {
-                  comments = { italic = true },
-                  functions = {},
-                  variables = {},
-                  sidebars = 'transparent',
-                  floats = 'transparent',
-               },
-               sidebars = { 'qf', 'help' },
-               hide_inactive_statusline = false,
-               dim_inactive = false,
-               lualine_bold = false,
+        opts.presets.lsp_doc_border = true
+      end,
+    },
 
-               on_highlights = function(hl, c)
-                  local util = require('solarized-osaka.util')
-
-                  -- 1. GLOBAL UI FIXES
-                  hl.NormalNC = { bg = 'NONE' } -- Fixes the non-current window background
-                  hl.NormalFloat = { bg = 'NONE' }
-                  hl.FloatBorder = { bg = 'NONE', fg = c.blue }
-
-                  -- 2. MARKDOWN HEADER BACKGROUNDS
-                  hl.RenderMarkdownH1Bg = { fg = '#ffffff', bg = '#003366' }
-                  hl.RenderMarkdownH2Bg = { fg = '#ffffff', bg = '#1c6e68' }
-                  hl.RenderMarkdownH3Bg = { fg = '#ffffff', bg = '#4a1bdf' }
-                  hl.RenderMarkdownH4Bg = { fg = '#ffffff', bg = '#cc5190' }
-                  hl.RenderMarkdownH5Bg = { fg = '#ffffff', bg = '#8B0000' }
-
-                  -- 3. THE "HACKER GREEN" CODE BLOCKS
-                  local hacker_green = '#006500'
-                  local gray_background = '#1e1e1e'
-
-                  -- Full Code Blocks (Triple backticks)
-                  hl.RenderMarkdownCode = {
-                     -- fg = hacker_green,
-                     bg = gray_background,
-                     bold = true,
-                  }
-
-                  -- Inline Code (Single backticks)
-                  -- We map multiple groups to ensure the "Yellow" doesn't flash
-                  local inline_style = { fg = hacker_green, bg = '#151515', bold = true }
-                  hl.RenderMarkdownCodeInline = inline_style
-                  hl['@markup.raw'] = inline_style -- Treesitter fallback
-                  hl.MarkdownCode = inline_style -- Legacy fallback
-                  hl.RenderMarkdownLanguage = { fg = hacker_green, bold = true }
-
-                  -- 4. LINKS & TIME TRACKER
-                  hl.RenderMarkdownLink = { fg = '#1E90FF' }
-                  hl.TimeTrackerRoot = { fg = hacker_green, bg = 'NONE', bold = true }
-                  hl.TimeTrackerCurrentProject = { fg = '#ffffff', bg = 'NONE', bold = true }
-
-                  -- 5. KEYWORDS & TELESCOPE (Your existing logic)
-                  local keyword_color = util.darken('#00ff00', 0.85)
-                  hl['keyword.tsx'] = { fg = keyword_color }
-                  hl['keyword.return.tsx'] = { fg = keyword_color }
-                  hl['keyword.javascript'] = { fg = keyword_color }
-                  hl['keyword.return.javascript'] = { fg = keyword_color }
-
-                  local tag_color = c.blue -- Or c.magenta if you want them to pop more
-
-                  -- JSX/TSX Standard Elements
-                  hl['@tag.builtin'] = { fg = tag_color }
-                  hl['@tag.delimiter'] = { fg = c.blue700 } -- Colors the < and >
-                  hl['@tag.attribute'] = { fg = '#6c71c4' }
-
-                  -- Specific overrides for javascriptreact (your current filetype)
-                  hl['@tag.builtin.javascript'] = { fg = tag_color }
-                  hl['@tag.javascript'] = { fg = c.cyan }
-
-                  -- If you want 'className' and 'key' to be a different color
-                  hl['@tag.attribute.javascript'] = { fg = '#6c71c4' }
-                  hl['@tag.attribute.tsx'] = { fg = '#6c71c4' }
-
-                  -- The actual component name inside the tag
-                  hl['@constructor.tsx'] = { fg = c.cyan }
-                  hl['@variable.builtin.tsx'] = { fg = c.cyan }
-
-                  local telescope_groups = {
-                     'TelescopeNormal',
-                     'TelescopeBorder',
-                     'TelescopePromptNormal',
-                     'TelescopePromptBorder',
-                     'TelescopePromptTitle',
-                     'TelescopePreviewTitle',
-                     'TelescopePreviewBorder',
-                     'TelescopeResultsTitle',
-                     'TelescopeResultsBorder',
-                  }
-                  for _, g in ipairs(telescope_groups) do
-                     hl[g] = { bg = 'NONE', fg = hl[g] and hl[g].fg or c.blue }
-                  end
-               end,
-            }
-
-            require('solarized-osaka').setup(osakaConfig)
-         end,
+    {
+      'rcarriga/nvim-notify',
+      opts = {
+        level = 4,
+        render = 'minimal',
+        stages = 'static',
+        timeout = 2001,
       },
-      -- {
-      --   "habamax/vim-habanight",
-      --   config = function()
-      --     vim.cmd("colorscheme habanight")
-      --     vim.cmd("hi Normal guibg=NONE ctermbg=NONE")
-      --   end,
-      -- },
+    },
 
-      -- {
-      --    "miikanissi/modus-themes.nvim",
-      --    lazy = false,
-      --    priority = 1000,
-      --    config = function()
-      --       require("modus-themes").setup({
-      --          style = "modus_operandi",
-      --          variants = "default",
-      --
-      --          styles = {
-      --             keywords = { bold = true },
-      --             functions = { bold = true },
-      --             variables = { bold = true },
-      --          },
-      --
-      --          on_highlights = function(highlights, colors)
-      --             -- THE HIGH-GLARE HYPER-SATURATED PALETTE
-      --             local neon_blue                     = "#0044ff" -- Piercing primary blue for control keywords
-      --             local electric_cyan                 = "#0088cc" -- Bright, heavy sky blue for standard variables
-      --             local neon_purple                   = "#9900ff" -- Deep, intense neon purple for functions and methods
-      --             local neon_orange                   = "#ff5500" -- Blinding, saturated safety orange for object properties
-      --             local neon_magenta                  = "#ff00aa" -- Loud magenta for booleans/numbers (true, false)
-      --             local solid_black                   = "#000000" -- Pitch black for operators or text fallbacks
-      --             local hacker_green                  = "#00cc33" -- Saturated matrix green for HTML/JSX tags
-      --             local muted_gray                    = "#71717a" -- Muted gray for comments to hide them away
-      --
-      --             -- 1. KEYWORDS (Neon Blue & Extra Heavy)
-      --             highlights.Keyword                  = { fg = neon_blue, bold = true }
-      --             highlights["@keyword"]              = { fg = neon_blue, bold = true }
-      --             highlights["@keyword.modifier"]     = { fg = neon_blue, bold = true }
-      --             highlights["@keyword.coroutine"]    = { fg = neon_blue, bold = true }
-      --             highlights["@conditional"]          = { fg = neon_blue, bold = true }
-      --             highlights["@repeat"]               = { fg = neon_blue, bold = true }
-      --
-      --             -- 2. VARIABLES & CONSTANTS (Electric Cyan / Saturated Sky Blue)
-      --             highlights.Identifier               = { fg = electric_cyan, bold = true }
-      --             highlights["@variable"]             = { fg = electric_cyan, bold = true }
-      --             highlights["@variable.builtin"]     = { fg = neon_blue, bold = true }
-      --             highlights["@constant"]             = { fg = neon_blue, bold = true }
-      --
-      --             -- LSP overrides to stop language servers from dulling the colors down
-      --             highlights["@lsp.type.variable"]    = { fg = electric_cyan, bold = true }
-      --             highlights["@lsp.type.parameter"]   = { fg = electric_cyan, bold = true }
-      --
-      --             -- 3. COMMENTS (Back to Muted Gray)
-      --             highlights.Comment                  = { fg = muted_gray, italic = true, bold = false }
-      --             highlights["@comment"]              = { fg = muted_gray, italic = true, bold = false }
-      --
-      --             -- 4. FUNCTIONS & METHODS (Neon Purple)
-      --             highlights.Function                 = { fg = neon_purple, bold = true }
-      --             highlights["@function"]             = { fg = neon_purple, bold = true }
-      --             highlights["@function.call"]        = { fg = neon_purple, bold = true }
-      --             highlights["@function.method"]      = { fg = neon_purple, bold = true }
-      --             highlights["@function.method.call"] = { fg = neon_purple, bold = true }
-      --             highlights["@lsp.type.function"]    = { fg = neon_purple, bold = true }
-      --
-      --             -- 5. DISTINCT OBJECT PROPERTIES (Blinding Safety Orange)
-      --             highlights["@property"]             = { fg = neon_orange, bold = true }
-      --             highlights["@lsp.type.property"]    = { fg = neon_orange, bold = true }
-      --
-      --             -- 6. VALUES & LITERALS (Hot Magenta & Pure Gold)
-      --             highlights.String                   = { fg = "#a16207", bold = true } -- Heavy amber-gold
-      --             highlights["@string"]               = { fg = "#a16207", bold = true }
-      --
-      --             highlights.Number                   = { fg = neon_magenta, bold = true }
-      --             highlights.Boolean                  = { fg = neon_magenta, bold = true }
-      --             highlights["@number"]               = { fg = neon_magenta, bold = true }
-      --             highlights["@boolean"]              = { fg = neon_magenta, bold = true }
-      --
-      --             -- 7. HTML / JSX TAGS (Hacker Green Override)
-      --             highlights["@tag"]                  = { fg = hacker_green, bold = true }
-      --             highlights["@tag.builtin"]          = { fg = hacker_green, bold = true }
-      --             highlights["@tag.attribute"]        = { fg = neon_orange, bold = true } -- Attributes like className pop in orange
-      --             highlights.Tag                      = { fg = hacker_green, bold = true }
-      --
-      --             -- 8. EXTRA UTILITIES (Equal signs, brackets, punctuation)
-      --             highlights.Operator                 = { fg = solid_black, bold = true }
-      --             highlights["@operator"]             = { fg = solid_black, bold = true }
-      --          end,
-      --       })
-      --    end,
-      -- },
-      {
-         'numToStr/Comment.nvim',
-         dependencies = {
-            'JoosepAlviste/nvim-ts-context-commentstring',
-         },
-         config = function()
-            require('Comment').setup({
-               pre_hook = require('ts_context_commentstring.integrations.comment_nvim').create_pre_hook(),
-            })
-         end,
+    -- animations
+    {
+      'echasnovski/mini.animate',
+      event = 'VeryLazy',
+      opts = function(_, opts)
+        opts.scroll = {
+          enable = false,
+        }
+      end,
+    },
+    {
+      'akinsho/bufferline.nvim',
+      requires = 'nvim-tree/nvim-web-devicons',
+      keys = {
+        { '<tab>', '<cmd>BufferLineCycleNext<cr>', desc = 'next tab' },
+        { '<s-tab>', '<cmd>BufferLineCyclePrev<cr>', desc = 'prev tab' },
       },
-      {
-         'folke/noice.nvim',
-         opts = function(_, opts)
-            table.insert(opts.routes, {
-               filter = {
-                  event = 'notify',
-                  find = 'No information available',
-               },
-               opts = { skip = true },
-            })
-
-            opts.presets.lsp_doc_border = true
-         end,
+      opts = {
+        options = {
+          show_buffer_close_icons = true,
+          show_close_icon = true,
+        },
+        -- ADD THIS SECTION BELOW
+        highlights = {
+          buffer_selected = {
+            fg = '#ffffff', -- Text color of the active tab
+            bg = '#3366cc', -- Background color of the active tab
+            bold = true,
+          },
+          icon_selected = {
+            bg = '#3366cc', -- Ensures the gear icon background matches
+          },
+          modified_selected = {
+            fg = '#f1fa8c',
+            bg = '#3366cc', -- Matches background when file is unsaved
+          },
+          close_button_selected = {
+            fg = '#ffffff',
+            bg = '#3366cc', -- Matches background for the 'x' button
+          },
+          -- This fixes the thin indicator line usually at the bottom
+          indicator_selected = {
+            fg = '#3366cc',
+            bg = '#3366cc',
+          },
+        },
       },
-
-      {
-         'rcarriga/nvim-notify',
-         opts = {
-            level = 4,
-            render = 'minimal',
-            stages = 'static',
-            timeout = 2001,
-         },
-      },
-
-      -- animations
-      {
-         'echasnovski/mini.animate',
-         event = 'VeryLazy',
-         opts = function(_, opts)
-            opts.scroll = {
-               enable = false,
-            }
-         end,
-      },
-      {
-         'akinsho/bufferline.nvim',
-         requires = 'nvim-tree/nvim-web-devicons',
-         keys = {
-            { '<tab>',   '<cmd>BufferLineCycleNext<cr>', desc = 'next tab' },
-            { '<s-tab>', '<cmd>BufferLineCyclePrev<cr>', desc = 'prev tab' },
-         },
-         opts = {
-            options = {
-               show_buffer_close_icons = true,
-               show_close_icon = true,
-            },
-            -- ADD THIS SECTION BELOW
-            highlights = {
-               buffer_selected = {
-                  fg = '#ffffff', -- Text color of the active tab
-                  bg = '#3366cc', -- Background color of the active tab
-                  bold = true,
-               },
-               icon_selected = {
-                  bg = '#3366cc', -- Ensures the gear icon background matches
-               },
-               modified_selected = {
-                  fg = '#f1fa8c',
-                  bg = '#3366cc', -- Matches background when file is unsaved
-               },
-               close_button_selected = {
-                  fg = '#ffffff',
-                  bg = '#3366cc', -- Matches background for the 'x' button
-               },
-               -- This fixes the thin indicator line usually at the bottom
-               indicator_selected = {
-                  fg = '#3366cc',
-                  bg = '#3366cc',
-               },
-            },
-         },
-      },
-      {
-         'nvimdev/dashboard-nvim',
-         event = 'VimEnter',
-         config = function()
-            local logo = [[
+    },
+    {
+      'nvimdev/dashboard-nvim',
+      event = 'VimEnter',
+      config = function()
+        local logo = [[
             ██████╗  █████╗ ██████╗ ██╗  ██╗    ███╗   ███╗███████╗ ██████╗ ██╗    ██╗
             ██╔══██╗██╔══██╗██╔══██╗██║ ██╔╝    ████╗ ████║██╔════╝██╔═══██╗██║    ██║
             ██║  ██║███████║██████╔╝█████╔╝     ██╔████╔██║█████╗  ██║   ██║██║ █╗ ██║
@@ -969,813 +977,812 @@ return {
             ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝    ╚═╝     ╚═╝╚══════╝ ╚═════╝  ╚══╝╚══╝
             ]]
 
-            -- Helper to center the logo by removing leading whitespace
-            logo = string.gsub(logo, '^%s+', '')
+        -- Helper to center the logo by removing leading whitespace
+        logo = string.gsub(logo, '^%s+', '')
 
-            require('dashboard').setup({
-               theme = 'doom',
-               config = {
-                  header = vim.split(logo, '\n'),
-                  center = {
-                     { action = 'Telescope find_files', desc = ' Find File', icon = ' ', key = 'f' },
-                     { action = 'Lazy', desc = ' Lazy', icon = '󰒲 ', key = 'l' },
-                     { action = 'qa', desc = ' Quit', icon = ' ', key = 'q' },
-                  },
-                  footer = { 'Dark Meow CEO Edition' },
-               },
-            })
-         end,
-      },
-      {
-         'b0o/incline.nvim',
-         event = 'VeryLazy',
-         opts = {
-            window = {
-               zindex = 41,
-               margin = {
-                  horizontal = 1,
-                  vertical = 0,
-               },
+        require('dashboard').setup({
+          theme = 'doom',
+          config = {
+            header = vim.split(logo, '\n'),
+            center = {
+              { action = 'Telescope find_files', desc = ' Find File', icon = ' ', key = 'f' },
+              { action = 'Lazy', desc = ' Lazy', icon = '󰒲 ', key = 'l' },
+              { action = 'qa', desc = ' Quit', icon = ' ', key = 'q' },
             },
-            -- Define custom highlight groups here to avoid theme interference
-            highlight = {
-               groups = {
-                  InclineNormal = { guibg = '#1e1e1e', guifg = '#ffffff' },
-                  InclineNormalNC = { guibg = '#151515', guifg = '#666666' },
-               },
-            },
-            hide = { cursorline = true },
-            render = function(props)
-               if not vim.api.nvim_buf_is_valid(props.buf) then
-                  return {}
-               end
+            footer = { 'Dark Meow CEO Edition' },
+          },
+        })
+      end,
+    },
+    {
+      'b0o/incline.nvim',
+      event = 'VeryLazy',
+      opts = {
+        window = {
+          zindex = 41,
+          margin = {
+            horizontal = 1,
+            vertical = 0,
+          },
+        },
+        -- Define custom highlight groups here to avoid theme interference
+        highlight = {
+          groups = {
+            InclineNormal = { guibg = '#1e1e1e', guifg = '#ffffff' },
+            InclineNormalNC = { guibg = '#151515', guifg = '#666666' },
+          },
+        },
+        hide = { cursorline = true },
+        render = function(props)
+          if not vim.api.nvim_buf_is_valid(props.buf) then
+            return {}
+          end
 
-               if vim.bo[props.buf].buftype == 'terminal' then
-                  return {
-                     { ' ' .. vim.bo[props.buf].channel .. ' ', group = 'DevIconTerminal' },
-                     { ' ' .. vim.api.nvim_win_get_number(props.win), group = 'Special' },
-                  }
-               end
+          if vim.bo[props.buf].buftype == 'terminal' then
+            return {
+              { ' ' .. vim.bo[props.buf].channel .. ' ', group = 'DevIconTerminal' },
+              { ' ' .. vim.api.nvim_win_get_number(props.win), group = 'Special' },
+            }
+          end
 
-               local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(props.buf), ':t')
-               local ft_icon, ft_color = require('nvim-web-devicons').get_icon_color(filename)
-               local modified = vim.api.nvim_get_option_value('modified', { buf = props.buf }) and 'italic' or ''
+          local filename = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(props.buf), ':t')
+          local ft_icon, ft_color = require('nvim-web-devicons').get_icon_color(filename)
+          local modified = vim.api.nvim_get_option_value('modified', { buf = props.buf }) and 'italic' or ''
 
-               local function get_git_diff()
-                  local icons = require('lazyvim.config').icons.git
-                  icons['changed'] = icons.modified
-                  local signs = vim.b[props.buf].gitsigns_status_dict
-                  local labels = {}
-                  if signs == nil then
-                     return labels
-                  end
-                  for name, icon in pairs(icons) do
-                     if tonumber(signs[name]) and signs[name] > 1 then
-                        table.insert(labels, { icon .. signs[name] .. ' ', group = 'Diff' .. name })
-                     end
-                  end
-                  if #labels > 1 then
-                     table.insert(labels, { '┊ ' })
-                  end
-                  return labels
-               end
-
-               local function get_diagnostic_label()
-                  local icons = require('lazyvim.config').icons.diagnostics
-                  local label = {}
-                  for severity, icon in pairs(icons) do
-                     local n = #vim.diagnostic.get(props.buf,
-                        { severity = vim.diagnostic.severity[string.upper(severity)] })
-                     if n > 1 then
-                        table.insert(label, { icon .. n .. ' ', group = 'DiagnosticSign' .. severity })
-                     end
-                  end
-                  if #label > 1 then
-                     table.insert(label, { '┊ ' })
-                  end
-                  return label
-               end
-
-               local buffer = {
-                  -- { get_diagnostic_label() },
-                  { get_git_diff() },
-                  { ft_icon .. '  ', guifg = ft_color, guibg = 'none' },
-                  { filename .. ' ', gui = modified },
-               }
-               return buffer
-            end,
-         },
-      },
-      {
-         'williamboman/mason.nvim',
-         config = function()
-            require('mason').setup()
-         end,
-         opts = {
-            ensure_installed = {
-               'stylua',
-               'shellcheck',
-               'shfmt',
-               'flake9',
-               'typescript-language-server',
-               'html-lsp',
-               'lua-language-server',
-            },
-         },
-      },
-
-      {
-         'benfowler/telescope-luasnip.nvim',
-         module = 'telescope._extensions.luasnip', -- lazy-load when necessary
-         keys = {
-            -- Your other keybindings go here...
-
-            -- Keybinding for launching LuaSnip picker in Telescope
-            {
-               ';s',
-               function()
-                  -- Launch the LuaSnip picker from telescope-luasnip
-                  local telescope = require('telescope')
-                  telescope.extensions.luasnip.luasnip({})
-               end,
-            },
-         },
-
-         config = function(_, opts)
-            opts = opts or {} -- Ensure opts is not nil
-            local telescope = require('telescope')
-
-            -- Other Telescope setup options go here...
-            telescope.setup(opts)
-
-            -- Load the luasnip extension
-            telescope.load_extension('luasnip')
-
-            -- Optionally load other extensions like fzf or file_browser
-            telescope.load_extension('fzf')
-            telescope.load_extension('file_browser')
-         end,
-      },
-      -- {
-      --   'SirVer/ultisnips',
-      --   event = { 'InsertEnter', 'CmdlineEnter' },
-      --   config = function()
-      --     -- Set custom snippets directory
-      --     vim.g.UltiSnipsSnippetDirectories = { vim.fn.expand('~/.config/nvim/lua/plugins/snippets') }
-      --
-      --
-      --     -- Enable debugging for UltiSnips
-      --     vim.g.UltiSnipsDebug = 1
-      --
-      --
-      --     -- Error detected while processing FileType Autocommands for "*"..function UltiSnips#CheckFiletype:
-      --     vim.g.UltiSnipsFiletypes = {
-      --       javascript = "javascript",
-      --       lua = "lua",
-      --       jsx = "javascriptreact", -- JSX/React files (Use `javascriptreact` filetype)
-      --     }
-      --   end
-      -- },
-      {
-         'honza/vim-snippets', -- Optional snippets collection
-         config = function()
-            -- You can configure additional snippets here
-         end,
-      },
-      {
-         'hrsh8th/nvim-cmp',
-         dependencies = {
-            'hrsh8th/cmp-emoji',
-         },
-         opts = function()
-            local cmp = require('cmp')
-            local luasnip = require('luasnip')
-            cmp.setup({
-               completion = {
-                  completeopt = 'menu,menuone,noselect',
-               },
-               snippet = {
-                  expand = function(args)
-                     luasnip.lsp_expand(args.body) -- Use LuaSnip for expansion
-                  end,
-               },
-               mapping = cmp.mapping.preset.insert({
-                  ['<C-p>'] = cmp.mapping.select_prev_item(),
-                  ['<C-n>'] = cmp.mapping.select_next_item(),
-                  ['<C-d>'] = cmp.mapping.scroll_docs(-3),
-                  ['<C-f>'] = cmp.mapping.scroll_docs(5),
-                  ['<C-Space>'] = cmp.mapping.complete(),
-                  ['<C-e>'] = cmp.mapping.close(),
-                  ['<Tab>'] = cmp.mapping(function(fallback)
-                     if luasnip.expand_or_jumpable() then
-                        luasnip.expand_or_jump()
-                     elseif cmp.visible() then
-                        cmp.select_next_item()
-                     else
-                        fallback()
-                     end
-                  end, { 'i', 's' }), -- insert and select mode
-                  -- Expand or jump through snippet placeholders
-                  ['<CR>'] = cmp.mapping.confirm({ select = true }),
-               }),
-               sources = {
-                  { name = 'nvim_lsp' },
-                  { name = 'buffer' },
-                  { name = 'path' },
-                  { name = 'luasnip' }, -- Ensure LuaSnip is in your sources
-                  -- { name = 'ultisnips' }, -- or 'ultisnips' if you're using UltiSnips
-                  { name = 'cmdline' },
-               },
-            })
-
-            -- Common capabilities for LSP
-            local capabilities = vim.lsp.protocol.make_client_capabilities()
-
-            -- Use the default capabilities from cmp_nvim_lsp
-            local cmp_nvim_lsp = require('cmp_nvim_lsp')
-            capabilities = cmp_nvim_lsp.default_capabilities(capabilities)
-
-            local on_attach = function(client, bufnr)
-               -- This disables the LSP's built-in formatting
-               client.server_capabilities.documentFormattingProvider = false
-               client.server_capabilities.documentRangeFormattingProvider = false
+          local function get_git_diff()
+            local icons = require('lazyvim.config').icons.git
+            icons['changed'] = icons.modified
+            local signs = vim.b[props.buf].gitsigns_status_dict
+            local labels = {}
+            if signs == nil then
+              return labels
             end
+            for name, icon in pairs(icons) do
+              if tonumber(signs[name]) and signs[name] > 1 then
+                table.insert(labels, { icon .. signs[name] .. ' ', group = 'Diff' .. name })
+              end
+            end
+            if #labels > 1 then
+              table.insert(labels, { '┊ ' })
+            end
+            return labels
+          end
 
-            -- Example LSP server setup with capabilities
-            require('lspconfig').pyright.setup({
-               capabilities = capabilities,
-               on_attach = on_attach,
-            })
+          local function get_diagnostic_label()
+            local icons = require('lazyvim.config').icons.diagnostics
+            local label = {}
+            for severity, icon in pairs(icons) do
+              local n = #vim.diagnostic.get(props.buf, { severity = vim.diagnostic.severity[string.upper(severity)] })
+              if n > 1 then
+                table.insert(label, { icon .. n .. ' ', group = 'DiagnosticSign' .. severity })
+              end
+            end
+            if #label > 1 then
+              table.insert(label, { '┊ ' })
+            end
+            return label
+          end
 
-            require('lspconfig').tsserver.setup({
-               capabilities = capabilities,
-               on_attach = on_attach,
-            })
-         end,
+          local buffer = {
+            -- { get_diagnostic_label() },
+            { get_git_diff() },
+            { ft_icon .. '  ', guifg = ft_color, guibg = 'none' },
+            { filename .. ' ', gui = modified },
+          }
+          return buffer
+        end,
       },
-      {
-         'MeanderingProgrammer/render-markdown.nvim',
-         dependencies = {
-            'nvim-treesitter/nvim-treesitter', -- Syntax highlighting support
-            'echasnovski/mini.nvim',       -- If you're using mini.nvim suite (optional)
-         },
-         config = function()
-            print('Setting up render-markdown plugin...')
-            -- Call the setup function to initialize the plugin
-            require('render-markdown').setup({
-               file_types = { 'markdown', 'codecompanion' },
-               heading = {
-                  -- Turn on / off heading icon & background rendering
-                  enabled = true,
-                  -- Turn on / off any sign column related rendering
-                  sign = true,
-                  -- Determines how icons fill the available space:
-                  --  right:   '#'s are concealed and icon is appended to right side
-                  --  inline:  '#'s are concealed and icon is inlined on left side
-                  --  overlay: icon is left padded with spaces and inserted on left hiding any additional '#'
-                  position = 'overlay',
-                  -- Replaces '#+' of 'atx_h._marker'
-                  -- The number of '#' in the heading determines the 'level'
-                  -- The 'level' is used to index into the list using a cycle
-                  icons = {
-                     '󰲡 ',
-                     '󰲣 ',
-                     '󰲥 ',
-                     '󰲧 ',
-                     '󰲩 ',
-                     '󰲫 ',
-                  },
-                  -- Added to the sign column if enabled
-                  -- The 'level' is used to index into the list using a cycle
-                  signs = { '󰫎 ' },
-                  -- Width of the heading background:
-                  --  block: width of the heading text
-                  --  full:  full width of the window
-                  -- Can also be a list of the above values in which case the 'level' is used
-                  -- to index into the list using a clamp
-                  width = 'full',
-                  -- Amount of margin to add to the left of headings
-                  -- If a floating point value < 1 is provided it is treated as a percentage of the available window space
-                  -- Margin available space is computed after accounting for padding
-                  -- Can also be a list of numbers in which case the 'level' is used to index into the list using a clamp
-                  left_margin = 0,
-                  -- Amount of padding to add to the left of headings
-                  -- If a floating point value < 1 is provided it is treated as a percentage of the available window space
-                  -- Can also be a list of numbers in which case the 'level' is used to index into the list using a clamp
-                  left_pad = 0,
-                  -- Amount of padding to add to the right of headings when width is 'block'
-                  -- If a floating point value < 1 is provided it is treated as a percentage of the available window space
-                  -- Can also be a list of numbers in which case the 'level' is used to index into the list using a clamp
-                  right_pad = 0,
-                  -- Minimum width to use for headings when width is 'block'
-                  -- Can also be a list of integers in which case the 'level' is used to index into the list using a clamp
-                  min_width = 0,
-                  -- Determines if a border is added above and below headings
-                  -- Can also be a list of booleans in which case the 'level' is used to index into the list using a clamp
-                  border = false,
-                  -- Always use virtual lines for heading borders instead of attempting to use empty lines
-                  border_virtual = false,
-                  -- Highlight the start of the border using the foreground highlight
-                  border_prefix = false,
-                  -- Used above heading for border
-                  above = '▄',
-                  -- Used below heading for border
-                  below = '▀',
-                  -- The 'level' is used to index into the list using a clamp
-                  -- Highlight for the heading icon and extends through the entire line
-                  backgrounds = {
-                     'RenderMarkdownH1Bg',
-                     'RenderMarkdownH2Bg',
-                     'RenderMarkdownH3Bg',
-                     'RenderMarkdownH4Bg',
-                     'RenderMarkdownH5Bg',
-                     'RenderMarkdownH6Bg',
-                  },
-                  -- The 'level' is used to index into the list using a clamp
-                  -- Highlight for the heading and sign icons
-                  foregrounds = {
-                     'RenderMarkdownH1',
-                     'RenderMarkdownH2',
-                     'RenderMarkdownH3',
-                     'RenderMarkdownH4',
-                     'RenderMarkdownH5',
-                     'RenderMarkdownH6',
-                  },
-               },
-               code = {
-                  enabled = true,
-                  sign = true,
-                  style = 'full', -- You can use 'full' to show the language icon and name, or 'normal' for just basic rendering
-                  position = 'left', -- Position of the language icon (left or right)
-                  language_pad = 0,
-                  language_name = true,
-                  disable_background = { 'diff' },
-                  width = 'full',
-                  left_margin = 0,
-                  left_pad = 0,
-                  right_pad = 0,
-                  min_width = 0,
-                  border = 'thin', -- Border above and below code blocks
-                  above = '▄', -- Character for the top border
-                  below = '▀', -- Character for the bottom border
-                  highlight = 'RenderMarkdownCode', -- Highlight for the entire code block
-                  highlight_inline = 'RenderMarkdownCodeInline', -- Highlight for inline code
-                  highlight_language = 'RenderMarkdownCodeLanguage', -- Optional: Highlight for language text (if you use language name)
-               },
-            })
-         end,
+    },
+    {
+      'williamboman/mason.nvim',
+      config = function()
+        require('mason').setup()
+      end,
+      opts = {
+        ensure_installed = {
+          'stylua',
+          'shellcheck',
+          'shfmt',
+          'flake9',
+          'typescript-language-server',
+          'html-lsp',
+          'lua-language-server',
+        },
       },
-      -- {
-      --   "nvim-neo-tree/neo-tree.nvim",
-      --   branch = "v3.x",
-      --   dependencies = {
-      --     "nvim-lua/plenary.nvim",
-      --     "nvim-tree/nvim-web-devicons", -- not strictly required, but recommended
-      --     "MunifTanjim/nui.nvim",
-      --     {
-      --       "s1n7ax/nvim-window-picker",
-      --       version = "3.*",
-      --       config = function()
-      --         require("window-picker").setup({
-      --           filter_rules = {
-      --             include_current_win = false,
-      --             autoselect_one = true,
-      --             -- filter using buffer options
-      --             bo = {
-      --               -- if the file type is one of following, the window will be ignored
-      --               filetype = {
-      --                 "neo-tree",
-      --                 "neo-tree-popup",
-      --                 "notify",
-      --               },
-      --               -- if the buffer type is one of following, the window will be ignored
-      --               buftype = {
-      --                 "terminal",
-      --                 "quickfix",
-      --               },
-      --             },
-      --           },
-      --         })
-      --       end,
-      --     },
-      --   },
-      --   config = function()
-      --     -- If you want icons for diagnostic errors, you'll need to define them somewhere:
-      --     vim.fn.sign_define(
-      --       "DiagnosticSignError",
-      --       {
-      --         text = " ",
-      --         texthl = "DiagnosticSignError",
-      --       }
-      --     )
-      --     vim.fn.sign_define("DiagnosticSignWarn", {
-      --       text = " ",
-      --       texthl = "DiagnosticSignWarn",
-      --     })
-      --     vim.fn.sign_define("DiagnosticSignInfo", {
-      --       text = " ",
-      --       texthl = "DiagnosticSignInfo",
-      --     })
-      --     vim.fn.sign_define("DiagnosticSignHint", {
-      --       text = "󰌵",
-      --       texthl = "DiagnosticSignHint",
-      --     })
-      --
-      --     require("neo-tree").setup({
-      --       close_if_last_window = false, -- Close Neo-tree if it is the last window left in the tab
-      --       popup_border_style = "rounded",
-      --       enable_git_status = true,
-      --       enable_diagnostics = true,
-      --       enable_normal_mode_for_inputs = false, -- Enable normal mode for input dialogs.
-      --       open_files_do_not_replace_types = {
-      --         "terminal",
-      --         "trouble",
-      --         "qf",
-      --       },                             -- when opening files, do not use windows containing these filetypes or buftypes
-      --       sort_case_insensitive = false, -- used when sorting files and directories in the tree
-      --       sort_function = nil,           -- use a custom function for sorting files and directories in the tree
-      --       -- sort_function = function (a,b)
-      --       --       if a.type == b.type then
-      --       --           return a.path > b.path
-      --       --       else
-      --       --           return a.type > b.type
-      --       --       end
-      --       --   end , -- this sorts files and directories descendantly
-      --       default_component_configs = {
-      --         container = {
-      --           enable_character_fade = true,
-      --         },
-      --         indent = {
-      --           indent_size = 3,
-      --           padding = 2, -- extra padding on left hand side
-      --           -- indent guides
-      --           with_markers = true,
-      --           indent_marker = "│",
-      --           last_indent_marker = "└",
-      --           highlight = "NeoTreeIndentMarker",
-      --           -- expander config, needed for nesting files
-      --           with_expanders = nil, -- if nil and file nesting is enabled, will enable expanders
-      --           expander_collapsed = "",
-      --           expander_expanded = "",
-      --           expander_highlight = "NeoTreeExpander",
-      --         },
-      --         icon = {
-      --           folder_closed = "",
-      --           folder_open = "",
-      --           folder_empty = "󰜌",
-      --           -- The next two settings are only a fallback, if you use nvim-web-devicons and configure default icons there
-      --           -- then these will never be used.
-      --           default = "*",
-      --           highlight = "NeoTreeFileIcon",
-      --         },
-      --         modified = {
-      --           symbol = "[+]",
-      --           highlight = "NeoTreeModified",
-      --         },
-      --         name = {
-      --           trailing_slash = false,
-      --           use_git_status_colors = true,
-      --           highlight = "NeoTreeFileName",
-      --         },
-      --         git_status = {
-      --           symbols = {
-      --             -- Change type
-      --             added = "", -- or "✚", but this is redundant info if you use git_status_colors on the name
-      --             modified = "", -- or "", but this is redundant info if you use git_status_colors on the name
-      --             deleted = "✖", -- this can only be used in the git_status source
-      --             renamed = "󰁕", -- this can only be used in the git_status source
-      --             -- Status type
-      --             untracked = "",
-      --             ignored = "",
-      --             unstaged = "󰄱",
-      --             staged = "",
-      --             conflict = "",
-      --           },
-      --         },
-      --         -- If you don't want to use these columns, you can set `enabled = false` for each of them individually
-      --         file_size = {
-      --           enabled = true,
-      --         },
-      --         required_width = 65, -- min width of window required to show this column
-      --         type = {
-      --           enabled = true,
-      --           required_width = 123, -- min width of window required to show this column
-      --         },
-      --         last_modified = {
-      --           enabled = true,
-      --           required_width = 89, -- min width of window required to show this column
-      --         },
-      --         created = {
-      --           enabled = true,
-      --           required_width = 111, -- min width of window required to show this column
-      --         },
-      --         symlink_target = {
-      --           enabled = false,
-      --         },
-      --       },
-      --       -- A list of functions, each representing a global custom command
-      --       -- that will be available in all sources (if not overridden in `opts[source_name].commands`)
-      --       -- see `:h neo-tree-custom-commands-global`
-      --       commands = {},
-      --       window = {
-      --         position = "float",
-      --         width = 31,
-      --         mapping_options = {
-      --           noremap = true,
-      --           nowait = true,
-      --         },
-      --         mappings = {
-      --           ["<space>"] = {
-      --             "toggle_node",
-      --             nowait = false, -- disable `nowait` if you have existing combos starting with this char that you want to use
-      --           },
-      --           ["<3-LeftMouse>"] = "open",
-      --           ["<cr>"] = "open",
-      --           ["<esc>"] = "cancel", -- close preview or floating neo-tree window
-      --           ["P"] = {
-      --             "toggle_preview",
-      --             config = { use_float = true },
-      --           },
-      --           ["l"] = "focus_preview",
-      --           ["S"] = "open_split",
-      --           ["s"] = "open_vsplit",
-      --           -- ["S"] = "split_with_window_picker",
-      --           -- ["s"] = "vsplit_with_window_picker",
-      --           ["t"] = "open_tabnew",
-      --           -- ["<cr>"] = "open_drop",
-      --           -- ["t"] = "open_tab_drop",
-      --           ["w"] = "open_with_window_picker",
-      --           --["P"] = "toggle_preview", -- enter preview mode, which shows the current node without focusing
-      --           ["C"] = "close_node",
-      --           -- ['C'] = 'close_all_subnodes',
-      --           ["z"] = "close_all_nodes",
-      --           --["Z"] = "expand_all_nodes",
-      --           ["a"] = {
-      --             "add",
-      --             -- this command supports BASH style brace expansion ("x{a,b,c}" -> xa,xb,xc). see `:h neo-tree-file-actions` for details
-      --             -- some commands may take optional config options, see `:h neo-tree-mappings` for details
-      --             config = {
-      --               show_path = "none", -- "none", "relative", "absolute"
-      --             },
-      --           },
-      --           ["A"] = "add_directory", -- also accepts the optional config.show_path option like "add". this also supports BASH style brace expansion.
-      --           ["d"] = "delete",
-      --           ["r"] = "rename",
-      --           ["y"] = "copy_to_clipboard",
-      --           ["x"] = "cut_to_clipboard",
-      --           ["p"] = "paste_from_clipboard",
-      --           ["c"] = "copy", -- takes text input for destination, also accepts the optional config.show_path option like "add":
-      --           -- ["c"] = {
-      --           --  "copy",
-      --           --  config = {
-      --           --    show_path = "none" -- "none", "relative", "absolute"
-      --           --  }
-      --           --}
-      --           ["m"] = "move", -- takes text input for destination, also accepts the optional config.show_path option like "add".
-      --           ["q"] = "close_window",
-      --           ["R"] = "refresh",
-      --           ["?"] = "show_help",
-      --           ["<"] = "prev_source",
-      --           [">"] = "next_source",
-      --           ["i"] = "show_file_details",
-      --           ["e"] = function()
-      --             vim.api.nvim_exec(
-      --               "Neotree focus filesystem",
-      --               true
-      --             )
-      --           end,
-      --           ["b"] = function()
-      --             vim.api.nvim_exec(
-      --               "Neotree focus buffers",
-      --               true
-      --             )
-      --           end,
-      --           ["g"] = function()
-      --             vim.api.nvim_exec(
-      --               "Neotree focus git_status",
-      --               true
-      --             )
-      --           end,
-      --         },
-      --       },
-      --       nesting_rules = {},
-      --       filesystem = {
-      --         filtered_items = {
-      --           visible = true, -- when true, they will just be displayed differently than normal items
-      --           hide_dotfiles = true,
-      --           hide_gitignored = true,
-      --           hide_hidden = true, -- only works on Windows for hidden files/directories
-      --           hide_by_name = {
-      --             --"node_modules"
-      --           },
-      --           hide_by_pattern = { -- uses glob style patterns
-      --             --"*.meta",
-      --             --"*/src/*/tsconfig.json",
-      --           },
-      --           always_show = { -- remains visible even if other settings would normally hide it
-      --             -- ".gitignored",
-      --           },
-      --           never_show = { -- remains hidden even if visible is toggled to true, this overrides always_show
-      --             --".DS_Store",
-      --             --"thumbs.db"
-      --           },
-      --           never_show_by_pattern = { -- uses glob style patterns
-      --             --".null-ls_*",
-      --           },
-      --         },
-      --         follow_current_file = {
-      --           enabled = true,                       -- This will find and focus the file in the active buffer every time
-      --           --               -- the current file is changed while the tree is open.
-      --           leave_dirs_open = false,              -- `false` closes auto expanded dirs, such as with `:Neotree reveal`
-      --         },
-      --         group_empty_dirs = false,               -- when true, empty folders will be grouped together
-      --         hijack_netrw_behavior = "open_default", -- netrw disabled, opening a directory opens neo-tree
-      --         -- in whatever position is specified in window.position
-      --         -- "open_current",  -- netrw disabled, opening a directory opens within the
-      --         -- window like netrw would, regardless of window.position
-      --         -- "disabled",    -- netrw left alone, neo-tree does not handle opening dirs
-      --         use_libuv_file_watcher = false, -- This will use the OS level file watchers to detect changes
-      --         -- instead of relying on nvim autocmd events.
-      --         window = {
-      --           mappings = {
-      --             ["<bs>"] = "navigate_up",
-      --             ["."] = "set_root",
-      --             ["H"] = "toggle_hidden",
-      --             ["/"] = "fuzzy_finder",
-      --             ["D"] = "fuzzy_finder_directory",
-      --             ["#"] = "fuzzy_sorter", -- fuzzy sorting using the fzy algorithm
-      --             -- ["D"] = "fuzzy_sorter_directory",
-      --             ["f"] = "filter_on_submit",
-      --             ["<c-x>"] = "clear_filter",
-      --             ["[g"] = "prev_git_modified",
-      --             ["]g"] = "next_git_modified",
-      --             ["o"] = {
-      --               "show_help",
-      --               nowait = false,
-      --               config = {
-      --                 title = "Order by",
-      --                 prefix_key = "o",
-      --               },
-      --             },
-      --             ["oc"] = {
-      --               "order_by_created",
-      --               nowait = false,
-      --             },
-      --             ["od"] = {
-      --               "order_by_diagnostics",
-      --               nowait = false,
-      --             },
-      --             ["og"] = {
-      --               "order_by_git_status",
-      --               nowait = false,
-      --             },
-      --             ["om"] = {
-      --               "order_by_modified",
-      --               nowait = false,
-      --             },
-      --             ["on"] = {
-      --               "order_by_name",
-      --               nowait = false,
-      --             },
-      --             ["os"] = {
-      --               "order_by_size",
-      --               nowait = false,
-      --             },
-      --             ["ot"] = {
-      --               "order_by_type",
-      --               nowait = false,
-      --             },
-      --           },
-      --           fuzzy_finder_mappings = { -- define keymaps for filter popup window in fuzzy_finder_mode
-      --             ["<down>"] = "move_cursor_down",
-      --             ["<C-n>"] = "move_cursor_down",
-      --             ["<up>"] = "move_cursor_up",
-      --             ["<C-p>"] = "move_cursor_up",
-      --           },
-      --         },
-      --
-      --         commands = {}, -- Add a custom command or override a global one using the same function name
-      --       },
-      --       buffers = {
-      --         follow_current_file = {
-      --           enabled = true,          -- This will find and focus the file in the active buffer every time
-      --           --              -- the current file is changed while the tree is open.
-      --           leave_dirs_open = false, -- `false` closes auto expanded dirs, such as with `:Neotree reveal`
-      --         },
-      --         group_empty_dirs = true,   -- when true, empty folders will be grouped together
-      --         show_unloaded = true,
-      --         window = {
-      --           mappings = {
-      --             ["bd"] = "buffer_delete",
-      --             ["<bs>"] = "navigate_up",
-      --             ["."] = "set_root",
-      --             ["o"] = {
-      --               "show_help",
-      --               nowait = false,
-      --               config = {
-      --                 title = "Order by",
-      --                 prefix_key = "o",
-      --               },
-      --             },
-      --             ["oc"] = {
-      --               "order_by_created",
-      --               nowait = false,
-      --             },
-      --             ["od"] = {
-      --               "order_by_diagnostics",
-      --               nowait = false,
-      --             },
-      --             ["om"] = {
-      --               "order_by_modified",
-      --               nowait = false,
-      --             },
-      --             ["on"] = {
-      --               "order_by_name",
-      --               nowait = false,
-      --             },
-      --             ["os"] = {
-      --               "order_by_size",
-      --               nowait = false,
-      --             },
-      --             ["ot"] = {
-      --               "order_by_type",
-      --               nowait = false,
-      --             },
-      --           },
-      --         },
-      --       },
-      --       git_status = {
-      --         window = {
-      --           position = "float",
-      --           mappings = {
-      --             ["A"] = "git_add_all",
-      --             ["gu"] = "git_unstage_file",
-      --             ["ga"] = "git_add_file",
-      --             ["gr"] = "git_revert_file",
-      --             ["gc"] = "git_commit",
-      --             ["gp"] = "git_push",
-      --             ["gg"] = "git_commit_and_push",
-      --             ["o"] = {
-      --               "show_help",
-      --               nowait = false,
-      --               config = {
-      --                 title = "Order by",
-      --                 prefix_key = "o",
-      --               },
-      --             },
-      --             ["oc"] = {
-      --               "order_by_created",
-      --               nowait = false,
-      --             },
-      --             ["od"] = {
-      --               "order_by_diagnostics",
-      --               nowait = false,
-      --             },
-      --             ["om"] = {
-      --               "order_by_modified",
-      --               nowait = false,
-      --             },
-      --             ["on"] = {
-      --               "order_by_name",
-      --               nowait = false,
-      --             },
-      --             ["os"] = {
-      --               "order_by_size",
-      --               nowait = false,
-      --             },
-      --             ["ot"] = {
-      --               "order_by_type",
-      --               nowait = false,
-      --             },
-      --           },
-      --         },
-      --       },
-      --       event_handlers = {
-      --         {
-      --           event = "neo_tree_buffer_enter",
-      --           handler = function()
-      --             -- This effectively hides the cursor
-      --             vim.cmd(
-      --               "highlight! Cursor blend=101"
-      --             )
-      --           end,
-      --         },
-      --         {
-      --           event = "neo_tree_buffer_leave",
-      --           handler = function()
-      --             -- Make this whatever your current Cursor highlight group is.
-      --             vim.cmd(
-      --               "highlight! Cursor guibg=#6f87af blend=0"
-      --             )
-      --           end,
-      --         },
-      --       },
-      --     })
-      --
-      --     vim.cmd(
-      --       [[nnoremap \ :Neotree float toggle reveal<cr>]]
-      --     )
-      --   end,
-      -- },
-   },
+    },
+
+    {
+      'benfowler/telescope-luasnip.nvim',
+      module = 'telescope._extensions.luasnip', -- lazy-load when necessary
+      keys = {
+        -- Your other keybindings go here...
+
+        -- Keybinding for launching LuaSnip picker in Telescope
+        {
+          ';s',
+          function()
+            -- Launch the LuaSnip picker from telescope-luasnip
+            local telescope = require('telescope')
+            telescope.extensions.luasnip.luasnip({})
+          end,
+        },
+      },
+
+      config = function(_, opts)
+        opts = opts or {} -- Ensure opts is not nil
+        local telescope = require('telescope')
+
+        -- Other Telescope setup options go here...
+        telescope.setup(opts)
+
+        -- Load the luasnip extension
+        telescope.load_extension('luasnip')
+
+        -- Optionally load other extensions like fzf or file_browser
+        telescope.load_extension('fzf')
+        telescope.load_extension('file_browser')
+      end,
+    },
+    -- {
+    --   'SirVer/ultisnips',
+    --   event = { 'InsertEnter', 'CmdlineEnter' },
+    --   config = function()
+    --     -- Set custom snippets directory
+    --     vim.g.UltiSnipsSnippetDirectories = { vim.fn.expand('~/.config/nvim/lua/plugins/snippets') }
+    --
+    --
+    --     -- Enable debugging for UltiSnips
+    --     vim.g.UltiSnipsDebug = 1
+    --
+    --
+    --     -- Error detected while processing FileType Autocommands for "*"..function UltiSnips#CheckFiletype:
+    --     vim.g.UltiSnipsFiletypes = {
+    --       javascript = "javascript",
+    --       lua = "lua",
+    --       jsx = "javascriptreact", -- JSX/React files (Use `javascriptreact` filetype)
+    --     }
+    --   end
+    -- },
+    {
+      'honza/vim-snippets', -- Optional snippets collection
+      config = function()
+        -- You can configure additional snippets here
+      end,
+    },
+    {
+      'hrsh8th/nvim-cmp',
+      dependencies = {
+        'hrsh8th/cmp-emoji',
+      },
+      opts = function()
+        local cmp = require('cmp')
+        local luasnip = require('luasnip')
+        cmp.setup({
+          completion = {
+            completeopt = 'menu,menuone,noselect',
+          },
+          snippet = {
+            expand = function(args)
+              luasnip.lsp_expand(args.body) -- Use LuaSnip for expansion
+            end,
+          },
+          mapping = cmp.mapping.preset.insert({
+            ['<C-p>'] = cmp.mapping.select_prev_item(),
+            ['<C-n>'] = cmp.mapping.select_next_item(),
+            ['<C-d>'] = cmp.mapping.scroll_docs(-3),
+            ['<C-f>'] = cmp.mapping.scroll_docs(5),
+            ['<C-Space>'] = cmp.mapping.complete(),
+            ['<C-e>'] = cmp.mapping.close(),
+            ['<Tab>'] = cmp.mapping(function(fallback)
+              if luasnip.expand_or_jumpable() then
+                luasnip.expand_or_jump()
+              elseif cmp.visible() then
+                cmp.select_next_item()
+              else
+                fallback()
+              end
+            end, { 'i', 's' }), -- insert and select mode
+            -- Expand or jump through snippet placeholders
+            ['<CR>'] = cmp.mapping.confirm({ select = true }),
+          }),
+          sources = {
+            { name = 'nvim_lsp' },
+            { name = 'buffer' },
+            { name = 'path' },
+            { name = 'luasnip' }, -- Ensure LuaSnip is in your sources
+            -- { name = 'ultisnips' }, -- or 'ultisnips' if you're using UltiSnips
+            { name = 'cmdline' },
+          },
+        })
+
+        -- Common capabilities for LSP
+        local capabilities = vim.lsp.protocol.make_client_capabilities()
+
+        -- Use the default capabilities from cmp_nvim_lsp
+        local cmp_nvim_lsp = require('cmp_nvim_lsp')
+        capabilities = cmp_nvim_lsp.default_capabilities(capabilities)
+
+        local on_attach = function(client, bufnr)
+          -- This disables the LSP's built-in formatting
+          client.server_capabilities.documentFormattingProvider = false
+          client.server_capabilities.documentRangeFormattingProvider = false
+        end
+
+        -- Example LSP server setup with capabilities
+        require('lspconfig').pyright.setup({
+          capabilities = capabilities,
+          on_attach = on_attach,
+        })
+
+        require('lspconfig').tsserver.setup({
+          capabilities = capabilities,
+          on_attach = on_attach,
+        })
+      end,
+    },
+    {
+      'MeanderingProgrammer/render-markdown.nvim',
+      dependencies = {
+        'nvim-treesitter/nvim-treesitter', -- Syntax highlighting support
+        'echasnovski/mini.nvim', -- If you're using mini.nvim suite (optional)
+      },
+      config = function()
+        print('Setting up render-markdown plugin...')
+        -- Call the setup function to initialize the plugin
+        require('render-markdown').setup({
+          file_types = { 'markdown', 'codecompanion' },
+          heading = {
+            -- Turn on / off heading icon & background rendering
+            enabled = true,
+            -- Turn on / off any sign column related rendering
+            sign = true,
+            -- Determines how icons fill the available space:
+            --  right:   '#'s are concealed and icon is appended to right side
+            --  inline:  '#'s are concealed and icon is inlined on left side
+            --  overlay: icon is left padded with spaces and inserted on left hiding any additional '#'
+            position = 'overlay',
+            -- Replaces '#+' of 'atx_h._marker'
+            -- The number of '#' in the heading determines the 'level'
+            -- The 'level' is used to index into the list using a cycle
+            icons = {
+              '󰲡 ',
+              '󰲣 ',
+              '󰲥 ',
+              '󰲧 ',
+              '󰲩 ',
+              '󰲫 ',
+            },
+            -- Added to the sign column if enabled
+            -- The 'level' is used to index into the list using a cycle
+            signs = { '󰫎 ' },
+            -- Width of the heading background:
+            --  block: width of the heading text
+            --  full:  full width of the window
+            -- Can also be a list of the above values in which case the 'level' is used
+            -- to index into the list using a clamp
+            width = 'full',
+            -- Amount of margin to add to the left of headings
+            -- If a floating point value < 1 is provided it is treated as a percentage of the available window space
+            -- Margin available space is computed after accounting for padding
+            -- Can also be a list of numbers in which case the 'level' is used to index into the list using a clamp
+            left_margin = 0,
+            -- Amount of padding to add to the left of headings
+            -- If a floating point value < 1 is provided it is treated as a percentage of the available window space
+            -- Can also be a list of numbers in which case the 'level' is used to index into the list using a clamp
+            left_pad = 0,
+            -- Amount of padding to add to the right of headings when width is 'block'
+            -- If a floating point value < 1 is provided it is treated as a percentage of the available window space
+            -- Can also be a list of numbers in which case the 'level' is used to index into the list using a clamp
+            right_pad = 0,
+            -- Minimum width to use for headings when width is 'block'
+            -- Can also be a list of integers in which case the 'level' is used to index into the list using a clamp
+            min_width = 0,
+            -- Determines if a border is added above and below headings
+            -- Can also be a list of booleans in which case the 'level' is used to index into the list using a clamp
+            border = false,
+            -- Always use virtual lines for heading borders instead of attempting to use empty lines
+            border_virtual = false,
+            -- Highlight the start of the border using the foreground highlight
+            border_prefix = false,
+            -- Used above heading for border
+            above = '▄',
+            -- Used below heading for border
+            below = '▀',
+            -- The 'level' is used to index into the list using a clamp
+            -- Highlight for the heading icon and extends through the entire line
+            backgrounds = {
+              'RenderMarkdownH1Bg',
+              'RenderMarkdownH2Bg',
+              'RenderMarkdownH3Bg',
+              'RenderMarkdownH4Bg',
+              'RenderMarkdownH5Bg',
+              'RenderMarkdownH6Bg',
+            },
+            -- The 'level' is used to index into the list using a clamp
+            -- Highlight for the heading and sign icons
+            foregrounds = {
+              'RenderMarkdownH1',
+              'RenderMarkdownH2',
+              'RenderMarkdownH3',
+              'RenderMarkdownH4',
+              'RenderMarkdownH5',
+              'RenderMarkdownH6',
+            },
+          },
+          code = {
+            enabled = true,
+            sign = true,
+            style = 'full', -- You can use 'full' to show the language icon and name, or 'normal' for just basic rendering
+            position = 'left', -- Position of the language icon (left or right)
+            language_pad = 0,
+            language_name = true,
+            disable_background = { 'diff' },
+            width = 'full',
+            left_margin = 0,
+            left_pad = 0,
+            right_pad = 0,
+            min_width = 0,
+            border = 'thin', -- Border above and below code blocks
+            above = '▄', -- Character for the top border
+            below = '▀', -- Character for the bottom border
+            highlight = 'RenderMarkdownCode', -- Highlight for the entire code block
+            highlight_inline = 'RenderMarkdownCodeInline', -- Highlight for inline code
+            highlight_language = 'RenderMarkdownCodeLanguage', -- Optional: Highlight for language text (if you use language name)
+          },
+        })
+      end,
+    },
+    -- {
+    --   "nvim-neo-tree/neo-tree.nvim",
+    --   branch = "v3.x",
+    --   dependencies = {
+    --     "nvim-lua/plenary.nvim",
+    --     "nvim-tree/nvim-web-devicons", -- not strictly required, but recommended
+    --     "MunifTanjim/nui.nvim",
+    --     {
+    --       "s1n7ax/nvim-window-picker",
+    --       version = "3.*",
+    --       config = function()
+    --         require("window-picker").setup({
+    --           filter_rules = {
+    --             include_current_win = false,
+    --             autoselect_one = true,
+    --             -- filter using buffer options
+    --             bo = {
+    --               -- if the file type is one of following, the window will be ignored
+    --               filetype = {
+    --                 "neo-tree",
+    --                 "neo-tree-popup",
+    --                 "notify",
+    --               },
+    --               -- if the buffer type is one of following, the window will be ignored
+    --               buftype = {
+    --                 "terminal",
+    --                 "quickfix",
+    --               },
+    --             },
+    --           },
+    --         })
+    --       end,
+    --     },
+    --   },
+    --   config = function()
+    --     -- If you want icons for diagnostic errors, you'll need to define them somewhere:
+    --     vim.fn.sign_define(
+    --       "DiagnosticSignError",
+    --       {
+    --         text = " ",
+    --         texthl = "DiagnosticSignError",
+    --       }
+    --     )
+    --     vim.fn.sign_define("DiagnosticSignWarn", {
+    --       text = " ",
+    --       texthl = "DiagnosticSignWarn",
+    --     })
+    --     vim.fn.sign_define("DiagnosticSignInfo", {
+    --       text = " ",
+    --       texthl = "DiagnosticSignInfo",
+    --     })
+    --     vim.fn.sign_define("DiagnosticSignHint", {
+    --       text = "󰌵",
+    --       texthl = "DiagnosticSignHint",
+    --     })
+    --
+    --     require("neo-tree").setup({
+    --       close_if_last_window = false, -- Close Neo-tree if it is the last window left in the tab
+    --       popup_border_style = "rounded",
+    --       enable_git_status = true,
+    --       enable_diagnostics = true,
+    --       enable_normal_mode_for_inputs = false, -- Enable normal mode for input dialogs.
+    --       open_files_do_not_replace_types = {
+    --         "terminal",
+    --         "trouble",
+    --         "qf",
+    --       },                             -- when opening files, do not use windows containing these filetypes or buftypes
+    --       sort_case_insensitive = false, -- used when sorting files and directories in the tree
+    --       sort_function = nil,           -- use a custom function for sorting files and directories in the tree
+    --       -- sort_function = function (a,b)
+    --       --       if a.type == b.type then
+    --       --           return a.path > b.path
+    --       --       else
+    --       --           return a.type > b.type
+    --       --       end
+    --       --   end , -- this sorts files and directories descendantly
+    --       default_component_configs = {
+    --         container = {
+    --           enable_character_fade = true,
+    --         },
+    --         indent = {
+    --           indent_size = 3,
+    --           padding = 2, -- extra padding on left hand side
+    --           -- indent guides
+    --           with_markers = true,
+    --           indent_marker = "│",
+    --           last_indent_marker = "└",
+    --           highlight = "NeoTreeIndentMarker",
+    --           -- expander config, needed for nesting files
+    --           with_expanders = nil, -- if nil and file nesting is enabled, will enable expanders
+    --           expander_collapsed = "",
+    --           expander_expanded = "",
+    --           expander_highlight = "NeoTreeExpander",
+    --         },
+    --         icon = {
+    --           folder_closed = "",
+    --           folder_open = "",
+    --           folder_empty = "󰜌",
+    --           -- The next two settings are only a fallback, if you use nvim-web-devicons and configure default icons there
+    --           -- then these will never be used.
+    --           default = "*",
+    --           highlight = "NeoTreeFileIcon",
+    --         },
+    --         modified = {
+    --           symbol = "[+]",
+    --           highlight = "NeoTreeModified",
+    --         },
+    --         name = {
+    --           trailing_slash = false,
+    --           use_git_status_colors = true,
+    --           highlight = "NeoTreeFileName",
+    --         },
+    --         git_status = {
+    --           symbols = {
+    --             -- Change type
+    --             added = "", -- or "✚", but this is redundant info if you use git_status_colors on the name
+    --             modified = "", -- or "", but this is redundant info if you use git_status_colors on the name
+    --             deleted = "✖", -- this can only be used in the git_status source
+    --             renamed = "󰁕", -- this can only be used in the git_status source
+    --             -- Status type
+    --             untracked = "",
+    --             ignored = "",
+    --             unstaged = "󰄱",
+    --             staged = "",
+    --             conflict = "",
+    --           },
+    --         },
+    --         -- If you don't want to use these columns, you can set `enabled = false` for each of them individually
+    --         file_size = {
+    --           enabled = true,
+    --         },
+    --         required_width = 65, -- min width of window required to show this column
+    --         type = {
+    --           enabled = true,
+    --           required_width = 123, -- min width of window required to show this column
+    --         },
+    --         last_modified = {
+    --           enabled = true,
+    --           required_width = 89, -- min width of window required to show this column
+    --         },
+    --         created = {
+    --           enabled = true,
+    --           required_width = 111, -- min width of window required to show this column
+    --         },
+    --         symlink_target = {
+    --           enabled = false,
+    --         },
+    --       },
+    --       -- A list of functions, each representing a global custom command
+    --       -- that will be available in all sources (if not overridden in `opts[source_name].commands`)
+    --       -- see `:h neo-tree-custom-commands-global`
+    --       commands = {},
+    --       window = {
+    --         position = "float",
+    --         width = 31,
+    --         mapping_options = {
+    --           noremap = true,
+    --           nowait = true,
+    --         },
+    --         mappings = {
+    --           ["<space>"] = {
+    --             "toggle_node",
+    --             nowait = false, -- disable `nowait` if you have existing combos starting with this char that you want to use
+    --           },
+    --           ["<3-LeftMouse>"] = "open",
+    --           ["<cr>"] = "open",
+    --           ["<esc>"] = "cancel", -- close preview or floating neo-tree window
+    --           ["P"] = {
+    --             "toggle_preview",
+    --             config = { use_float = true },
+    --           },
+    --           ["l"] = "focus_preview",
+    --           ["S"] = "open_split",
+    --           ["s"] = "open_vsplit",
+    --           -- ["S"] = "split_with_window_picker",
+    --           -- ["s"] = "vsplit_with_window_picker",
+    --           ["t"] = "open_tabnew",
+    --           -- ["<cr>"] = "open_drop",
+    --           -- ["t"] = "open_tab_drop",
+    --           ["w"] = "open_with_window_picker",
+    --           --["P"] = "toggle_preview", -- enter preview mode, which shows the current node without focusing
+    --           ["C"] = "close_node",
+    --           -- ['C'] = 'close_all_subnodes',
+    --           ["z"] = "close_all_nodes",
+    --           --["Z"] = "expand_all_nodes",
+    --           ["a"] = {
+    --             "add",
+    --             -- this command supports BASH style brace expansion ("x{a,b,c}" -> xa,xb,xc). see `:h neo-tree-file-actions` for details
+    --             -- some commands may take optional config options, see `:h neo-tree-mappings` for details
+    --             config = {
+    --               show_path = "none", -- "none", "relative", "absolute"
+    --             },
+    --           },
+    --           ["A"] = "add_directory", -- also accepts the optional config.show_path option like "add". this also supports BASH style brace expansion.
+    --           ["d"] = "delete",
+    --           ["r"] = "rename",
+    --           ["y"] = "copy_to_clipboard",
+    --           ["x"] = "cut_to_clipboard",
+    --           ["p"] = "paste_from_clipboard",
+    --           ["c"] = "copy", -- takes text input for destination, also accepts the optional config.show_path option like "add":
+    --           -- ["c"] = {
+    --           --  "copy",
+    --           --  config = {
+    --           --    show_path = "none" -- "none", "relative", "absolute"
+    --           --  }
+    --           --}
+    --           ["m"] = "move", -- takes text input for destination, also accepts the optional config.show_path option like "add".
+    --           ["q"] = "close_window",
+    --           ["R"] = "refresh",
+    --           ["?"] = "show_help",
+    --           ["<"] = "prev_source",
+    --           [">"] = "next_source",
+    --           ["i"] = "show_file_details",
+    --           ["e"] = function()
+    --             vim.api.nvim_exec(
+    --               "Neotree focus filesystem",
+    --               true
+    --             )
+    --           end,
+    --           ["b"] = function()
+    --             vim.api.nvim_exec(
+    --               "Neotree focus buffers",
+    --               true
+    --             )
+    --           end,
+    --           ["g"] = function()
+    --             vim.api.nvim_exec(
+    --               "Neotree focus git_status",
+    --               true
+    --             )
+    --           end,
+    --         },
+    --       },
+    --       nesting_rules = {},
+    --       filesystem = {
+    --         filtered_items = {
+    --           visible = true, -- when true, they will just be displayed differently than normal items
+    --           hide_dotfiles = true,
+    --           hide_gitignored = true,
+    --           hide_hidden = true, -- only works on Windows for hidden files/directories
+    --           hide_by_name = {
+    --             --"node_modules"
+    --           },
+    --           hide_by_pattern = { -- uses glob style patterns
+    --             --"*.meta",
+    --             --"*/src/*/tsconfig.json",
+    --           },
+    --           always_show = { -- remains visible even if other settings would normally hide it
+    --             -- ".gitignored",
+    --           },
+    --           never_show = { -- remains hidden even if visible is toggled to true, this overrides always_show
+    --             --".DS_Store",
+    --             --"thumbs.db"
+    --           },
+    --           never_show_by_pattern = { -- uses glob style patterns
+    --             --".null-ls_*",
+    --           },
+    --         },
+    --         follow_current_file = {
+    --           enabled = true,                       -- This will find and focus the file in the active buffer every time
+    --           --               -- the current file is changed while the tree is open.
+    --           leave_dirs_open = false,              -- `false` closes auto expanded dirs, such as with `:Neotree reveal`
+    --         },
+    --         group_empty_dirs = false,               -- when true, empty folders will be grouped together
+    --         hijack_netrw_behavior = "open_default", -- netrw disabled, opening a directory opens neo-tree
+    --         -- in whatever position is specified in window.position
+    --         -- "open_current",  -- netrw disabled, opening a directory opens within the
+    --         -- window like netrw would, regardless of window.position
+    --         -- "disabled",    -- netrw left alone, neo-tree does not handle opening dirs
+    --         use_libuv_file_watcher = false, -- This will use the OS level file watchers to detect changes
+    --         -- instead of relying on nvim autocmd events.
+    --         window = {
+    --           mappings = {
+    --             ["<bs>"] = "navigate_up",
+    --             ["."] = "set_root",
+    --             ["H"] = "toggle_hidden",
+    --             ["/"] = "fuzzy_finder",
+    --             ["D"] = "fuzzy_finder_directory",
+    --             ["#"] = "fuzzy_sorter", -- fuzzy sorting using the fzy algorithm
+    --             -- ["D"] = "fuzzy_sorter_directory",
+    --             ["f"] = "filter_on_submit",
+    --             ["<c-x>"] = "clear_filter",
+    --             ["[g"] = "prev_git_modified",
+    --             ["]g"] = "next_git_modified",
+    --             ["o"] = {
+    --               "show_help",
+    --               nowait = false,
+    --               config = {
+    --                 title = "Order by",
+    --                 prefix_key = "o",
+    --               },
+    --             },
+    --             ["oc"] = {
+    --               "order_by_created",
+    --               nowait = false,
+    --             },
+    --             ["od"] = {
+    --               "order_by_diagnostics",
+    --               nowait = false,
+    --             },
+    --             ["og"] = {
+    --               "order_by_git_status",
+    --               nowait = false,
+    --             },
+    --             ["om"] = {
+    --               "order_by_modified",
+    --               nowait = false,
+    --             },
+    --             ["on"] = {
+    --               "order_by_name",
+    --               nowait = false,
+    --             },
+    --             ["os"] = {
+    --               "order_by_size",
+    --               nowait = false,
+    --             },
+    --             ["ot"] = {
+    --               "order_by_type",
+    --               nowait = false,
+    --             },
+    --           },
+    --           fuzzy_finder_mappings = { -- define keymaps for filter popup window in fuzzy_finder_mode
+    --             ["<down>"] = "move_cursor_down",
+    --             ["<C-n>"] = "move_cursor_down",
+    --             ["<up>"] = "move_cursor_up",
+    --             ["<C-p>"] = "move_cursor_up",
+    --           },
+    --         },
+    --
+    --         commands = {}, -- Add a custom command or override a global one using the same function name
+    --       },
+    --       buffers = {
+    --         follow_current_file = {
+    --           enabled = true,          -- This will find and focus the file in the active buffer every time
+    --           --              -- the current file is changed while the tree is open.
+    --           leave_dirs_open = false, -- `false` closes auto expanded dirs, such as with `:Neotree reveal`
+    --         },
+    --         group_empty_dirs = true,   -- when true, empty folders will be grouped together
+    --         show_unloaded = true,
+    --         window = {
+    --           mappings = {
+    --             ["bd"] = "buffer_delete",
+    --             ["<bs>"] = "navigate_up",
+    --             ["."] = "set_root",
+    --             ["o"] = {
+    --               "show_help",
+    --               nowait = false,
+    --               config = {
+    --                 title = "Order by",
+    --                 prefix_key = "o",
+    --               },
+    --             },
+    --             ["oc"] = {
+    --               "order_by_created",
+    --               nowait = false,
+    --             },
+    --             ["od"] = {
+    --               "order_by_diagnostics",
+    --               nowait = false,
+    --             },
+    --             ["om"] = {
+    --               "order_by_modified",
+    --               nowait = false,
+    --             },
+    --             ["on"] = {
+    --               "order_by_name",
+    --               nowait = false,
+    --             },
+    --             ["os"] = {
+    --               "order_by_size",
+    --               nowait = false,
+    --             },
+    --             ["ot"] = {
+    --               "order_by_type",
+    --               nowait = false,
+    --             },
+    --           },
+    --         },
+    --       },
+    --       git_status = {
+    --         window = {
+    --           position = "float",
+    --           mappings = {
+    --             ["A"] = "git_add_all",
+    --             ["gu"] = "git_unstage_file",
+    --             ["ga"] = "git_add_file",
+    --             ["gr"] = "git_revert_file",
+    --             ["gc"] = "git_commit",
+    --             ["gp"] = "git_push",
+    --             ["gg"] = "git_commit_and_push",
+    --             ["o"] = {
+    --               "show_help",
+    --               nowait = false,
+    --               config = {
+    --                 title = "Order by",
+    --                 prefix_key = "o",
+    --               },
+    --             },
+    --             ["oc"] = {
+    --               "order_by_created",
+    --               nowait = false,
+    --             },
+    --             ["od"] = {
+    --               "order_by_diagnostics",
+    --               nowait = false,
+    --             },
+    --             ["om"] = {
+    --               "order_by_modified",
+    --               nowait = false,
+    --             },
+    --             ["on"] = {
+    --               "order_by_name",
+    --               nowait = false,
+    --             },
+    --             ["os"] = {
+    --               "order_by_size",
+    --               nowait = false,
+    --             },
+    --             ["ot"] = {
+    --               "order_by_type",
+    --               nowait = false,
+    --             },
+    --           },
+    --         },
+    --       },
+    --       event_handlers = {
+    --         {
+    --           event = "neo_tree_buffer_enter",
+    --           handler = function()
+    --             -- This effectively hides the cursor
+    --             vim.cmd(
+    --               "highlight! Cursor blend=101"
+    --             )
+    --           end,
+    --         },
+    --         {
+    --           event = "neo_tree_buffer_leave",
+    --           handler = function()
+    --             -- Make this whatever your current Cursor highlight group is.
+    --             vim.cmd(
+    --               "highlight! Cursor guibg=#6f87af blend=0"
+    --             )
+    --           end,
+    --         },
+    --       },
+    --     })
+    --
+    --     vim.cmd(
+    --       [[nnoremap \ :Neotree float toggle reveal<cr>]]
+    --     )
+    --   end,
+    -- },
+  },
 }

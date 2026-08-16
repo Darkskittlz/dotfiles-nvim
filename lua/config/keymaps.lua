@@ -55,8 +55,15 @@ keymap.set(
    { noremap = true, silent = true, desc = 'CodeCompanion Chat History' }
 )
 
--- Toggle the floating chat window
-keymap.set({ 'n', 'v' }, '<leader>aa', '<cmd>CodeCompanionChat Toggle<cr>', { noremap = true, silent = true })
+-- Toggle active chat or open last session
+vim.keymap.set({ 'n', 'v' }, '<leader>aa', function()
+   local history = require('codecompanion-history')
+   if history and history.last_chat_exists and history.last_chat_exists() then
+      history.open_last_chat()
+   else
+      vim.cmd('CodeCompanionChat Toggle')
+   end
+end, { noremap = true, silent = true, desc = 'Toggle/Restore CodeCompanion Chat' })
 
 -- Normal mode: Just opens the prompt
 keymap.set('n', '<leader>ai', '<cmd>CodeCompanion <cr>', { noremap = true, silent = true })
