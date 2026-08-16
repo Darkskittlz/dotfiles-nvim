@@ -1423,7 +1423,7 @@ function M.open_git_ui()
     end, { buffer = buf, silent = true })
   end
 
-  -- Automatically update diff window when moving through lists
+  -- Automatically update windows when natively moving the cursor
   local group = vim.api.nvim_create_augroup('GitPickerAutoCmds', { clear = true })
 
   vim.api.nvim_create_autocmd('CursorMoved', {
@@ -1440,7 +1440,15 @@ function M.open_git_ui()
     group = group,
     buffer = Ui.left_buf,
     callback = function()
-      if Ui.mode == 'files' then
+      -- Keep index perfectly in sync with the native cursor
+      local cursor = vim.api.nvim_win_get_cursor(0)
+      Ui.selected_index = cursor[1]
+
+      if Ui.mode == 'files' or Ui.mode == 'stashes' then
+        render_diff()
+      elseif Ui.mode == 'branches' then
+        Ui.branch_selected = Ui.branches[Ui.selected_index]
+        render_right()
         render_diff()
       end
     end,
@@ -1477,16 +1485,6 @@ function M.open_git_ui()
     vim.keymap.set('n', 'L', function()
       toggle_mode('next')
     end, {
-      buffer = buf,
-      noremap = true,
-      silent = true,
-    })
-    vim.keymap.set('n', 'h', focus_left, {
-      buffer = buf,
-      noremap = true,
-      silent = true,
-    })
-    vim.keymap.set('n', 'l', focus_right, {
       buffer = buf,
       noremap = true,
       silent = true,
@@ -1891,49 +1889,6 @@ function M.open_git_ui()
         close_confirm_win()
       end, { buffer = buf, noremap = true, silent = true })
     end, { buffer = Ui.right_buf, noremap = true, silent = true })
-
-    vim.keymap.set('n', 'j', function()
-      local win = vim.api.nvim_get_current_win()
-
-      -- If cursor is in the right window or diff window, scroll preview instead of moving selection
-      if win == Ui.right_win or win == Ui.diff_win then
-        vim.cmd('normal! j')
-        return
-      end
-
-      -- Compute max items for current mode (branches, files, stashes)
-      local max_items = (Ui.mode == 'branches' and #Ui.branches)
-        or (Ui.mode == 'files' and #Ui.changed_files)
-        or (Ui.mode == 'stashes' and #Ui.stashes)
-        or 0
-
-      Ui.selected_index = math.min(max_items, Ui.selected_index + 1)
-
-      refresh_ui()
-    end, {
-      buffer = buf,
-      noremap = true,
-      silent = true,
-    })
-
-    vim.keymap.set('n', 'k', function()
-      local win = vim.api.nvim_get_current_win()
-
-      -- If cursor is in the right window or diff window, scroll preview instead of moving selection
-      if win == Ui.right_win or win == Ui.diff_win then
-        vim.cmd('normal! k')
-        return
-      end
-
-      -- Move selection up
-      Ui.selected_index = math.max(1, Ui.selected_index - 1)
-
-      refresh_ui()
-    end, {
-      buffer = buf,
-      noremap = true,
-      silent = true,
-    })
 
     -- Apply Action (<Space>)
     vim.keymap.set('n', '<Space>', function()
