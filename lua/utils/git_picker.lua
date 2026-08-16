@@ -1196,74 +1196,45 @@ end
 
 -- Checkout the selected branch
 local function checkout_branch()
-  -- print("DEBUG: Starting checkout_branch()")
-
   if Ui.mode ~= 'branches' then
-    -- print("DEBUG: Not in branches mode, exiting")
     return
   end
 
   local branch = Ui.branches[Ui.selected_index]
   if not branch then
-    -- print("DEBUG: No branch selected, exiting")
     return
   end
-  -- print("DEBUG: Selected branch =", branch)
 
   -- Check for uncommitted changes
   local status = vim.fn.systemlist('git status --porcelain')
-  -- print("DEBUG: git status lines =", #status)
   if #status > 0 then
     show_centered_error('🚨 You have uncommitted changes!\nCommit, stash, or discard them before switching branches.')
     return
   end
 
   -- Switch branch using 'git switch'
-  -- print("DEBUG: Running git switch command")
   local cmd = 'git switch ' .. vim.fn.shellescape(branch)
   local result = vim.fn.system(cmd)
-  -- print(
-  --   "DEBUG: git switch result =",
-  --   result:gsub("\n", "\\n")
-  -- )
-  -- print(
-  --   "DEBUG: vim.v.shell_error =",
-  --   vim.v.shell_error
-  -- )
 
   if vim.v.shell_error ~= 0 then
-    show_centered_message('Failed to switch branch:\n' .. result, vim.log.levels.ERROR)
+    show_centered_message('Failed to switch branch:\n' .. result, '❌')
     return
   end
 
   -- Update internal state
   Ui.branch_selected = branch
-  print(
-    -- "DEBUG: branch_selected updated to",
-    Ui.branch_selected
-  )
-  show_centered_message('Switched to branch: ' .. branch, vim.log.levels.INFO)
+  show_centered_message('Switched to branch: ' .. branch, '✅')
 
-  -- === Refresh branch window (flicker-free) ===
-  if Ui.full_win and vim.api.nvim_win_is_valid(Ui.full_win) then
-    local buf = vim.api.nvim_win_get_buf(Ui.full_win)
-    vim.api.nvim_buf_set_option(buf, 'modifiable', true)
-
-    local lines = {}
-    for i, b in ipairs(Ui.branches) do
-      local prefix = (b == branch) and '* ' or '  '
-      table.insert(lines, prefix .. b)
-    end
-
-    vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-    vim.api.nvim_buf_set_option(buf, 'modifiable', false)
-
-    -- Move cursor to the selected branch
-    vim.api.nvim_win_set_cursor(Ui.full_win, { Ui.selected_index, 0 })
-  end
-
-  -- print("DEBUG: checkout_branch() finished")
+  -- Reload branch list (this automatically sorts the new current branch to the top)
+  load_branches()
+  
+  -- Reset selection to the top since the checked-out branch is now at index 1
+  Ui.selected_index = 1
+  
+  -- Redraw all panes
+  refresh_ui()
 end
+
 
 -- Delete the selected branch
 local function delete_branch()
