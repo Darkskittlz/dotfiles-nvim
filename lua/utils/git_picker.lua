@@ -2709,9 +2709,10 @@ function M.open_git_ui()
             vim.api.nvim_win_close(w, true)
           end
         end
-        if Ui.full_win and vim.api.nvim_win_is_valid(Ui.full_win) then
+
+        -- Restore focus to the main UI
+        if Ui.left_win and vim.api.nvim_win_is_valid(Ui.left_win) then
           vim.api.nvim_set_current_win(Ui.left_win)
-          focus_left()
         end
       end
 
@@ -2729,11 +2730,14 @@ function M.open_git_ui()
       -- Commit logic
       -- =========================
       local function commit_changes()
+        vim.cmd('stopinsert') -- ensure we exit insert mode
+
         local title = vim.api.nvim_buf_get_lines(buf_title, 0, -1, false)[1] or ''
         local body = table.concat(vim.api.nvim_buf_get_lines(buf_desc, 0, -1, false), '\n')
 
         vim.fn.system('git add -A')
         local cmd = 'git commit -m ' .. vim.fn.shellescape(title)
+
         if body:match('%S') then
           cmd = cmd .. ' -m ' .. vim.fn.shellescape(body)
         end
@@ -2741,6 +2745,21 @@ function M.open_git_ui()
 
         show_centered_message('Committed changes on branch: ' .. branch, '🌸')
         close_commit_popup()
+
+        -- Refresh git status and UI
+        load_branches()
+        get_changed_files(Ui.branch_selected)
+
+        -- If no changed files remain, return to branches view
+        if #Ui.changed_files == 0 and Ui.mode == 'files' then
+          Ui.mode = 'branches'
+          Ui.selected_index = 1
+          if type(update_window_layout) == 'function' then
+            update_window_layout()
+          end
+        end
+
+        refresh_ui()
       end
 
       -- =========================
