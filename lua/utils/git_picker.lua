@@ -531,34 +531,54 @@ end
 
 -- Render diff panel (Code Changes)
 local function render_diff()
-  if not Ui or not Ui.diff_buf then
+  if not Ui or not Ui.diff_buf or not vim.api.nvim_buf_is_valid(Ui.diff_buf) then
     return
   end
   vim.api.nvim_buf_set_option(Ui.diff_buf, 'modifiable', true)
   vim.api.nvim_buf_clear_namespace(Ui.diff_buf, -1, 0, -1)
 
-  if Ui.mode == 'files' then
-    get_changed_files(Ui.branch_selected)
-    local sel = Ui.changed_files[Ui.selected_index]
-    local out = sel and get_diff_for_target(sel.value) or { '[No file selected]' }
-    vim.api.nvim_buf_set_lines(Ui.diff_buf, 0, -1, false, out)
-    vim.api.nvim_buf_set_option(Ui.diff_buf, 'filetype', 'diff')
+  local out = { '' }
 
-    for i, line in ipairs(out) do
-      if line:match('^%+.*') then
-        vim.api.nvim_buf_add_highlight(Ui.diff_buf, -1, 'DiffAdd', i - 1, 0, -1)
-      elseif line:match('^%-.*') then
-        vim.api.nvim_buf_add_highlight(Ui.diff_buf, -1, 'DiffDelete', i - 1, 0, -1)
-      elseif line:match('^\\+\\-') or line:match('^!.*') then
-        vim.api.nvim_buf_add_highlight(Ui.diff_buf, -1, 'DiffChange', i - 1, 0, -1)
-      elseif line:match('^diff ') then
-        vim.api.nvim_buf_add_highlight(Ui.diff_buf, -1, 'DiffFile', i - 1, 0, -1)
-      elseif line:match('^@@') then
-        vim.api.nvim_buf_add_highlight(Ui.diff_buf, -1, 'DiffHeader', i - 1, 0, -1)
+  if Ui.mode == 'files' then
+    if Ui.left_win and vim.api.nvim_win_is_valid(Ui.left_win) then
+      local cursor = vim.api.nvim_win_get_cursor(Ui.left_win)
+      Ui.selected_index = cursor[1]
+    end
+    local sel = Ui.changed_files[Ui.selected_index]
+    out = sel and get_diff_for_target(sel.value) or { '[No file selected]' }
+  elseif Ui.mode == 'branches' then
+    if Ui.right_win and vim.api.nvim_win_is_valid(Ui.right_win) then
+      local cursor = vim.api.nvim_win_get_cursor(Ui.right_win)
+      local line = vim.api.nvim_buf_get_lines(Ui.right_buf, cursor[1] - 1, cursor[1], false)[1] or ''
+
+      -- Extract hash correctly, skipping graph symbols
+      local hash = line:match('([0-9a-f]+)%s+[0-9:APM]+%s+')
+      if hash then
+        local diff_lines = vim.fn.systemlist('git --no-pager show ' .. hash)
+        if vim.v.shell_error == 0 then
+          out = diff_lines
+        end
+      else
+        out = { '[No commit selected]' }
       end
     end
-  else
-    vim.api.nvim_buf_set_lines(Ui.diff_buf, 0, -1, false, { '' })
+  end
+
+  vim.api.nvim_buf_set_lines(Ui.diff_buf, 0, -1, false, out)
+  vim.api.nvim_buf_set_option(Ui.diff_buf, 'filetype', 'diff')
+
+  for i, line in ipairs(out) do
+    if line:match('^%+.*') then
+      vim.api.nvim_buf_add_highlight(Ui.diff_buf, -1, 'DiffAdd', i - 1, 0, -1)
+    elseif line:match('^%-.*') then
+      vim.api.nvim_buf_add_highlight(Ui.diff_buf, -1, 'DiffDelete', i - 1, 0, -1)
+    elseif line:match('^\\+\\-') or line:match('^!.*') then
+      vim.api.nvim_buf_add_highlight(Ui.diff_buf, -1, 'DiffChange', i - 1, 0, -1)
+    elseif line:match('^diff ') then
+      vim.api.nvim_buf_add_highlight(Ui.diff_buf, -1, 'DiffFile', i - 1, 0, -1)
+    elseif line:match('^@@') then
+      vim.api.nvim_buf_add_highlight(Ui.diff_buf, -1, 'DiffHeader', i - 1, 0, -1)
+    end
   end
 
   vim.api.nvim_buf_set_option(Ui.diff_buf, 'modifiable', false)
@@ -1375,6 +1395,29 @@ function M.open_git_ui()
       end
     end, { buffer = buf, silent = true })
   end
+
+  -- Automatically update diff window when moving through lists
+  local group = vim.api.nvim_create_augroup('GitPickerAutoCmds', { clear = true })
+
+  vim.api.nvim_create_autocmd('CursorMoved', {
+    group = group,
+    buffer = Ui.right_buf,
+    callback = function()
+      if Ui.mode == 'branches' then
+        render_diff()
+      end
+    end,
+  })
+
+  vim.api.nvim_create_autocmd('CursorMoved', {
+    group = group,
+    buffer = Ui.left_buf,
+    callback = function()
+      if Ui.mode == 'files' then
+        render_diff()
+      end
+    end,
+  })
 
   -- 6. Populate Data & Render Contents
   Ui.mode = 'files'
