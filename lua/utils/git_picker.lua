@@ -187,10 +187,9 @@ end
 ---------------------------------------------------------------------------
 local function load_stashes()
   local raw = run_git("git stash list --pretty='%gd: %s'") or {}
-  UiStash.stashes = vim.tbl_filter(function(s)
+  Ui.stashes = vim.tbl_filter(function(s)
     return s and #s > 0
   end, raw)
-  UiStash.selected_index = 1
 end
 
 ---------------------------------------------------------------------------
@@ -320,16 +319,11 @@ local function render_left()
   local highlights = {} -- highlight info
 
   if Ui.mode == 'branches' then
-    -- print("render_left: loading branches")
     load_branches()
     local current = run_git('git rev-parse --abbrev-ref HEAD')[1] or ''
-    -- print(
-    --   "render_left: current branch =",
-    --   current
-    -- )
     for i, b in ipairs(Ui.branches) do
       local marker = (b == current) and '*' or ' '
-      local status = Ui.branch_statuses[b] or '' -- fetch ⚠ if there are uncommitted changes
+      local status = Ui.branch_statuses[b] or ''
       local ahead_behind = Ui.branch_ahead_behind[b] or ''
       local line = string.format('%2s %s %s %s', marker, b, status, ahead_behind)
       table.insert(lines, line)
@@ -337,6 +331,12 @@ local function render_left()
       if b == current then
         table.insert(highlights, { line = i, hl = 'GitBranchCurrent' })
       end
+    end
+  elseif Ui.mode == 'stashes' then
+    load_stashes()
+    for i, s in ipairs(Ui.stashes) do
+      table.insert(lines, '  ' .. s)
+      table.insert(highlights, { line = i, hl = 'GitMsg', col = 0, length = -1 })
     end
   else
     -- print(
@@ -546,6 +546,23 @@ local function render_diff()
     end
     local sel = Ui.changed_files[Ui.selected_index]
     out = sel and get_diff_for_target(sel.value) or { '[No file selected]' }
+  elseif Ui.mode == 'stashes' then
+    if Ui.left_win and vim.api.nvim_win_is_valid(Ui.left_win) then
+      local cursor = vim.api.nvim_win_get_cursor(Ui.left_win)
+      Ui.selected_index = cursor[1]
+    end
+    local entry = Ui.stashes and Ui.stashes[Ui.selected_index]
+    if entry then
+      local ref = entry:match('(stash@{%d+})')
+      if ref then
+        local diff_lines = vim.fn.systemlist('git --no-pager stash show -p ' .. ref)
+        if vim.v.shell_error == 0 and #diff_lines > 0 then
+          out = diff_lines
+        end
+      end
+    else
+      out = { '[No stash selected]' }
+    end
   elseif Ui.mode == 'branches' then
     if Ui.right_win and vim.api.nvim_win_is_valid(Ui.right_win) then
       local cursor = vim.api.nvim_win_get_cursor(Ui.right_win)
@@ -590,35 +607,37 @@ end
 local function refresh_ui()
   -- Ensure Ui.selected_index is valid after switching to branches view
   if Ui.mode == 'branches' then
-    -- Ensure the selected branch is within the valid range
     local total_branches = #Ui.branches
-    Ui.selected_index = math.min(Ui.selected_index, total_branches) -- Clamp to the number of branches
-
-    -- Set the branch_selected based on the new index
+    Ui.selected_index = math.min(Ui.selected_index, total_branches)
     Ui.branch_selected = Ui.branches[Ui.selected_index]
   end
 
-  -- Render the left and right panes (branches or changed files)
+  -- Render the panes
   render_left()
   render_right()
   render_diff()
 
-  -- Handle any edge case where Ui.selected_index might be out of bounds
-  local total = (Ui.mode == 'branches') and #Ui.branches or #Ui.changed_files
-  Ui.selected_index = math.max(1, math.min(Ui.selected_index, total)) -- Ensure the selected index is within bounds
+  -- Handle edge cases for bounds
+  local total = (Ui.mode == 'branches') and #Ui.branches or (Ui.mode == 'stashes' and #Ui.stashes or #Ui.changed_files)
+  Ui.selected_index = math.max(1, math.min(Ui.selected_index, total))
 
-  -- If the left window is valid, update the cursor to the selected index
+  -- Update left window title and cursor
   if Ui.left_win and vim.api.nvim_win_is_valid(Ui.left_win) then
-    vim.api.nvim_win_set_config(Ui.left_win, {
-      title = (Ui.mode == 'branches') and ' Git Branches ' or ' Files Changed ',
-    })
+    local title_str = ' Files Changed '
+    if Ui.mode == 'branches' then
+      title_str = ' Git Branches '
+    end
+    if Ui.mode == 'stashes' then
+      title_str = ' Stashes '
+    end
+
+    vim.api.nvim_win_set_config(Ui.left_win, { title = title_str })
+    pcall(vim.api.nvim_win_set_cursor, Ui.left_win, { Ui.selected_index, 0 })
   end
 
   -- Update the right window title
   if Ui.right_win and vim.api.nvim_win_is_valid(Ui.right_win) then
-    vim.api.nvim_win_set_config(Ui.right_win, {
-      title = ' Commit Log ',
-    })
+    vim.api.nvim_win_set_config(Ui.right_win, { title = ' Commit Log ' })
   end
 end
 
@@ -846,7 +865,7 @@ local function update_window_layout()
   local log_h = 8
   local diff_h = math.max(10, editor_h - branch_h - log_h - 12)
 
-  if Ui.mode == 'files' then
+  if Ui.mode == 'files' or Ui.mode == 'stashes' then
     vim.api.nvim_win_set_config(Ui.right_win, { hide = true })
     vim.api.nvim_win_set_config(Ui.diff_win, { height = diff_h + log_h + 2 })
   else
@@ -856,35 +875,38 @@ local function update_window_layout()
 end
 
 -- Toggle between branches and files mode
-local function toggle_mode()
+local function toggle_mode(dir)
   if not Ui then
     return
   end
 
-  Ui.mode = (Ui.mode == 'branches') and 'files' or 'branches'
+  local modes = { 'branches', 'files', 'stashes' }
+  local current_idx = 1
+  for i, m in ipairs(modes) do
+    if m == Ui.mode then
+      current_idx = i
+      break
+    end
+  end
+
+  if dir == 'prev' then
+    current_idx = (current_idx == 1) and #modes or (current_idx - 1)
+  else
+    current_idx = (current_idx == #modes) and 1 or (current_idx + 1)
+  end
+
+  Ui.mode = modes[current_idx]
   Ui.selected_index = 1
+
+  if Ui.mode == 'files' then
+    local _ = run_git('git diff --cached --name-only')
+  elseif Ui.mode == 'stashes' then
+    load_stashes()
+  end
+
   update_window_layout()
   refresh_ui()
   focus_left()
-
-  if Ui.mode == 'files' then
-    -- Update staged files preview
-    staged_files = run_git('git diff --cached --name-only')
-  end
-
-  -- Update the left window title
-  if Ui.left_win and vim.api.nvim_win_is_valid(Ui.left_win) then
-    vim.api.nvim_win_set_config(Ui.left_win, {
-      title = (Ui.mode == 'branches') and ' Git Branches ' or ' Files Changed ',
-    })
-  end
-
-  -- Update the right window title
-  if Ui.right_win and vim.api.nvim_win_is_valid(Ui.right_win) then
-    vim.api.nvim_win_set_config(Ui.right_win, {
-      title = (Ui.mode == 'branches') and ' Commits ' or ' Diff ',
-    })
-  end
 end
 
 -- Stage or unstage the selected file
@@ -1289,7 +1311,6 @@ function M.open_git_ui()
     Ui.left_buf = vim.api.nvim_create_buf(false, true)
   end
 
-  -- Common buffer options
   for _, buf in ipairs({ Ui.left_buf, Ui.right_buf, Ui.diff_buf }) do
     vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
     vim.api.nvim_buf_set_option(buf, 'bufhidden', 'wipe')
@@ -1347,7 +1368,8 @@ function M.open_git_ui()
     col = col,
     style = 'minimal',
     border = 'rounded',
-    title = (Ui.mode == 'branches') and ' Git Branches ' or ' Files Changed ',
+    title = (Ui.mode == 'branches') and ' Git Branches '
+      or ((Ui.mode == 'stashes') and ' Stashes ' or ' Files Changed '),
     title_pos = 'center',
     zindex = 10,
   })
@@ -1466,695 +1488,22 @@ function M.open_git_ui()
     })
 
     vim.keymap.set('n', 's', function()
-      -- Load stashes
-      UiStash = UiStash or { stashes = {}, selected_index = 1 }
-      load_stashes()
+      vim.ui.input({ prompt = 'Stash Message (leave blank for WIP): ' }, function(input)
+        if input == nil then
+          return
+        end -- User cancelled
+        local msg = input == '' and 'WIP' or input
+        vim.fn.system('git stash push -m ' .. vim.fn.shellescape(msg))
 
-      -- if #UiStash.stashes == 0 then
-      --    vim.notify(
-      --       "No stashes available",
-      --       vim.log.levels.INFO
-      --    )
-      --    return
-      -- end
-
-      local width = math.floor(vim.o.columns * 0.9)
-      local height_title = 1
-      local height_desc = 4
-      local height_diff = math.floor(vim.o.lines * 0.72)
-      local spacing = 1
-      local col = math.floor((vim.o.columns - width) / 2)
-
-      -- =========================
-      -- Background overlay
-      -- =========================
-      local buf_overlay = vim.api.nvim_create_buf(false, true)
-      vim.api.nvim_buf_set_lines(buf_overlay, 0, -1, false, { string.rep(' ', width) })
-      local win_overlay = vim.api.nvim_open_win(buf_overlay, false, {
-        relative = 'editor',
-        width = vim.o.columns,
-        height = vim.o.lines,
-        row = 0,
-        col = 0,
-        style = 'minimal',
-        border = 'none',
-        zindex = 200,
-      })
-
-      -- =========================
-      -- Buffers
-      -- =========================
-      local buf_diff = vim.api.nvim_create_buf(false, true)
-      vim.api.nvim_buf_set_option(buf_diff, 'buftype', 'nofile')
-      vim.api.nvim_buf_set_option(buf_diff, 'bufhidden', 'wipe')
-      vim.api.nvim_buf_set_option(buf_diff, 'filetype', 'diff')
-      vim.api.nvim_buf_set_option(buf_diff, 'modifiable', false)
-
-      local buf_title = vim.api.nvim_create_buf(false, true)
-      vim.api.nvim_buf_set_option(buf_title, 'buftype', 'acwrite')
-      vim.api.nvim_buf_set_option(buf_title, 'bufhidden', 'wipe')
-      vim.api.nvim_buf_set_lines(buf_title, 0, -1, false, { '' })
-
-      local buf_list = vim.api.nvim_create_buf(false, true)
-      vim.api.nvim_buf_set_option(buf_list, 'buftype', 'nofile')
-      vim.api.nvim_buf_set_option(buf_list, 'bufhidden', 'wipe')
-      vim.api.nvim_buf_set_lines(buf_list, 0, -1, false, UiStash.stashes)
-
-      -- =========================
-      -- Windows
-      -- =========================
-      local win_diff = vim.api.nvim_open_win(buf_diff, false, {
-        relative = 'editor',
-        width = width,
-        height = height_diff - 3,
-        row = 4,
-        col = col,
-        style = 'minimal',
-        border = 'rounded',
-        zindex = 300,
-        focusable = true,
-        title = ' Stash Diff ',
-        title_pos = 'center',
-      })
-
-      local win_title = vim.api.nvim_open_win(buf_title, true, {
-        relative = 'editor',
-        width = width,
-        height = height_title,
-        row = 2 + height_diff + spacing,
-        col = col,
-        style = 'minimal',
-        border = 'rounded',
-        zindex = 300,
-        title = ' Stash Message ',
-        title_pos = 'center',
-      })
-
-      local win_list = vim.api.nvim_open_win(buf_list, true, {
-        relative = 'editor',
-        width = width,
-        height = math.max(5, math.min(#UiStash.stashes, height_desc)), -- <-- ensure at least 3 rows
-        row = height_diff + height_title + 5,
-        col = col,
-        style = 'minimal',
-        border = 'rounded',
-        zindex = 300,
-        title = ' Stash List ',
-        title_pos = 'center',
-        focusable = true,
-      })
-
-      -- =========================
-      -- Close helper
-      -- =========================
-      local function close_stash_popup()
-        for _, w in ipairs({
-          win_title,
-          win_list,
-          win_diff,
-          win_overlay,
-        }) do
-          if vim.api.nvim_win_is_valid(w) then
-            vim.api.nvim_win_close(w, true)
-          end
-        end
-        Ui.mode = 'files'
+        Ui.mode = 'stashes'
         Ui.selected_index = 1
+        load_stashes()
+        update_window_layout()
         refresh_ui()
         focus_left()
-      end
-
-      -- ================================================
-      -- Update diff buffer based on the focused window
-      -- ================================================
-      local function update_diff(focused_win)
-        focused_win = focused_win or vim.api.nvim_get_current_win()
-        local diff_lines = {}
-
-        if focused_win == win_title then
-          -- Show staged changes in title window
-          local staged = vim.fn.systemlist('git diff --cached')
-          if #staged > 0 then
-            diff_lines = staged
-          else
-            diff_lines = { 'No staged changes' }
-          end
-        else
-          -- Show stash diff for selected stash
-          local entry = UiStash.stashes[UiStash.selected_index]
-          if entry then
-            local ref = entry:match('stash@{%d+}')
-            diff_lines = run_git('git stash show -p ' .. ref)
-          end
-        end
-
-        vim.api.nvim_buf_set_option(buf_diff, 'modifiable', true)
-        vim.api.nvim_buf_set_lines(buf_diff, 0, -1, false, diff_lines)
-        vim.api.nvim_buf_set_option(buf_diff, 'modifiable', false)
-
-        -- Highlight stash list
-        local lines = {}
-        for i, s in ipairs(UiStash.stashes) do
-          lines[i] = (i == UiStash.selected_index and '> ' or '  ') .. s
-        end
-        vim.api.nvim_buf_set_lines(buf_list, 0, -1, false, lines)
-        vim.api.nvim_win_set_cursor(win_list, { UiStash.selected_index, 0 })
-
-        vim.api.nvim_win_call(win_diff, function()
-          vim.cmd('redraw')
-        end)
-      end
-
-      -- Map H/L to switch focus and refresh diff accordingly
-      vim.keymap.set('n', 'H', function()
-        local cur = vim.api.nvim_get_current_win()
-        if cur == win_diff then
-          vim.api.nvim_set_current_win(win_title)
-          update_diff(win_title) -- show staged changes
-        end
-      end, {
-        buffer = b,
-        noremap = true,
-        silent = true,
-      })
-
-      vim.keymap.set('n', 'L', function()
-        local cur = vim.api.nvim_get_current_win()
-        if cur == win_title then
-          vim.api.nvim_set_current_win(win_diff)
-          update_diff(win_diff) -- show selected stash diff
-        end
-      end, {
-        buffer = b,
-        noremap = true,
-        silent = true,
-      })
-
-      vim.keymap.set('n', '<Space>', function()
-        local win = vim.api.nvim_get_current_win()
-        if win ~= Ui.left_win then
-          return -- Only operate in left panel
-        end
-
-        if Ui.mode == 'files' then
-          stage_unstage_selected()
-          render_left() -- refresh UI so staging is visible
-        elseif Ui.mode == 'branches' then
-          checkout_branch()
-        end
-      end, {
-        buffer = buf,
-        noremap = true,
-        silent = true,
-      })
-
-      -- Checkout Remote Branch Keymap
-      vim.keymap.set('n', 'c', function()
-        if Ui.mode ~= 'branches' then
-          return
-        end
-        local win = vim.api.nvim_get_current_win()
-        if win ~= Ui.left_win then
-          return
-        end
-
-        local remotes = run_git("git branch -r --format='%(refname:short)'")
-        local filtered = {}
-        for _, r in ipairs(remotes) do
-          if not r:match('->') then
-            table.insert(filtered, r)
-          end
-        end
-
-        vim.ui.select(filtered, { prompt = 'Checkout Remote Branch:' }, function(choice)
-          if not choice then
-            return
-          end
-          local local_name = choice:match('^[^/]+/(.*)$') or choice
-          local out =
-            vim.fn.system('git checkout -b ' .. vim.fn.shellescape(local_name) .. ' ' .. vim.fn.shellescape(choice))
-          if vim.v.shell_error == 0 then
-            show_centered_message('Checked out ' .. local_name)
-            load_branches()
-            refresh_ui()
-          else
-            show_centered_error('Failed to checkout remote branch.')
-          end
-        end)
-      end, { buffer = Ui.left_buf, noremap = true, silent = true, desc = 'Checkout remote branch' })
-
-      -- Resolve Merge Conflict Keymap
-      vim.keymap.set('n', 'r', function()
-        if Ui.mode ~= 'files' then
-          return
-        end
-        local win = vim.api.nvim_get_current_win()
-        if win ~= Ui.left_win then
-          return
-        end
-
-        local sel = Ui.changed_files[Ui.selected_index]
-        if not sel then
-          return
-        end
-
-        -- Unmerged states contain "U" or are both modified/added (AA, DD)
-        if sel.status:match('U') or sel.status == 'AA' or sel.status == 'DD' then
-          local root = git_root()
-          close_ui()
-          vim.cmd('tabedit ' .. root .. '/' .. sel.value)
-          vim.notify('Resolve conflicts for: ' .. sel.value, vim.log.levels.WARN)
-        else
-          show_centered_message('File has no conflicts.', 'ℹ️')
-        end
-      end, { buffer = Ui.left_buf, noremap = true, silent = true, desc = 'Resolve conflicts in file' })
-
-      -- PR Creation Keymap
-      vim.keymap.set('n', 'O', function()
-        -- 1. Ensure we are in the correct mode
-        print('O pressed! Mode: ' .. tostring(Ui.mode) .. ' | Index: ' .. tostring(Ui.selected_index))
-
-        if Ui.mode ~= 'branches' then
-          print('Fail: Not in branches mode')
-          return
-        end
-
-        local target_branch = Ui.branches[Ui.selected_index]
-        if not target_branch then
-          print('Fail: target_branch is nil')
-          return
-        end
-
-        target_branch = target_branch:gsub('^%*%s*', '')
-        print('Cleaned target: ' .. target_branch)
-
-        local current_branch = run_git('git rev-parse --abbrev-ref HEAD')[1] or ''
-
-        if target_branch == current_branch then
-          show_centered_error("Branch '" .. target_branch .. "' is already your current branch!")
-          return
-        end
-
-        show_centered_message('Creating PR: ' .. current_branch .. ' -> ' .. target_branch)
-
-        -- 4. Execute the GH CLI command
-        vim.fn.jobstart({ 'gh', 'pr', 'create', '--base', target_branch, '--head', current_branch, '--web' }, {
-          on_exit = function(_, exit_code)
-            if exit_code == 0 then
-              vim.schedule(function()
-                show_centered_message('PR Draft Opened!', '✅')
-              end)
-            else
-              vim.schedule(function()
-                show_centered_error('GH CLI Error: Check auth or branch push status.')
-              end)
-            end
-          end,
-        })
-      end, { buffer = Ui.left_buf, noremap = true, silent = true, nowait = true })
-
-      -- Commit Log Diff Viewer Keymap
-      vim.keymap.set('n', 'v', function()
-        if Ui.mode ~= 'branches' then
-          return
-        end
-        local win = vim.api.nvim_get_current_win()
-        if win ~= Ui.right_win then
-          return
-        end
-
-        local cursor = vim.api.nvim_win_get_cursor(Ui.right_win)
-        local line = vim.api.nvim_buf_get_lines(Ui.right_buf, cursor[1] - 1, cursor[1], false)[1] or ''
-        local hash = line:match('^(%S+)')
-        if not hash then
-          return
-        end
-
-        local diff_lines = vim.fn.systemlist('git show ' .. hash)
-        if vim.v.shell_error ~= 0 then
-          return
-        end
-
-        local ui = vim.api.nvim_list_uis()[1]
-        local w = math.floor(ui.width * 0.8)
-        local h = math.floor(ui.height * 0.8)
-        local diff_buf = vim.api.nvim_create_buf(false, true)
-
-        vim.api.nvim_buf_set_lines(diff_buf, 0, -1, false, diff_lines)
-        vim.api.nvim_buf_set_option(diff_buf, 'filetype', 'diff')
-        vim.api.nvim_buf_set_option(diff_buf, 'modifiable', false)
-
-        local diff_win = vim.api.nvim_open_win(diff_buf, true, {
-          relative = 'editor',
-          width = w,
-          height = h,
-          row = math.floor((ui.height - h) / 2),
-          col = math.floor((ui.width - w) / 2),
-          style = 'minimal',
-          border = 'rounded',
-          title = ' Commit: ' .. hash .. ' ',
-          title_pos = 'center',
-          zindex = 600,
-        })
-
-        vim.keymap.set('n', 'q', function()
-          vim.api.nvim_win_close(diff_win, true)
-        end, { buffer = diff_buf, noremap = true, silent = true })
-        vim.keymap.set('n', '<Esc>', function()
-          vim.api.nvim_win_close(diff_win, true)
-        end, { buffer = diff_buf, noremap = true, silent = true })
-      end, { buffer = Ui.right_buf, noremap = true, silent = true, desc = 'View commit changes' })
-
-      -- =========================
-      -- Prefill title and CR mapping
-      -- =========================
-      local staged = vim.fn.systemlist('git diff --cached --name-only')
-      local prefill = ''
-      if #staged > 0 then
-        prefill = 'Staging: ' .. table.concat(staged, ', ')
-      end
-      vim.api.nvim_buf_set_lines(buf_title, 0, -1, false, { prefill })
-
-      -- Enter insert mode immediately
-      vim.api.nvim_set_current_win(win_title)
-
-      -- ==================
-      -- Keymaps
-      -- ==================
-      for _, b in ipairs({
-        buf_title,
-        buf_list,
-        buf_diff,
-      }) do
-        vim.keymap.set('n', 'q', close_stash_popup, {
-          buffer = b,
-          noremap = true,
-          silent = true,
-        })
-        vim.keymap.set('n', '<Esc>', close_stash_popup, {
-          buffer = b,
-          noremap = true,
-          silent = true,
-        })
-
-        vim.keymap.set('n', '<CR>', function()
-          local msg = table.concat(vim.api.nvim_buf_get_lines(buf_title, 0, -1, false), ' ')
-          if msg == '' then
-            msg = 'WIP'
-          end
-
-          vim.fn.system('git stash push -m ' .. vim.fn.shellescape(msg))
-          load_stashes()
-          update_diff()
-
-          -------------------------------------------------------------------
-          -- Floating success popup
-          -------------------------------------------------------------------
-          local buf_success = vim.api.nvim_create_buf(false, true)
-          local msg_success = 'Stash created: ' .. msg
-
-          vim.api.nvim_buf_set_lines(buf_success, 0, -1, false, { msg_success })
-          vim.api.nvim_buf_add_highlight(buf_success, -1, 'String', 0, 0, -1)
-
-          local ui = vim.api.nvim_list_uis()[1]
-          local width = #msg_success
-          local col = math.floor((ui.width - width) / 2)
-
-          local win_success = vim.api.nvim_open_win(buf_success, false, {
-            relative = 'editor',
-            width = width,
-            height = 1,
-            row = 1,
-            col = col,
-            style = 'minimal',
-            border = 'rounded',
-            zindex = 450,
-          })
-
-          vim.defer_fn(function()
-            if vim.api.nvim_win_is_valid(win_success) then
-              vim.api.nvim_win_close(win_success, true)
-            end
-          end, 1500)
-
-          -------------------------------------------------------------------
-          -- Reset input buffer
-          -------------------------------------------------------------------
-          vim.api.nvim_buf_set_lines(buf_title, 0, -1, false, { '' })
-          vim.api.nvim_set_current_win(win_list) -- focus stash list
-        end, {
-          buffer = buf_title,
-          noremap = true,
-          silent = true,
-        })
-
-        vim.keymap.set('n', 'g', function()
-          local entry = UiStash.stashes[UiStash.selected_index]
-          if not entry then
-            vim.notify('No stash selected', vim.log.levels.WARN)
-            return
-          end
-
-          local ref = entry:match('stash@{%d+}')
-          if not ref then
-            return
-          end
-
-          -- File name used in confirmation message
-          local staged_files = vim.fn.systemlist('git diff --name-only ' .. ref)
-          local last_file = staged_files[#staged_files] or 'unknown'
-          local file_name = vim.fn.fnamemodify(last_file, ':t')
-
-          -------------------------------------------------------------------
-          -- Floating confirmation window
-          -------------------------------------------------------------------
-          local buf_conf = vim.api.nvim_create_buf(false, true)
-          local prompt = 'Pop stash: ' .. file_name .. ' ? (y/n/c)'
-          vim.api.nvim_buf_set_lines(buf_conf, 0, -1, false, { prompt })
-
-          local ui = vim.api.nvim_list_uis()[1]
-          local width = #prompt
-          local col = math.floor((ui.width - width) / 2)
-          local win_conf = vim.api.nvim_open_win(buf_conf, true, {
-            relative = 'editor',
-            width = width,
-            height = 1,
-            row = 1,
-            col = col,
-            style = 'minimal',
-            border = 'rounded',
-            zindex = 300,
-          })
-
-          -------------------------------------------------------------------
-          -- Confirmation input
-          -------------------------------------------------------------------
-          vim.keymap.set('n', 'y', function()
-            if vim.api.nvim_win_is_valid(win_conf) then
-              vim.api.nvim_win_close(win_conf, true)
-            end
-
-            local result = vim.fn.system('git stash pop ' .. ref)
-
-            if vim.v.shell_error == 0 then
-              -------------------------------------------------------------------
-              -- Floating success message
-              -------------------------------------------------------------------
-              local msg = 'Popped stash: ' .. file_name
-              local buf_success = vim.api.nvim_create_buf(false, true)
-              vim.api.nvim_buf_set_lines(buf_success, 0, -1, false, { msg })
-              vim.api.nvim_buf_add_highlight(buf_success, -1, 'String', 0, 0, -1)
-
-              local w = #msg
-              local c = math.floor((ui.width - w) / 2)
-
-              local win_success = vim.api.nvim_open_win(buf_success, false, {
-                relative = 'editor',
-                width = w,
-                height = 1,
-                row = 1,
-                col = c,
-                style = 'minimal',
-                border = 'rounded',
-                zindex = 450,
-              })
-
-              vim.defer_fn(function()
-                if vim.api.nvim_win_is_valid(win_success) then
-                  vim.api.nvim_win_close(win_success, true)
-                end
-              end, 1500)
-            else
-              vim.notify('Failed to pop stash: ' .. result, vim.log.levels.ERROR)
-            end
-
-            load_stashes()
-            update_diff()
-          end, { buffer = buf_conf })
-
-          vim.keymap.set('n', 'n', function()
-            if vim.api.nvim_win_is_valid(win_conf) then
-              vim.api.nvim_win_close(win_conf, true)
-            end
-          end, { buffer = buf_conf })
-
-          vim.keymap.set('n', 'c', function()
-            if vim.api.nvim_win_is_valid(win_conf) then
-              vim.api.nvim_win_close(win_conf, true)
-            end
-          end, { buffer = buf_conf })
-        end, { buffer = buf_list })
-
-        vim.keymap.set('n', 'd', function()
-          local stash = UiStash.stashes[UiStash.selected_index]
-          if not stash then
-            vim.notify('No stash selected', vim.log.levels.WARN)
-            return
-          end
-
-          local ref = stash:match('stash@{%d+}')
-          local staged_files = vim.fn.systemlist('git diff --name-only ' .. ref)
-          local last = staged_files[#staged_files] or 'unknown'
-          local file_name = vim.fn.fnamemodify(last, ':t')
-
-          -------------------------------------------------------------------
-          -- Floating confirmation window
-          -------------------------------------------------------------------
-          local buf_conf = vim.api.nvim_create_buf(false, true)
-          local prompt = 'Drop stash: ' .. file_name .. ' ? (y/n)'
-          vim.api.nvim_buf_set_lines(buf_conf, 0, -1, false, { prompt })
-
-          local ui = vim.api.nvim_list_uis()[1]
-          local width = #prompt
-          local col = math.floor((ui.width - width) / 2)
-
-          local win_conf = vim.api.nvim_open_win(buf_conf, true, {
-            relative = 'editor',
-            width = width,
-            height = 1,
-            row = 1,
-            col = col,
-            style = 'minimal',
-            border = 'rounded',
-            zindex = 300,
-          })
-
-          -------------------------------------------------------------------
-          -- Confirm: y (DROP)
-          -------------------------------------------------------------------
-          vim.keymap.set('n', 'y', function()
-            if vim.api.nvim_win_is_valid(win_conf) then
-              vim.api.nvim_win_close(win_conf, true)
-            end
-
-            ---------------------------------------------------------------
-            -- Drop stash
-            ---------------------------------------------------------------
-            vim.fn.system('git stash drop ' .. ref)
-
-            load_stashes()
-            update_diff()
-            refresh_ui()
-
-            ---------------------------------------------------------------
-            -- Success popup (red text)
-            ---------------------------------------------------------------
-            vim.api.nvim_set_hl(0, 'DropMessage', { fg = '#ff4444', bold = true })
-
-            local msg = 'Dropped stash: ' .. file_name
-            local buf_success = vim.api.nvim_create_buf(false, true)
-            vim.api.nvim_buf_set_lines(buf_success, 0, -1, false, { msg })
-            vim.api.nvim_buf_add_highlight(buf_success, -1, 'DropMessage', 0, 0, -1)
-
-            local w = #msg
-            local c = math.floor((ui.width - w) / 2)
-
-            local win_success = vim.api.nvim_open_win(buf_success, false, {
-              relative = 'editor',
-              width = w,
-              height = 1,
-              row = 1,
-              col = c,
-              style = 'minimal',
-              border = 'rounded',
-              zindex = 450,
-            })
-
-            vim.defer_fn(function()
-              if vim.api.nvim_win_is_valid(win_success) then
-                vim.api.nvim_win_close(win_success, true)
-              end
-            end, 1500)
-          end, { buffer = buf_conf }) -- <--- FIXED
-
-          -------------------------------------------------------------------
-          -- Cancel: n
-          -------------------------------------------------------------------
-          vim.keymap.set('n', 'n', function()
-            if vim.api.nvim_win_is_valid(win_conf) then
-              vim.api.nvim_win_close(win_conf, true)
-            end
-          end, { buffer = buf_conf }) -- <--- FIXED
-        end, { buffer = buf_list })
-
-        vim.keymap.set('n', 'H', function()
-          if vim.api.nvim_get_current_win() == win_diff then
-            vim.api.nvim_set_current_win(win_title)
-          end
-        end, {
-          buffer = b,
-          noremap = true,
-          silent = true,
-        })
-
-        vim.keymap.set('n', 'L', function()
-          if vim.api.nvim_get_current_win() == win_title then
-            vim.api.nvim_set_current_win(win_diff)
-          end
-        end, {
-          buffer = b,
-          noremap = true,
-          silent = true,
-        })
-
-        vim.keymap.set('n', '<Tab>', function()
-          vim.api.nvim_set_current_win(win_list)
-          vim.cmd('stopinsert') -- exit insert mode so j/k works
-        end, { buffer = b })
-        vim.keymap.set('n', '<S-Tab>', function()
-          vim.api.nvim_set_current_win(win_title)
-          vim.cmd('startinsert') -- exit insert mode so j/k works
-        end, { buffer = b })
-
-        vim.keymap.set('n', 'j', function()
-          UiStash.selected_index = math.min(#UiStash.stashes, UiStash.selected_index + 1)
-          update_diff()
-        end, {
-          buffer = buf_list,
-          noremap = true,
-          silent = true,
-        })
-
-        vim.keymap.set('n', 'k', function()
-          UiStash.selected_index = math.max(1, UiStash.selected_index - 1)
-          update_diff()
-        end, {
-          buffer = buf_list,
-          noremap = true,
-          silent = true,
-        })
-      end
-
-      -- Start in insert mode on title
-      vim.api.nvim_set_current_win(win_title)
-
-      -- Initialize diff & highlight
-      update_diff()
-    end, {
-      buffer = buf,
-      noremap = true,
-      silent = true,
-    })
+        show_centered_message('Stash created: ' .. msg, '📦')
+      end)
+    end, { buffer = buf, noremap = true, silent = true, desc = 'Create new stash' })
 
     local function has_worktree_changes()
       -- returns >0 when there are changes
@@ -2581,24 +1930,68 @@ function M.open_git_ui()
       silent = true,
     })
 
-    -- Keymap for <Space>
+    -- Apply Action (<Space>)
     vim.keymap.set('n', '<Space>', function()
       local win = vim.api.nvim_get_current_win()
       if win ~= Ui.left_win then
-        return -- Only operate in left panel
+        return
       end
 
       if Ui.mode == 'files' then
         stage_unstage_selected()
-        render_left() -- refresh UI so staging is visible
+        render_left()
       elseif Ui.mode == 'branches' then
         checkout_branch()
+      elseif Ui.mode == 'stashes' then
+        local stash = Ui.stashes[Ui.selected_index]
+        if stash then
+          local ref = stash:match('(stash@{%d+})')
+          if ref then
+            local ok = vim.fn.confirm('Pop ' .. ref .. '?', 'Yes\nNo', 2)
+            if ok == 1 then
+              vim.fn.system('git stash pop ' .. ref)
+              if vim.v.shell_error == 0 then
+                show_centered_message('Successfully popped ' .. ref, '✅')
+              else
+                show_centered_message('Merge conflict or error popping stash', '⚠️')
+              end
+              load_stashes()
+              Ui.selected_index = math.max(1, Ui.selected_index - 1)
+              refresh_ui()
+            end
+          end
+        end
       end
-    end, {
-      buffer = buf,
-      noremap = true,
-      silent = true,
-    })
+    end, { buffer = buf, noremap = true, silent = true })
+
+    -- Delete Action (d)
+    vim.keymap.set('n', 'd', function()
+      local win = vim.api.nvim_get_current_win()
+      if win ~= Ui.left_win then
+        return
+      end
+
+      if Ui.mode == 'files' then
+        discard_changes_selected()
+      elseif Ui.mode == 'stashes' then
+        local stash = Ui.stashes[Ui.selected_index]
+        if stash then
+          local ref = stash:match('(stash@{%d+})')
+          if ref then
+            local ok = vim.fn.confirm('Drop ' .. ref .. '?', 'Yes\nNo', 2)
+            if ok == 1 then
+              vim.fn.system('git stash drop ' .. ref)
+              load_stashes()
+              Ui.selected_index = math.max(1, Ui.selected_index - 1)
+              refresh_ui()
+              show_centered_message('Dropped ' .. ref, '🗑️')
+            end
+          end
+        end
+      else
+        delete_branch()
+      end
+    end, { buffer = Ui.left_buf, noremap = true, silent = true })
 
     -- Commit Keymap
     vim.keymap.set('n', 'c', function()
@@ -2798,24 +2191,6 @@ function M.open_git_ui()
       -- Start typing in title (but don't go into insert mode)
       vim.api.nvim_set_current_win(win_title)
     end)
-
-    -- Delete branch
-    vim.keymap.set('n', 'd', function()
-      local win = vim.api.nvim_get_current_win()
-      if win ~= Ui.left_win then
-        return
-      end
-
-      if Ui.mode == 'files' then
-        discard_changes_selected()
-      else
-        delete_branch()
-      end
-    end, {
-      buffer = Ui.left_buf,
-      noremap = true,
-      silent = true,
-    })
 
     -- Pull latest changes
     vim.keymap.set('n', 'p', function()
