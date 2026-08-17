@@ -139,11 +139,11 @@ keymap.set('n', '<leader>rl', function()
    vim.o.background = original_bg
 
    -- 2. Safely reload Noice via Lazy.nvim
-   local lazy_config = require('lazy.core.config')
-   local noice_plugin = lazy_config.plugins['noice.nvim']
-   if noice_plugin then
-      require('lazy.core.loader').reload(noice_plugin)
-   end
+   -- local lazy_config = require('lazy.core.config')
+   -- local noice_plugin = lazy_config.plugins['noice.nvim']
+   -- if noice_plugin then
+   --    require('lazy.core.loader').reload(noice_plugin)
+   -- end
 
    -- 3. Force re-require gitcompanion
    local ok, gc = pcall(require, 'gitcompanion')
@@ -167,6 +167,7 @@ keymap.set('n', '<leader>rl', function()
    end)
 end, { desc = 'Reload Neovim config and re-require GitCompanion' })
 
+--comment
 -- Mason --
 vim.api.nvim_set_keymap('n', '<leader>M', ':lua require("mason.ui").open()<CR>', { noremap = true, silent = true })
 

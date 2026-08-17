@@ -927,12 +927,12 @@ return {
                         },
                      },
                      position = {
-                        row = '15%',
+                        row = '10%',
                         col = '50%',
                      },
                      size = {
                         width = '90%',
-                        height = '58%',
+                        height = '45%',
                      },
                   },
                   filter = {
@@ -955,35 +955,48 @@ return {
             {
                '<leader>n',
                function()
-                  -- Helper function to close all active floating windows created by this toggle
-                  local function close_all_noice_floats()
-                     local closed = false
-                     for _, win in ipairs(vim.api.nvim_list_wins()) do
-                        if vim.api.nvim_win_is_valid(win) then
-                           local config = vim.api.nvim_win_get_config(win)
-                           if config.relative and config.relative ~= '' then
-                              local buf = vim.api.nvim_win_get_buf(win)
-                              local ft = vim.api.nvim_get_option_value('filetype', { buf = buf })
-                              if ft:find('noice') or vim.b[buf].noice or vim.b[buf].noice_detail then
-                                 pcall(vim.api.nvim_win_close, win, true)
-                                 closed = true
-                              end
-                           end
-                        end
+                  -- Global tracking for active window IDs
+                  local function close_both_wins(trigger_source)
+                     local detail_win = _G._noice_detail_win
+                     local main_win = _G._noice_main_win
+
+                     vim.notify(
+                        string.format(
+                           'DEBUG [%s]: Closing wins - Main: %s (valid: %s), Detail: %s (valid: %s)',
+                           trigger_source or 'unknown',
+                           tostring(main_win),
+                           tostring(main_win and vim.api.nvim_win_is_valid(main_win)),
+                           tostring(detail_win),
+                           tostring(detail_win and vim.api.nvim_win_is_valid(detail_win))
+                        ),
+                        vim.log.levels.WARN
+                     )
+
+                     if detail_win and vim.api.nvim_win_is_valid(detail_win) then
+                        pcall(vim.api.nvim_win_close, detail_win, true)
                      end
+                     if main_win and vim.api.nvim_win_is_valid(main_win) then
+                        pcall(vim.api.nvim_win_close, main_win, true)
+                     end
+
+                     _G._noice_main_win = nil
+                     _G._noice_detail_win = nil
                      pcall(vim.api.nvim_del_augroup_by_name, 'NoiceDetailSync')
-                     return closed
                   end
 
-                  -- 1. If floats are open, close them all and exit
-                  if close_all_noice_floats() then
+                  -- 1. Toggle off via <leader>n
+                  if
+                      (_G._noice_main_win and vim.api.nvim_win_is_valid(_G._noice_main_win))
+                      or (_G._noice_detail_win and vim.api.nvim_win_is_valid(_G._noice_detail_win))
+                  then
+                     close_both_wins('<leader>n toggle')
                      return
                   end
 
-                  -- 2. Open top history window
+                  -- 2. Open Noice history window
                   require('noice').cmd('history')
 
-                  -- 3. Set up details window and keymaps
+                  -- 3. Setup bottom detail float & debug keymaps
                   vim.schedule(function()
                      local main_win, main_buf
                      for _, win in ipairs(vim.api.nvim_list_wins()) do
@@ -999,54 +1012,72 @@ return {
                      end
 
                      if not main_win then
+                        vim.notify('DEBUG: Could not locate Noice main window', vim.log.levels.ERROR)
                         return
                      end
 
-                     -- Get UI dimensions cleanly
+                     _G._noice_main_win = main_win
+
                      local ui = vim.api.nvim_list_uis()[1] or { width = vim.o.columns, height = vim.o.lines }
 
-                     -- Explicitly tag main buffer so close_all_noice_floats identifies it
-                     vim.b[main_buf].noice = true
-                     vim.api.nvim_set_option_value('filetype', 'markdown', { buf = main_buf })
-
-                     -- Create detail buffer & floating window
+                     -- Detail buffer creation
                      local detail_buf = vim.api.nvim_create_buf(false, true)
-                     vim.b[detail_buf].noice = true
-                     vim.b[detail_buf].noice_detail = true
                      vim.api.nvim_set_option_value('filetype', 'markdown', { buf = detail_buf })
                      vim.api.nvim_set_option_value('bufhidden', 'wipe', { buf = detail_buf })
 
-                     -- Get top window's actual screen row and inner height dynamically
+                     -- Calculate row position and INCREASED detail window height
                      local main_pos = vim.api.nvim_win_get_position(main_win)
                      local main_row = main_pos[1]
                      local main_height = vim.api.nvim_win_get_height(main_win)
 
-                     -- Place bottom float directly below top float (accounting for border offsets)
-                     local detail_row = main_row + main_height + 1
-                     local bottom_h = math.floor(ui.height * 0.28)
+                     local detail_row = main_row + main_height + 8
+                     -- Increased height from 0.22/0.28 to 0.35 (35% of total UI height)
+                     local detail_height = math.floor(ui.height * 0.35)
 
                      local detail_win = vim.api.nvim_open_win(detail_buf, false, {
                         relative = 'editor',
                         row = detail_row,
                         col = math.floor(ui.width * 0.05),
                         width = math.floor(ui.width * 0.90),
-                        height = bottom_h,
+                        height = detail_height,
                         style = 'minimal',
                         border = 'rounded',
                         title = ' Error Details ',
                         title_pos = 'center',
                      })
 
-                     -- Bind 'q' locally to close both windows on BOTH main and detail buffers
-                     vim.keymap.set('n', 'q', function()
-                        close_all_noice_floats()
-                     end, { buffer = main_buf, nowait = true, silent = true })
+                     _G._noice_detail_win = detail_win
 
-                     vim.keymap.set('n', 'q', function()
-                        close_all_noice_floats()
-                     end, { buffer = detail_buf, nowait = true, silent = true })
+                     -- Function wrapper for q keymap with explicit trigger tag
+                     local function close_from_q()
+                        close_both_wins('q keypress')
+                     end
 
-                     -- Sync detail view
+                     -- Force override 'q' keymap on both buffers with a slight delay to beat Noice defaults
+                     vim.defer_fn(function()
+                        if vim.api.nvim_buf_is_valid(main_buf) then
+                           vim.keymap.set(
+                              'n',
+                              'q',
+                              close_from_q,
+                              { buffer = main_buf, nowait = true, silent = false, force = true }
+                           )
+                        end
+                        if vim.api.nvim_buf_is_valid(detail_buf) then
+                           vim.keymap.set(
+                              'n',
+                              'q',
+                              close_from_q,
+                              { buffer = detail_buf, nowait = true, silent = false, force = true }
+                           )
+                        end
+                        vim.notify(
+                           string.format('DEBUG: Keymaps bound to Main Buf (%d) & Detail Buf (%d)', main_buf, detail_buf),
+                           vim.log.levels.INFO
+                        )
+                     end, 50)
+
+                     -- Sync detail window content
                      local function update_detail()
                         if not vim.api.nvim_win_is_valid(main_win) or not vim.api.nvim_win_is_valid(detail_win) then
                            return
@@ -1065,7 +1096,6 @@ return {
                         vim.api.nvim_set_option_value('modifiable', false, { buf = detail_buf })
                      end
 
-                     -- Sync on navigation
                      local augroup = vim.api.nvim_create_augroup('NoiceDetailSync', { clear = true })
                      vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI' }, {
                         group = augroup,
@@ -1073,7 +1103,6 @@ return {
                         callback = update_detail,
                      })
 
-                     -- Jump cursor to bottom line natively
                      local line_count = vim.api.nvim_buf_line_count(main_buf)
                      if line_count > 0 then
                         vim.api.nvim_win_set_cursor(main_win, { line_count, 0 })
