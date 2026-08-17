@@ -173,14 +173,21 @@ return {
    { 'tpope/vim-surround' },
    { 'NLKNguyen/papercolor-theme' },
    {
-      'Darkskittlz/GitCompanion',
-      dependencies = {
-         'nvim-lua/plenary.nvim',
-      },
+      'GitCompanion',
+      dir = '~/linuxProjects/GitCompanion', -- Points Lazy directly to your local workspace
+      dev = true,
       keys = {
-         { '<leader>gh', '<cmd>GitCompanion<cr>', desc = 'Toggle GitCompanion' },
+         {
+            '<leader>gh',
+            function()
+               require('gitcompanion').toggle()
+            end,
+            desc = 'Toggle GitCompanion',
+         },
       },
-      opts = {},
+      config = function()
+         require('gitcompanion').setup()
+      end,
    },
    {
       'olimorris/codecompanion.nvim',
@@ -327,27 +334,6 @@ return {
             tt_ui.show_session_history(tt_main.tracker)
          end, { desc = 'Time Tracker: View History' })
       end,
-   },
-   {
-      'folke/snacks.nvim',
-      priority = 1000,
-      lazy = false,
-      opts = {
-         terminal = {
-            win = {
-               -- 'float' style adds padding. 'terminal' style is usually more flush.
-               style = 'terminal',
-            },
-         },
-         lazygit = {
-            win = {
-               -- SETTING THESE TO 0 FORCES FULL SCREEN
-               width = 0,
-               height = 0,
-               border = 'none', -- Removes the Neovim border so only Lazygit's border shows
-            },
-         },
-      },
    },
    {
       'lewis6991/gitsigns.nvim',
@@ -902,20 +888,134 @@ return {
          end,
       },
       {
-         'folke/noice.nvim',
-         opts = function(_, opts)
-            table.insert(opts.routes, {
-               filter = {
-                  event = 'notify',
-                  find = 'No information available',
+         'folke/snacks.nvim',
+         priority = 1000,
+         lazy = false,
+         opts = {
+            terminal = {
+               win = {
+                  -- 'float' style adds padding. 'terminal' style is usually more flush.
+                  style = 'terminal',
                },
-               opts = { skip = true },
-            })
-
-            opts.presets.lsp_doc_border = true
-         end,
+            },
+            lazygit = {
+               win = {
+                  -- SETTING THESE TO 0 FORCES FULL SCREEN
+                  width = 0,
+                  height = 0,
+                  border = 'none', -- Removes the Neovim border so only Lazygit's border shows
+               },
+            },
+         },
       },
+      {
+         'folke/noice.nvim',
+         opts = {
+            routes = {
+               {
+                  filter = {
+                     event = 'notify',
+                     find = 'No information available',
+                  },
+                  opts = { skip = true },
+               },
+            },
+            views = {
+               popup = {
+                  backend = 'popup',
+                  template = {
+                     format = { '{level} ', '{title} ', '{message}' },
+                  },
+                  win_options = {
+                     winhighlight = {
+                        Normal = 'NormalFloat',
+                        FloatBorder = 'FloatBorder',
+                     },
+                  },
+               },
+            },
+            commands = {
+               history = {
+                  view = 'popup',
+                  opts = {
+                     enter = true,
+                     format = 'details',
+                     position = {
+                        row = '50%',
+                        col = '50%',
+                     },
+                     size = {
+                        width = '90%',
+                        height = '85%',
+                     },
+                  },
+                  filter = {
+                     any = {
+                        { event = 'notify' },
+                        { error = true },
+                        { warning = true },
+                        { event = 'msg_show', kind = { '' } },
+                        { event = 'lsp',      kind = 'message' },
+                     },
+                  },
+               },
+            },
+            presets = {
+               lsp_doc_border = true,
+               inc_rename = true,
+            },
+         },
+         keys = {
+            {
+               '<leader>n',
+               function()
+                  -- 1. Check if Noice float window is open
+                  local found_float = nil
+                  for _, win in ipairs(vim.api.nvim_list_wins()) do
+                     if vim.api.nvim_win_is_valid(win) then
+                        local config = vim.api.nvim_win_get_config(win)
+                        if config.relative and config.relative ~= '' then
+                           local buf = vim.api.nvim_win_get_buf(win)
+                           local ft = vim.api.nvim_get_option_value('filetype', { buf = buf })
+                           if ft:find('noice') or vim.b[buf].noice then
+                              found_float = win
+                              break
+                           end
+                        end
+                     end
+                  end
 
+                  -- 2. Toggle close if found
+                  if found_float then
+                     vim.api.nvim_win_close(found_float, true)
+                     return
+                  end
+
+                  -- 3. Open history view natively (preserves highlights & treesitter markdown rendering)
+                  require('noice').cmd('history')
+
+                  -- 4. Jump cursor to the bottom (where newest logs natively land) or keep top
+                  vim.schedule(function()
+                     for _, win in ipairs(vim.api.nvim_list_wins()) do
+                        local buf = vim.api.nvim_win_get_buf(win)
+                        local ft = vim.api.nvim_get_option_value('filetype', { buf = buf })
+                        if ft:find('noice') then
+                           -- Enable markdown syntax highlighting on the buffer
+                           vim.api.nvim_set_option_value('filetype', 'markdown', { buf = buf })
+                           local line_count = vim.api.nvim_buf_line_count(buf)
+                           if line_count > 0 then
+                              vim.api.nvim_win_set_cursor(win, { line_count, 0 })
+                           end
+                           break
+                        end
+                     end
+                  end)
+               end,
+               desc = 'Toggle Noice Floating History',
+               mode = { 'n', 'i' },
+            },
+         },
+      },
       {
          'rcarriga/nvim-notify',
          opts = {
