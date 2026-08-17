@@ -888,27 +888,6 @@ return {
          end,
       },
       {
-         'folke/snacks.nvim',
-         priority = 1000,
-         lazy = false,
-         opts = {
-            terminal = {
-               win = {
-                  -- 'float' style adds padding. 'terminal' style is usually more flush.
-                  style = 'terminal',
-               },
-            },
-            lazygit = {
-               win = {
-                  -- SETTING THESE TO 0 FORCES FULL SCREEN
-                  width = 0,
-                  height = 0,
-                  border = 'none', -- Removes the Neovim border so only Lazygit's border shows
-               },
-            },
-         },
-      },
-      {
          'folke/noice.nvim',
          opts = {
             routes = {
@@ -940,13 +919,20 @@ return {
                   opts = {
                      enter = true,
                      format = 'details',
+                     border = {
+                        style = 'rounded',
+                        text = {
+                           top = ' Errors ',
+                           top_align = 'center',
+                        },
+                     },
                      position = {
-                        row = '50%',
+                        row = '15%',
                         col = '50%',
                      },
                      size = {
                         width = '90%',
-                        height = '85%',
+                        height = '58%',
                      },
                   },
                   filter = {
@@ -969,46 +955,130 @@ return {
             {
                '<leader>n',
                function()
-                  -- 1. Check if Noice float window is open
-                  local found_float = nil
-                  for _, win in ipairs(vim.api.nvim_list_wins()) do
-                     if vim.api.nvim_win_is_valid(win) then
-                        local config = vim.api.nvim_win_get_config(win)
-                        if config.relative and config.relative ~= '' then
+                  -- Helper function to close all active floating windows created by this toggle
+                  local function close_all_noice_floats()
+                     local closed = false
+                     for _, win in ipairs(vim.api.nvim_list_wins()) do
+                        if vim.api.nvim_win_is_valid(win) then
+                           local config = vim.api.nvim_win_get_config(win)
+                           if config.relative and config.relative ~= '' then
+                              local buf = vim.api.nvim_win_get_buf(win)
+                              local ft = vim.api.nvim_get_option_value('filetype', { buf = buf })
+                              if ft:find('noice') or vim.b[buf].noice or vim.b[buf].noice_detail then
+                                 pcall(vim.api.nvim_win_close, win, true)
+                                 closed = true
+                              end
+                           end
+                        end
+                     end
+                     pcall(vim.api.nvim_del_augroup_by_name, 'NoiceDetailSync')
+                     return closed
+                  end
+
+                  -- 1. If floats are open, close them all and exit
+                  if close_all_noice_floats() then
+                     return
+                  end
+
+                  -- 2. Open top history window
+                  require('noice').cmd('history')
+
+                  -- 3. Set up details window and keymaps
+                  vim.schedule(function()
+                     local main_win, main_buf
+                     for _, win in ipairs(vim.api.nvim_list_wins()) do
+                        if vim.api.nvim_win_is_valid(win) then
                            local buf = vim.api.nvim_win_get_buf(win)
                            local ft = vim.api.nvim_get_option_value('filetype', { buf = buf })
-                           if ft:find('noice') or vim.b[buf].noice then
-                              found_float = win
+                           if ft:find('noice') then
+                              main_win = win
+                              main_buf = buf
                               break
                            end
                         end
                      end
-                  end
 
-                  -- 2. Toggle close if found
-                  if found_float then
-                     vim.api.nvim_win_close(found_float, true)
-                     return
-                  end
-
-                  -- 3. Open history view natively (preserves highlights & treesitter markdown rendering)
-                  require('noice').cmd('history')
-
-                  -- 4. Jump cursor to the bottom (where newest logs natively land) or keep top
-                  vim.schedule(function()
-                     for _, win in ipairs(vim.api.nvim_list_wins()) do
-                        local buf = vim.api.nvim_win_get_buf(win)
-                        local ft = vim.api.nvim_get_option_value('filetype', { buf = buf })
-                        if ft:find('noice') then
-                           -- Enable markdown syntax highlighting on the buffer
-                           vim.api.nvim_set_option_value('filetype', 'markdown', { buf = buf })
-                           local line_count = vim.api.nvim_buf_line_count(buf)
-                           if line_count > 0 then
-                              vim.api.nvim_win_set_cursor(win, { line_count, 0 })
-                           end
-                           break
-                        end
+                     if not main_win then
+                        return
                      end
+
+                     -- Get UI dimensions cleanly
+                     local ui = vim.api.nvim_list_uis()[1] or { width = vim.o.columns, height = vim.o.lines }
+
+                     -- Explicitly tag main buffer so close_all_noice_floats identifies it
+                     vim.b[main_buf].noice = true
+                     vim.api.nvim_set_option_value('filetype', 'markdown', { buf = main_buf })
+
+                     -- Create detail buffer & floating window
+                     local detail_buf = vim.api.nvim_create_buf(false, true)
+                     vim.b[detail_buf].noice = true
+                     vim.b[detail_buf].noice_detail = true
+                     vim.api.nvim_set_option_value('filetype', 'markdown', { buf = detail_buf })
+                     vim.api.nvim_set_option_value('bufhidden', 'wipe', { buf = detail_buf })
+
+                     -- Get top window's actual screen row and inner height dynamically
+                     local main_pos = vim.api.nvim_win_get_position(main_win)
+                     local main_row = main_pos[1]
+                     local main_height = vim.api.nvim_win_get_height(main_win)
+
+                     -- Place bottom float directly below top float (accounting for border offsets)
+                     local detail_row = main_row + main_height + 1
+                     local bottom_h = math.floor(ui.height * 0.28)
+
+                     local detail_win = vim.api.nvim_open_win(detail_buf, false, {
+                        relative = 'editor',
+                        row = detail_row,
+                        col = math.floor(ui.width * 0.05),
+                        width = math.floor(ui.width * 0.90),
+                        height = bottom_h,
+                        style = 'minimal',
+                        border = 'rounded',
+                        title = ' Error Details ',
+                        title_pos = 'center',
+                     })
+
+                     -- Bind 'q' locally to close both windows on BOTH main and detail buffers
+                     vim.keymap.set('n', 'q', function()
+                        close_all_noice_floats()
+                     end, { buffer = main_buf, nowait = true, silent = true })
+
+                     vim.keymap.set('n', 'q', function()
+                        close_all_noice_floats()
+                     end, { buffer = detail_buf, nowait = true, silent = true })
+
+                     -- Sync detail view
+                     local function update_detail()
+                        if not vim.api.nvim_win_is_valid(main_win) or not vim.api.nvim_win_is_valid(detail_win) then
+                           return
+                        end
+
+                        local cursor = vim.api.nvim_win_get_cursor(main_win)
+                        local line_idx = cursor[1] - 1
+                        local total_lines = vim.api.nvim_buf_line_count(main_buf)
+
+                        local start_line = math.max(0, line_idx - 2)
+                        local end_line = math.min(total_lines, line_idx + 25)
+                        local lines = vim.api.nvim_buf_get_lines(main_buf, start_line, end_line, false)
+
+                        vim.api.nvim_set_option_value('modifiable', true, { buf = detail_buf })
+                        vim.api.nvim_buf_set_lines(detail_buf, 0, -1, false, lines)
+                        vim.api.nvim_set_option_value('modifiable', false, { buf = detail_buf })
+                     end
+
+                     -- Sync on navigation
+                     local augroup = vim.api.nvim_create_augroup('NoiceDetailSync', { clear = true })
+                     vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI' }, {
+                        group = augroup,
+                        buffer = main_buf,
+                        callback = update_detail,
+                     })
+
+                     -- Jump cursor to bottom line natively
+                     local line_count = vim.api.nvim_buf_line_count(main_buf)
+                     if line_count > 0 then
+                        vim.api.nvim_win_set_cursor(main_win, { line_count, 0 })
+                     end
+                     update_detail()
                   end)
                end,
                desc = 'Toggle Noice Floating History',

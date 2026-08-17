@@ -6,61 +6,61 @@ keymap.set('n', '-', '<C-a>')
 keymap.set('n', '+', '<C-x>')
 
 keymap.set(
-  'n',
-  '<leader>tw',
-  [[:s/\(\s\+\)className=\(['"]\)\(.\{-}\)\2/\=submatch(1) . "className=" . submatch(2) . "\r" . submatch(1) . "  " . substitute(submatch(3), ' ', '\r' . submatch(1) . "  ", 'g') . "\r" . submatch(1) . submatch(2)/g<CR>]],
-  { desc = 'Split Tailwind classes into block' }
+   'n',
+   '<leader>tw',
+   [[:s/\(\s\+\)className=\(['"]\)\(.\{-}\)\2/\=submatch(1) . "className=" . submatch(2) . "\r" . submatch(1) . "  " . substitute(submatch(3), ' ', '\r' . submatch(1) . "  ", 'g') . "\r" . submatch(1) . submatch(2)/g<CR>]],
+   { desc = 'Split Tailwind classes into block' }
 )
 
 -- A simple spinner helper
 local spinner_frames = {
-  '⠋',
-  '⠙',
-  '⠹',
-  '⠸',
-  '⠼',
-  '⠴',
-  '⠦',
-  '⠧',
-  '⠇',
-  '⠏',
+   '⠋',
+   '⠙',
+   '⠹',
+   '⠸',
+   '⠼',
+   '⠴',
+   '⠦',
+   '⠧',
+   '⠇',
+   '⠏',
 }
 
 local function show_spinner()
-  local i = 1
-  local timer = vim.loop.new_timer()
-  timer:start(
-    0,
-    100,
-    vim.schedule_wrap(function()
-      vim.notify('Reloading Neovim config ' .. spinner_frames[i], vim.log.levels.INFO, { timeout = 100 })
-      i = (i % #spinner_frames) + 1
-    end)
-  )
-  return timer
+   local i = 1
+   local timer = vim.loop.new_timer()
+   timer:start(
+      0,
+      100,
+      vim.schedule_wrap(function()
+         vim.notify('Reloading Neovim config ' .. spinner_frames[i], vim.log.levels.INFO, { timeout = 100 })
+         i = (i % #spinner_frames) + 1
+      end)
+   )
+   return timer
 end
 
 -- toggle wrap lines and unwrap lines
 keymap.set('n', '<leader>cw', function()
-  vim.wo.wrap = not vim.wo.wrap
-  local status = vim.wo.wrap and 'enabled' or 'disabled'
-  vim.notify('Line wrap ' .. status, vim.log.levels.INFO)
+   vim.wo.wrap = not vim.wo.wrap
+   local status = vim.wo.wrap and 'enabled' or 'disabled'
+   vim.notify('Line wrap ' .. status, vim.log.levels.INFO)
 end, { desc = 'Toggle line wrap' })
 
 -- Open CodeCompanion Chat History
 vim.keymap.set(
-  'n',
-  '<leader>ah',
-  '<cmd>CodeCompanionHistory<cr>',
-  { noremap = true, silent = true, desc = 'CodeCompanion Chat History' }
+   'n',
+   '<leader>ah',
+   '<cmd>CodeCompanionHistory<cr>',
+   { noremap = true, silent = true, desc = 'CodeCompanion Chat History' }
 )
 
 -- Toggle / reopen active or last active CodeCompanion chat
 vim.keymap.set(
-  { 'n', 'v' },
-  '<leader>aa',
-  '<cmd>CodeCompanionChat Toggle<cr>',
-  { noremap = true, silent = true, desc = 'Toggle CodeCompanion Chat' }
+   { 'n', 'v' },
+   '<leader>aa',
+   '<cmd>CodeCompanionChat Toggle<cr>',
+   { noremap = true, silent = true, desc = 'Toggle CodeCompanion Chat' }
 )
 
 -- Normal mode: Just opens the prompt
@@ -77,105 +77,119 @@ keymap.set('n', '<leader>ap', '<cmd>CodeCompanionActions<cr>', { noremap = true,
 
 -- comment
 vim.api.nvim_create_autocmd('FileType', {
-  pattern = 'codecompanion',
-  callback = function()
-    -- Keymaps
-    vim.keymap.set('n', 'c', '<cmd>CodeCompanionChat Toggle<cr>', { noremap = true, silent = true, buffer = true })
+   pattern = 'codecompanion',
+   callback = function()
+      -- Keymaps
+      vim.keymap.set('n', 'c', '<cmd>CodeCompanionChat Toggle<cr>', { noremap = true, silent = true, buffer = true })
 
-    vim.keymap.set('n', 'as', function()
-      -- <C-u> clears any range, the rest runs the command and hits Enter
-      vim.api.nvim_feedkeys(
-        vim.api.nvim_replace_termcodes(':CodeCompanionChat Sessions<CR>', true, false, true),
-        'n',
-        false
-      )
-    end, { noremap = true, silent = true, buffer = true })
+      vim.keymap.set('n', 'as', function()
+         -- <C-u> clears any range, the rest runs the command and hits Enter
+         vim.api.nvim_feedkeys(
+            vim.api.nvim_replace_termcodes(':CodeCompanionChat Sessions<CR>', true, false, true),
+            'n',
+            false
+         )
+      end, { noremap = true, silent = true, buffer = true })
 
-    -- UI & Rendering
-    local ok, render_markdown = pcall(require, 'render-markdown')
-    if ok then
-      render_markdown.enable()
-    end
+      -- UI & Rendering
+      local ok, render_markdown = pcall(require, 'render-markdown')
+      if ok then
+         render_markdown.enable()
+      end
 
-    vim.opt_local.conceallevel = 2
-    vim.opt_local.concealcursor = 'nc'
-    vim.treesitter.start(0, 'markdown')
-  end,
+      vim.opt_local.conceallevel = 2
+      vim.opt_local.concealcursor = 'nc'
+      vim.treesitter.start(0, 'markdown')
+   end,
 })
 
 -- Time Tracker Keymaps
 keymap.set('n', '<leader>tt', '<cmd>TimeTracker<cr>', { desc = 'Open Time Tracker UI' })
 keymap.set('n', '<leader>tr', function()
-  local db_path = vim.fn.stdpath('data') .. '/time-tracker.db'
-  local success = os.remove(db_path)
-  if success then
-    vim.notify('Time Tracker Reset: Restart Neovim to begin fresh session.', vim.log.levels.INFO)
-  else
-    vim.notify('Reset failed: Database file not found or currently in use.', vim.log.levels.WARN)
-  end
+   local db_path = vim.fn.stdpath('data') .. '/time-tracker.db'
+   local success = os.remove(db_path)
+   if success then
+      vim.notify('Time Tracker Reset: Restart Neovim to begin fresh session.', vim.log.levels.INFO)
+   else
+      vim.notify('Reset failed: Database file not found or currently in use.', vim.log.levels.WARN)
+   end
 end, { desc = 'Reset Time Tracker Database' })
 
 keymap.set('n', '<leader>rl', function()
-  local spinner = show_spinner()
-  local reloaded = {}
+   local spinner = show_spinner()
+   local reloaded = {}
 
-  -- 1. Clear module cache
-  for name, _ in pairs(package.loaded) do
-    if name:match('^utils') or name:match('^config') or name:match('GitCompanion') or name:match('^gitcompanion') then
-      package.loaded[name] = nil
-      table.insert(reloaded, name)
-    end
-  end
-
-  spinner:stop()
-  spinner:close()
-
-  vim.o.background = original_bg
-
-  -- 2. Force re-require gitcompanion to execute updated code
-  local ok, gc = pcall(require, 'gitcompanion')
-
-  -- 3. Notify with cleared modules
-  if #reloaded > 0 then
-    local msg = 'Reloaded modules:\n• ' .. table.concat(reloaded, '\n• ')
-    if not ok then
-      msg = msg .. '\n\nError re-requiring gitcompanion: ' .. tostring(gc)
-      vim.notify(msg, vim.log.levels.ERROR)
-    else
-      vim.notify(msg, vim.log.levels.INFO)
-      -- Optional: If the UI is currently visible, refresh its layout immediately
-      if gc and gc.update_window_layout then
-        gc.update_window_layout()
+   -- 1. Clear targeted module caches
+   for name, _ in pairs(package.loaded) do
+      if
+          name:match('^utils')
+          or name:match('^config')
+          or name:match('^plugins')
+          or name:match('GitCompanion')
+          or name:match('^gitcompanion')
+      then
+         package.loaded[name] = nil
+         table.insert(reloaded, name)
       end
-    end
-  else
-    vim.notify('No matching modules found in package.loaded', vim.log.levels.WARN)
-  end
+   end
+
+   spinner:stop()
+   spinner:close()
+
+   vim.o.background = original_bg
+
+   -- 2. Safely reload Noice via Lazy.nvim
+   local lazy_config = require('lazy.core.config')
+   local noice_plugin = lazy_config.plugins['noice.nvim']
+   if noice_plugin then
+      require('lazy.core.loader').reload(noice_plugin)
+   end
+
+   -- 3. Force re-require gitcompanion
+   local ok, gc = pcall(require, 'gitcompanion')
+
+   -- 4. Defer notification so Noice finishes attaching handlers first
+   vim.schedule(function()
+      if #reloaded > 0 then
+         local msg = 'Reloaded modules:\n• ' .. table.concat(reloaded, '\n• ')
+         if not ok then
+            msg = msg .. '\n\nError re-requiring gitcompanion: ' .. tostring(gc)
+            vim.notify(msg, vim.log.levels.ERROR)
+         else
+            vim.notify(msg, vim.log.levels.INFO)
+            if gc and gc.update_window_layout then
+               gc.update_window_layout()
+            end
+         end
+      else
+         vim.notify('No matching modules found in package.loaded', vim.log.levels.WARN)
+      end
+   end)
 end, { desc = 'Reload Neovim config and re-require GitCompanion' })
 
 -- Mason --
 vim.api.nvim_set_keymap('n', '<leader>M', ':lua require("mason.ui").open()<CR>', { noremap = true, silent = true })
 
 keymap.set('n', '<leader>gb', function()
-  -- require('gitsigns').blame_line({ full = true })
-  require('gitsigns').blame_line()
+   -- require('gitsigns').blame_line({ full = true })
+   require('gitsigns').blame_line()
 end, { desc = 'Git blameline' })
 
 keymap.set('n', '<leader>cc', function()
-  vim.cmd('colorscheme catppuccin-latte')
+   vim.cmd('colorscheme catppuccin-latte')
 end, {
-  desc = 'Switch to Catppuccin Latte colorscheme',
+   desc = 'Switch to Catppuccin Latte colorscheme',
 })
 
 keymap.set('n', '<leader>mo', function()
-  vim.o.background = 'light'
-  vim.cmd('colorscheme modus_operandi')
+   vim.o.background = 'light'
+   vim.cmd('colorscheme modus_operandi')
 end, { desc = 'Switch to Modus Operandi (Stark White)' })
 
 keymap.set('n', '<leader>cs', function()
-  vim.cmd('colorscheme solarized-osaka')
+   vim.cmd('colorscheme solarized-osaka')
 end, {
-  desc = 'Switch to solarized-osaka colorscheme',
+   desc = 'Switch to solarized-osaka colorscheme',
 })
 
 -- Neogit Keymap
@@ -216,7 +230,7 @@ keymap.set('n', '<C-w><down>', '<C-w>-')
 
 -- Diagnostics
 keymap.set('n', '<C-j>', function()
-  vim.diagnostic.goto_next()
+   vim.diagnostic.goto_next()
 end, opts)
 
 -- Press jk fast to exit insert mode
@@ -243,15 +257,15 @@ keymap.set('v', '<leader>"', 'c"<C-R>""<Esc>', { noremap = true, silent = true }
 keymap.set('v', '<leader>[', 'c[<C-R>"]<Esc>', { noremap = true, silent = true })
 
 keymap.set('n', '<leader>cn', function()
-  if vim.wo.number then
-    -- hide both absolute and relative numbers
-    vim.wo.number = false
-    vim.wo.relativenumber = false
-  else
-    -- show absolute numbers (you can enable relative if you want)
-    vim.wo.number = true
-    vim.wo.relativenumber = false
-  end
+   if vim.wo.number then
+      -- hide both absolute and relative numbers
+      vim.wo.number = false
+      vim.wo.relativenumber = false
+   else
+      -- show absolute numbers (you can enable relative if you want)
+      vim.wo.number = true
+      vim.wo.relativenumber = false
+   end
 end, { desc = 'Toggle line numbers' })
 
 -- Switch (cycle) between buffers with uppercase H/L
