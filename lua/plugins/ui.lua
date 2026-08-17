@@ -927,12 +927,12 @@ return {
                         },
                      },
                      position = {
-                        row = '10%',
+                        row = 3,
                         col = '50%',
                      },
                      size = {
                         width = '90%',
-                        height = '45%',
+                        height = '90%',
                      },
                   },
                   filter = {
@@ -955,48 +955,17 @@ return {
             {
                '<leader>n',
                function()
-                  -- Global tracking for active window IDs
-                  local function close_both_wins(trigger_source)
-                     local detail_win = _G._noice_detail_win
-                     local main_win = _G._noice_main_win
-
-                     vim.notify(
-                        string.format(
-                           'DEBUG [%s]: Closing wins - Main: %s (valid: %s), Detail: %s (valid: %s)',
-                           trigger_source or 'unknown',
-                           tostring(main_win),
-                           tostring(main_win and vim.api.nvim_win_is_valid(main_win)),
-                           tostring(detail_win),
-                           tostring(detail_win and vim.api.nvim_win_is_valid(detail_win))
-                        ),
-                        vim.log.levels.WARN
-                     )
-
-                     if detail_win and vim.api.nvim_win_is_valid(detail_win) then
-                        pcall(vim.api.nvim_win_close, detail_win, true)
-                     end
-                     if main_win and vim.api.nvim_win_is_valid(main_win) then
-                        pcall(vim.api.nvim_win_close, main_win, true)
-                     end
-
+                  -- Toggle off if already open
+                  if _G._noice_main_win and vim.api.nvim_win_is_valid(_G._noice_main_win) then
+                     pcall(vim.api.nvim_win_close, _G._noice_main_win, true)
                      _G._noice_main_win = nil
-                     _G._noice_detail_win = nil
-                     pcall(vim.api.nvim_del_augroup_by_name, 'NoiceDetailSync')
-                  end
-
-                  -- 1. Toggle off via <leader>n
-                  if
-                      (_G._noice_main_win and vim.api.nvim_win_is_valid(_G._noice_main_win))
-                      or (_G._noice_detail_win and vim.api.nvim_win_is_valid(_G._noice_detail_win))
-                  then
-                     close_both_wins('<leader>n toggle')
                      return
                   end
 
-                  -- 2. Open Noice history window
+                  -- Open Noice history
                   require('noice').cmd('history')
 
-                  -- 3. Setup bottom detail float & debug keymaps
+                  -- Capture window handle and set buffer keys
                   vim.schedule(function()
                      local main_win, main_buf
                      for _, win in ipairs(vim.api.nvim_list_wins()) do
@@ -1011,103 +980,25 @@ return {
                         end
                      end
 
-                     if not main_win then
-                        vim.notify('DEBUG: Could not locate Noice main window', vim.log.levels.ERROR)
+                     if not main_win or not main_buf then
                         return
                      end
 
                      _G._noice_main_win = main_win
 
-                     local ui = vim.api.nvim_list_uis()[1] or { width = vim.o.columns, height = vim.o.lines }
-
-                     -- Detail buffer creation
-                     local detail_buf = vim.api.nvim_create_buf(false, true)
-                     vim.api.nvim_set_option_value('filetype', 'markdown', { buf = detail_buf })
-                     vim.api.nvim_set_option_value('bufhidden', 'wipe', { buf = detail_buf })
-
-                     -- Calculate row position and INCREASED detail window height
-                     local main_pos = vim.api.nvim_win_get_position(main_win)
-                     local main_row = main_pos[1]
-                     local main_height = vim.api.nvim_win_get_height(main_win)
-
-                     local detail_row = main_row + main_height + 8
-                     -- Increased height from 0.22/0.28 to 0.35 (35% of total UI height)
-                     local detail_height = math.floor(ui.height * 0.35)
-
-                     local detail_win = vim.api.nvim_open_win(detail_buf, false, {
-                        relative = 'editor',
-                        row = detail_row,
-                        col = math.floor(ui.width * 0.05),
-                        width = math.floor(ui.width * 0.90),
-                        height = detail_height,
-                        style = 'minimal',
-                        border = 'rounded',
-                        title = ' Error Details ',
-                        title_pos = 'center',
-                     })
-
-                     _G._noice_detail_win = detail_win
-
-                     -- Function wrapper for q keymap with explicit trigger tag
-                     local function close_from_q()
-                        close_both_wins('q keypress')
-                     end
-
-                     -- Force override 'q' keymap on both buffers with a slight delay to beat Noice defaults
-                     vim.defer_fn(function()
-                        if vim.api.nvim_buf_is_valid(main_buf) then
-                           vim.keymap.set(
-                              'n',
-                              'q',
-                              close_from_q,
-                              { buffer = main_buf, nowait = true, silent = false, force = true }
-                           )
+                     -- Set 'q' to close window
+                     vim.keymap.set('n', 'q', function()
+                        if _G._noice_main_win and vim.api.nvim_win_is_valid(_G._noice_main_win) then
+                           pcall(vim.api.nvim_win_close, _G._noice_main_win, true)
+                           _G._noice_main_win = nil
                         end
-                        if vim.api.nvim_buf_is_valid(detail_buf) then
-                           vim.keymap.set(
-                              'n',
-                              'q',
-                              close_from_q,
-                              { buffer = detail_buf, nowait = true, silent = false, force = true }
-                           )
-                        end
-                        vim.notify(
-                           string.format('DEBUG: Keymaps bound to Main Buf (%d) & Detail Buf (%d)', main_buf, detail_buf),
-                           vim.log.levels.INFO
-                        )
-                     end, 50)
+                     end, { buffer = main_buf, nowait = true, silent = true })
 
-                     -- Sync detail window content
-                     local function update_detail()
-                        if not vim.api.nvim_win_is_valid(main_win) or not vim.api.nvim_win_is_valid(detail_win) then
-                           return
-                        end
-
-                        local cursor = vim.api.nvim_win_get_cursor(main_win)
-                        local line_idx = cursor[1] - 1
-                        local total_lines = vim.api.nvim_buf_line_count(main_buf)
-
-                        local start_line = math.max(0, line_idx - 2)
-                        local end_line = math.min(total_lines, line_idx + 25)
-                        local lines = vim.api.nvim_buf_get_lines(main_buf, start_line, end_line, false)
-
-                        vim.api.nvim_set_option_value('modifiable', true, { buf = detail_buf })
-                        vim.api.nvim_buf_set_lines(detail_buf, 0, -1, false, lines)
-                        vim.api.nvim_set_option_value('modifiable', false, { buf = detail_buf })
-                     end
-
-                     local augroup = vim.api.nvim_create_augroup('NoiceDetailSync', { clear = true })
-                     vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI' }, {
-                        group = augroup,
-                        buffer = main_buf,
-                        callback = update_detail,
-                     })
-
+                     -- Jump to bottom of error log
                      local line_count = vim.api.nvim_buf_line_count(main_buf)
                      if line_count > 0 then
                         vim.api.nvim_win_set_cursor(main_win, { line_count, 0 })
                      end
-                     update_detail()
                   end)
                end,
                desc = 'Toggle Noice Floating History',
