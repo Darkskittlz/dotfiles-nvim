@@ -1019,6 +1019,9 @@ return {
                function()
                   -- Toggle off if already open
                   if _G._noice_main_win and vim.api.nvim_win_is_valid(_G._noice_main_win) then
+                     if vim.api.nvim_get_mode().mode:sub(1, 1) == 'i' then
+                        vim.cmd('stopinsert')
+                     end
                      pcall(vim.api.nvim_win_close, _G._noice_main_win, true)
                      _G._noice_main_win = nil
                      return
@@ -1048,13 +1051,19 @@ return {
 
                      _G._noice_main_win = main_win
 
-                     -- Set 'q' to close window
-                     vim.keymap.set('n', 'q', function()
+                     -- Set 'q' and '<Esc>' to close window cleanly
+                     local close_cmd = function()
+                        if vim.api.nvim_get_mode().mode:sub(1, 1) == 'i' then
+                           vim.cmd('stopinsert')
+                        end
                         if _G._noice_main_win and vim.api.nvim_win_is_valid(_G._noice_main_win) then
                            pcall(vim.api.nvim_win_close, _G._noice_main_win, true)
                            _G._noice_main_win = nil
                         end
-                     end, { buffer = main_buf, nowait = true, silent = true })
+                     end
+
+                     vim.keymap.set('n', 'q', close_cmd, { buffer = main_buf, nowait = true, silent = true })
+                     vim.keymap.set('n', '<Esc>', close_cmd, { buffer = main_buf, nowait = true, silent = true })
 
                      -- Jump to bottom of error log
                      local line_count = vim.api.nvim_buf_line_count(main_buf)
@@ -1064,7 +1073,7 @@ return {
                   end)
                end,
                desc = 'Toggle Noice Floating History',
-               mode = { 'n', 'i' },
+               mode = 'n', -- Restricted exclusively to Normal mode
             },
          },
       },
@@ -1077,7 +1086,6 @@ return {
             timeout = 2001,
          },
       },
-
       -- animations
       {
          'echasnovski/mini.animate',
