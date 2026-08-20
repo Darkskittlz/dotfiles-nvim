@@ -709,6 +709,7 @@ return {
                   hl.NormalNC = { bg = 'NONE' } -- Fixes the non-current window background
                   hl.NormalFloat = { bg = 'NONE' }
                   hl.FloatBorder = { bg = 'NONE', fg = c.blue }
+                  hl.CursorLine = { bg = '#1E212B' }
 
                   -- 2. MARKDOWN HEADER BACKGROUNDS
                   hl.RenderMarkdownH1Bg = { fg = '#ffffff', bg = '#003366' }
@@ -716,6 +717,27 @@ return {
                   hl.RenderMarkdownH3Bg = { fg = '#ffffff', bg = '#4a1bdf' }
                   hl.RenderMarkdownH4Bg = { fg = '#ffffff', bg = '#cc5190' }
                   hl.RenderMarkdownH5Bg = { fg = '#ffffff', bg = '#8B0000' }
+
+                  -- 6. BUFFERLINE TRANSPARENCY OVERRIDES
+                  hl.BufferLineFill = { bg = 'NONE' }
+                  hl.BufferLineBackground = { fg = '#555555', bg = 'NONE' }
+                  hl.BufferLineBufferVisible = { fg = '#888888', bg = 'NONE' }
+                  hl.BufferLineSeparator = { fg = 'NONE', bg = 'NONE' }
+                  hl.BufferLineSeparatorVisible = { fg = 'NONE', bg = 'NONE' }
+                  hl.BufferLineCloseButton = { fg = '#555555', bg = 'NONE' }
+                  hl.BufferLineCloseButtonVisible = { fg = '#888888', bg = 'NONE' }
+                  hl.BufferLineModified = { fg = '#aaaa55', bg = 'NONE' }
+                  hl.BufferLineModifiedVisible = { fg = '#aaaa55', bg = 'NONE' }
+                  hl.BufferLineDevIconDefault = { bg = 'NONE' }
+                  hl.BufferLineDevIconDefaultInactive = { bg = 'NONE' }
+
+                  -- Active Tab
+                  hl.BufferLineBufferSelected = { fg = '#ffffff', bg = '#3366cc', bold = true }
+                  hl.BufferLineIconSelected = { bg = '#3366cc' }
+                  hl.BufferLineModifiedSelected = { fg = '#f1fa8c', bg = '#3366cc' }
+                  hl.BufferLineCloseButtonSelected = { fg = '#ffffff', bg = '#3366cc' }
+                  hl.BufferLineIndicatorSelected = { fg = '#3366cc', bg = '#3366cc' }
+                  hl.BufferLineSeparatorSelected = { fg = 'NONE', bg = '#3366cc' }
 
                   -- 3. THE "HACKER GREEN" CODE BLOCKS
                   local hacker_green = '#006500'
@@ -785,6 +807,44 @@ return {
             }
 
             require('solarized-osaka').setup(osakaConfig)
+            vim.cmd([[colorscheme solarized-osaka]])
+
+            -- Enforce BufferLine transparency AFTER bufferline initializes
+            -- Enforce complete TabLine and BufferLine transparency
+            local clear_bufferline = function()
+               local groups = {
+                  -- Standard Neovim Tabline fallbacks (This is what is rendering the gray bar)
+                  'TabLine',
+                  'TabLineFill',
+                  'TabLineSel',
+                  'StatusLine',
+                  'StatusLineNC',
+
+                  -- BufferLine Specific Groups
+                  'BufferLineFill',
+                  'BufferLineBackground',
+                  'BufferLineBufferVisible',
+                  'BufferLineSeparator',
+                  'BufferLineSeparatorVisible',
+                  'BufferLineCloseButton',
+                  'BufferLineCloseButtonVisible',
+                  'BufferLineModified',
+                  'BufferLineModifiedVisible',
+                  'BufferLineDevIconDefault',
+                  'BufferLineDevIconDefaultInactive',
+               }
+
+               for _, group in ipairs(groups) do
+                  vim.api.nvim_set_hl(0, group, { bg = 'NONE', ctermbg = 'NONE', force = true })
+               end
+            end
+
+            -- Fire immediately and on every ColorScheme refresh
+            clear_bufferline()
+            vim.api.nvim_create_autocmd({ 'ColorScheme', 'User' }, {
+               pattern = { '*', 'BufferLineDone' },
+               callback = clear_bufferline,
+            })
          end,
       },
       -- {
@@ -1029,7 +1089,7 @@ return {
       },
       {
          'akinsho/bufferline.nvim',
-         dependencies = 'nvim-tree/nvim-web-devicons', -- Note: lazy.nvim uses 'dependencies' instead of 'requires'
+         dependencies = 'nvim-tree/nvim-web-devicons',
          keys = {
             { '<tab>',   '<cmd>BufferLineCycleNext<cr>', desc = 'next tab' },
             { '<s-tab>', '<cmd>BufferLineCyclePrev<cr>', desc = 'prev tab' },
@@ -1038,80 +1098,6 @@ return {
             options = {
                show_buffer_close_icons = true,
                show_close_icon = true,
-            },
-            highlights = {
-               -- 1. Empty bar space
-               fill = {
-                  bg = '',
-               },
-
-               -- 2. Inactive / Unselected tab elements
-               background = {
-                  fg = '#555555',
-                  bg = '',
-               },
-               buffer_visible = {
-                  fg = '#888888',
-                  bg = '',
-               },
-               close_button = {
-                  fg = '#555555',
-                  bg = '',
-               },
-               close_button_visible = {
-                  fg = '#888888',
-                  bg = '',
-               },
-               modified = {
-                  fg = '#aaaa55',
-                  bg = '',
-               },
-               modified_visible = {
-                  fg = '#aaaa55',
-                  bg = '',
-               },
-               duplicate = {
-                  fg = '#555555',
-                  bg = '',
-               },
-               duplicate_visible = {
-                  fg = '#888888',
-                  bg = '',
-               },
-               separator = {
-                  fg = '',
-                  bg = '',
-               },
-               separator_visible = {
-                  fg = '',
-                  bg = '',
-               },
-
-               -- 3. Selected tab elements
-               separator_selected = {
-                  fg = '',
-                  bg = '#3366cc',
-               },
-               buffer_selected = {
-                  fg = '#ffffff',
-                  bg = '#3366cc',
-                  bold = true,
-               },
-               icon_selected = {
-                  bg = '#3366cc',
-               },
-               modified_selected = {
-                  fg = '#f1fa8c',
-                  bg = '#3366cc',
-               },
-               close_button_selected = {
-                  fg = '#ffffff',
-                  bg = '#3366cc',
-               },
-               indicator_selected = {
-                  fg = '#3366cc',
-                  bg = '#3366cc',
-               },
             },
          },
       },
