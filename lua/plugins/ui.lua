@@ -764,6 +764,7 @@ return {
                   hl.TimeTrackerCurrentProject = { fg = '#ffffff', bg = 'NONE', bold = true }
 
                   -- 5. KEYWORDS & TELESCOPE (Your existing logic)
+                  local util = require('tokyonight.util')
                   local keyword_color = util.darken('#00ff00', 0.85)
                   hl['keyword.tsx'] = { fg = keyword_color }
                   hl['keyword.return.tsx'] = { fg = keyword_color }
