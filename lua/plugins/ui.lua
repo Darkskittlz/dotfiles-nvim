@@ -189,6 +189,7 @@ return {
          require('gitcompanion').setup()
       end,
    },
+
    {
       'olimorris/codecompanion.nvim',
       dependencies = {
@@ -1028,7 +1029,7 @@ return {
       },
       {
          'akinsho/bufferline.nvim',
-         requires = 'nvim-tree/nvim-web-devicons',
+         dependencies = 'nvim-tree/nvim-web-devicons', -- Note: lazy.nvim uses 'dependencies' instead of 'requires'
          keys = {
             { '<tab>',   '<cmd>BufferLineCycleNext<cr>', desc = 'next tab' },
             { '<s-tab>', '<cmd>BufferLineCyclePrev<cr>', desc = 'prev tab' },
@@ -1038,25 +1039,75 @@ return {
                show_buffer_close_icons = true,
                show_close_icon = true,
             },
-            -- ADD THIS SECTION BELOW
             highlights = {
+               -- 1. Empty bar space
+               fill = {
+                  bg = '',
+               },
+
+               -- 2. Inactive / Unselected tab elements
+               background = {
+                  fg = '#555555',
+                  bg = '',
+               },
+               buffer_visible = {
+                  fg = '#888888',
+                  bg = '',
+               },
+               close_button = {
+                  fg = '#555555',
+                  bg = '',
+               },
+               close_button_visible = {
+                  fg = '#888888',
+                  bg = '',
+               },
+               modified = {
+                  fg = '#aaaa55',
+                  bg = '',
+               },
+               modified_visible = {
+                  fg = '#aaaa55',
+                  bg = '',
+               },
+               duplicate = {
+                  fg = '#555555',
+                  bg = '',
+               },
+               duplicate_visible = {
+                  fg = '#888888',
+                  bg = '',
+               },
+               separator = {
+                  fg = '',
+                  bg = '',
+               },
+               separator_visible = {
+                  fg = '',
+                  bg = '',
+               },
+
+               -- 3. Selected tab elements
+               separator_selected = {
+                  fg = '',
+                  bg = '#3366cc',
+               },
                buffer_selected = {
-                  fg = '#ffffff', -- Text color of the active tab
-                  bg = '#3366cc', -- Background color of the active tab
+                  fg = '#ffffff',
+                  bg = '#3366cc',
                   bold = true,
                },
                icon_selected = {
-                  bg = '#3366cc', -- Ensures the gear icon background matches
+                  bg = '#3366cc',
                },
                modified_selected = {
                   fg = '#f1fa8c',
-                  bg = '#3366cc', -- Matches background when file is unsaved
+                  bg = '#3366cc',
                },
                close_button_selected = {
                   fg = '#ffffff',
-                  bg = '#3366cc', -- Matches background for the 'x' button
+                  bg = '#3366cc',
                },
-               -- This fixes the thin indicator line usually at the bottom
                indicator_selected = {
                   fg = '#3366cc',
                   bg = '#3366cc',
