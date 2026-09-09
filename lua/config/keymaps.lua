@@ -146,9 +146,7 @@ keymap.set('n', '<leader>gb', function()
    require('gitsigns').blame_line()
 end, { desc = 'Git blameline' })
 
-keymap.set('n', '<leader>gh', function()
-   require('utils.git_picker').open_git_ui()
-end, { desc = 'Git branch picker' })
+vim.keymap.set('n', '<leader>gh', '<cmd>GitCompanion<cr>', { desc = 'GitCompanion UI' })
 
 keymap.set('n', '<leader>cc', function()
    vim.cmd('colorscheme catppuccin-latte')

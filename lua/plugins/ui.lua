@@ -173,6 +173,14 @@ return {
    { 'tpope/vim-surround' },
    { 'NLKNguyen/papercolor-theme' },
    {
+      dir = '~/linuxProjects/GitCompanion',
+      name = 'GitCompanion',
+      dependencies = {
+         'nvim-lua/plenary.nvim',
+      },
+      opts = {},
+   },
+   {
       'olimorris/codecompanion.nvim',
       dependencies = {
          'nvim-lua/plenary.nvim',
