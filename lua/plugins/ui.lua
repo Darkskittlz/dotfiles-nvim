@@ -402,13 +402,13 @@ return {
          end
 
          -- --- CUSTOM COMPONENTS ---
-         ins_left({
-            function()
-               return '▊'
-            end,
-            color = { fg = colors.blue },
-            padding = { left = 0, right = 1 },
-         })
+         -- ins_left({
+         --    function()
+         --       return '▊'
+         --    end,
+         --    color = { fg = colors.blue },
+         --    padding = { left = 0, right = 1 },
+         -- })
 
          ins_left({
             function()
@@ -431,6 +431,23 @@ return {
          })
 
          ins_left({
+            'mode',
+            color = function()
+               local mode_color = {
+                  n = '#c678dd',
+                  i = '#98be65',
+                  v = '#51afef',
+                  V = '#51afef',
+                  c = '#ec5f67',
+                  R = '#a9a1e1',
+                  t = '#ec5f67',
+               }
+               return { fg = mode_color[vim.fn.mode()] or '#51afef', gui = 'bold' }
+            end,
+            padding = { left = 1, right = 1 },
+         })
+
+         ins_left({
             'diagnostics',
             sources = { 'nvim_diagnostic' },
             symbols = { error = ' ', warn = ' ', info = ' ' },
@@ -448,20 +465,39 @@ return {
          })
 
          ins_left({
-            'mode',
-            color = function()
-               local mode_color = {
-                  n = '#c678dd',
-                  i = '#98be65',
-                  v = '#51afef',
-                  V = '#51afef',
-                  c = '#ec5f67',
-                  R = '#a9a1e1',
-                  t = '#ec5f67',
-               }
-               return { fg = mode_color[vim.fn.mode()] or '#51afef', gui = 'bold' }
+            function()
+               local handle =
+                   io.popen(
+                   "playerctl metadata --format '{{markup_escape(artist)}} - {{markup_escape(title)}}' 2>/dev/null")
+               if not handle then
+                  return ''
+               end
+               local result = handle:read('*a')
+               handle:close()
+
+               -- Clean up newlines/whitespace
+               result = result:gsub('%s+', ' ')
+               if result == '' or result == ' ' then
+                  return ''
+               end
+
+               -- If artist is missing, empty, or returns "Unknown Artist", just show the title
+               result = result:gsub('^Unknown Artist %- ', '')
+               result = result:gsub('^ %- ', '')
+
+               if result == '' or result == ' ' then
+                  return ''
+               end
+
+               -- Truncate if more than 10 characters
+               if #result > 25 then
+                  result = result:sub(1, 25) .. '...'
+               end
+
+               return result
             end,
-            padding = { right = 1 },
+            color = { fg = colors.cyan, gui = 'italic' },
+            padding = { left = 1, right = 1 },
          })
 
          ins_right({
@@ -511,25 +547,29 @@ return {
    {
       'stevearc/conform.nvim',
       opts = {
-         format_on_save = {
-            timeout_ms = 500,
-            lsp_fallback = false, -- Only use Prettier, ignore the LSP formatter
-         },
+         format_on_save = function(bufnr)
+            vim.notify('Conform: Triggering format on save...', vim.log.levels.INFO, { title = 'Conform Debug' })
+            return {
+               timeout_ms = 3000,
+               lsp_fallback = false,
+            }
+         end,
          formatters_by_ft = {
             lua = { 'stylua' },
             python = { 'isort', 'black' },
-            javascript = { 'prettier' },
-            javascriptreact = { 'prettier' }, -- Make sure to add this for JSX
-            typescript = { 'prettier' },
-            typescriptreact = { 'prettier' }, -- Make sure to add this for TSX
-            vue = { 'prettier' },
-            html = { 'prettier' },
-            css = { 'prettier' },
-            json = { 'prettier' },
-            markdown = { 'prettier' },
+            javascript = { 'prettierd', 'prettier', stop_after_first = true },
+            javascriptreact = { 'prettierd', 'prettier', stop_after_first = true },
+            typescript = { 'prettierd', 'prettier', stop_after_first = true },
+            typescriptreact = { 'prettierd', 'prettier', stop_after_first = true },
+            vue = { 'prettierd', 'prettier', stop_after_first = true },
+            html = { 'prettierd', 'prettier', stop_after_first = true },
+            css = { 'prettierd', 'prettier', stop_after_first = true },
+            json = { 'prettierd', 'prettier', stop_after_first = true },
+            markdown = { 'prettierd', 'prettier', stop_after_first = true },
          },
-         log_level = vim.log.levels.ERROR,
-         notify_on_error = false,
+         log_level = vim.log.levels.DEBUG,
+         notify_on_error = true,
+         notify_on_format = true,
       },
    },
    {
@@ -559,6 +599,7 @@ return {
    { 'rhysd/vim-fixjson', cmd = 'FixJson' },
    {
       'nvim-focus/focus.nvim',
+      enabled = false,
       config = focusConfig,
    },
    {
@@ -1221,6 +1262,18 @@ return {
          },
       },
       {
+         'stevearc/aerial.nvim',
+         config = function()
+            require('aerial').setup()
+         end,
+         keys = {
+            { '<leader>ct', '<cmd>AerialToggle!<CR>', desc = 'Toggle Code Symbols (Aerial)' },
+         },
+         opts = {
+            filter_kind = false, -- Disables filtering to show everything
+         },
+      },
+      {
          'williamboman/mason.nvim',
          config = function()
             require('mason').setup()
@@ -1270,6 +1323,20 @@ return {
             telescope.load_extension('file_browser')
          end,
       },
+      --    {
+      --    'utilyre/barbecue.nvim',
+      --    dependencies = {
+      --       'SmiteshP/nvim-navic',
+      --       'nvim-tree/nvim-web-devicons', -- optional, for file icons
+      --    },
+      --    opts = {
+      --       -- configurations can go here, or leave empty for defaults
+      --    },
+      --    config = function(_, opts)
+      --       -- triggers barbecue setup
+      --       require('barbecue').setup(opts)
+      --    end,
+      -- },
       -- {
       --   'SirVer/ultisnips',
       --   event = { 'InsertEnter', 'CmdlineEnter' },
@@ -1370,114 +1437,41 @@ return {
       {
          'MeanderingProgrammer/render-markdown.nvim',
          dependencies = {
-            'nvim-treesitter/nvim-treesitter', -- Syntax highlighting support
-            'echasnovski/mini.nvim',       -- If you're using mini.nvim suite (optional)
+            'nvim-treesitter/nvim-treesitter',
+            'echasnovski/mini.nvim',
          },
-         config = function()
-            print('Setting up render-markdown plugin...')
-            -- Call the setup function to initialize the plugin
-            require('render-markdown').setup({
-               file_types = { 'markdown', 'codecompanion' },
-               heading = {
-                  -- Turn on / off heading icon & background rendering
-                  enabled = true,
-                  -- Turn on / off any sign column related rendering
-                  sign = true,
-                  -- Determines how icons fill the available space:
-                  --  right:   '#'s are concealed and icon is appended to right side
-                  --  inline:  '#'s are concealed and icon is inlined on left side
-                  --  overlay: icon is left padded with spaces and inserted on left hiding any additional '#'
-                  position = 'overlay',
-                  -- Replaces '#+' of 'atx_h._marker'
-                  -- The number of '#' in the heading determines the 'level'
-                  -- The 'level' is used to index into the list using a cycle
-                  icons = {
-                     '󰲡 ',
-                     '󰲣 ',
-                     '󰲥 ',
-                     '󰲧 ',
-                     '󰲩 ',
-                     '󰲫 ',
-                  },
-                  -- Added to the sign column if enabled
-                  -- The 'level' is used to index into the list using a cycle
-                  signs = { '󰫎 ' },
-                  -- Width of the heading background:
-                  --  block: width of the heading text
-                  --  full:  full width of the window
-                  -- Can also be a list of the above values in which case the 'level' is used
-                  -- to index into the list using a clamp
-                  width = 'full',
-                  -- Amount of margin to add to the left of headings
-                  -- If a floating point value < 1 is provided it is treated as a percentage of the available window space
-                  -- Margin available space is computed after accounting for padding
-                  -- Can also be a list of numbers in which case the 'level' is used to index into the list using a clamp
-                  left_margin = 0,
-                  -- Amount of padding to add to the left of headings
-                  -- If a floating point value < 1 is provided it is treated as a percentage of the available window space
-                  -- Can also be a list of numbers in which case the 'level' is used to index into the list using a clamp
-                  left_pad = 0,
-                  -- Amount of padding to add to the right of headings when width is 'block'
-                  -- If a floating point value < 1 is provided it is treated as a percentage of the available window space
-                  -- Can also be a list of numbers in which case the 'level' is used to index into the list using a clamp
-                  right_pad = 0,
-                  -- Minimum width to use for headings when width is 'block'
-                  -- Can also be a list of integers in which case the 'level' is used to index into the list using a clamp
-                  min_width = 0,
-                  -- Determines if a border is added above and below headings
-                  -- Can also be a list of booleans in which case the 'level' is used to index into the list using a clamp
-                  border = false,
-                  -- Always use virtual lines for heading borders instead of attempting to use empty lines
-                  border_virtual = false,
-                  -- Highlight the start of the border using the foreground highlight
-                  border_prefix = false,
-                  -- Used above heading for border
-                  above = '▄',
-                  -- Used below heading for border
-                  below = '▀',
-                  -- The 'level' is used to index into the list using a clamp
-                  -- Highlight for the heading icon and extends through the entire line
-                  backgrounds = {
-                     'RenderMarkdownH1Bg',
-                     'RenderMarkdownH2Bg',
-                     'RenderMarkdownH3Bg',
-                     'RenderMarkdownH4Bg',
-                     'RenderMarkdownH5Bg',
-                     'RenderMarkdownH6Bg',
-                  },
-                  -- The 'level' is used to index into the list using a clamp
-                  -- Highlight for the heading and sign icons
-                  foregrounds = {
-                     'RenderMarkdownH1',
-                     'RenderMarkdownH2',
-                     'RenderMarkdownH3',
-                     'RenderMarkdownH4',
-                     'RenderMarkdownH5',
-                     'RenderMarkdownH6',
-                  },
-               },
-               code = {
-                  enabled = true,
-                  sign = true,
-                  style = 'full', -- You can use 'full' to show the language icon and name, or 'normal' for just basic rendering
-                  position = 'left', -- Position of the language icon (left or right)
-                  language_pad = 0,
-                  language_name = true,
-                  disable_background = { 'diff' },
-                  width = 'full',
-                  left_margin = 0,
-                  left_pad = 0,
-                  right_pad = 0,
-                  min_width = 0,
-                  border = 'thin', -- Border above and below code blocks
-                  above = '▄', -- Character for the top border
-                  below = '▀', -- Character for the bottom border
-                  highlight = 'RenderMarkdownCode', -- Highlight for the entire code block
-                  highlight_inline = 'RenderMarkdownCodeInline', -- Highlight for inline code
-                  highlight_language = 'RenderMarkdownCodeLanguage', -- Optional: Highlight for language text (if you use language name)
-               },
-            })
-         end,
+         opts = {
+            file_types = { 'markdown', 'codecompanion' },
+            heading = {
+               enabled = true,
+               sign = true,
+               position = 'inline',
+               icons = { '󰲡 ', '󰲣 ', '󰲥 ', '󰲧 ', '󰲩 ', '󰲫 ' },
+               signs = { '󰫎 ' },
+               width = 'block',
+               right_pad = 1,
+               border = false,
+            },
+            code = {
+               enabled = true,
+               sign = true,
+               style = 'full',
+               position = 'left',
+               language_name = true,
+               width = 'block',
+               border = 'none',
+               highlight_inline = 'RenderMarkdownCodeInline',
+               highlight_language = 'RenderMarkdownCodeLanguage',
+            },
+            pipe_table = {
+               enabled = true,
+               preset = 'heavy', -- 'heavy', 'double', or 'round' enforces uniform cell borders
+               style = 'full',
+               cell = 'padded',
+               padding = 1,
+               alignment_indicator = '━',
+            },
+         },
       },
       -- {
       --   "nvim-neo-tree/neo-tree.nvim",
