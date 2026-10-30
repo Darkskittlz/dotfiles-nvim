@@ -496,7 +496,7 @@ return {
 
                return result
             end,
-            color = { fg = colors.cyan, gui = 'italic' },
+            color = { fg = colors.blue, gui = 'italic' },
             padding = { left = 1, right = 1 },
          })
 
@@ -1182,6 +1182,57 @@ return {
          end,
       },
       {
+         'Wansmer/treesj',
+         keys = { { '<space>m', '<cmd>TSJToggle<cr>', desc = 'Toggle Split/Join' } },
+         dependencies = { 'nvim-treesitter/nvim-treesitter' },
+         opts = {
+            use_default_keymaps = false,
+            max_join_length = 300, -- Increase limit (e.g., to 300 characters)
+         },
+      },
+      {
+         'abecodes/tabout.nvim',
+         config = function()
+            require('tabout').setup({
+               tabkey = '<Tab>',        -- key to trigger tabout, set to an empty string to disable
+               backwards_tabkey = '<S-Tab>', -- key to trigger backwards tabout, set to an empty string to disable
+               act_as_tab = true,       -- shift content if tab out is not possible
+               act_as_shift_tab = false, -- reverse shift content if tab out is not possible (if your keyboard/terminal supports <S-Tab>)
+               default_tab = '<C-t>',   -- shift default action (only at the beginning of a line, otherwise <TAB> is used)
+               default_shift_tab = '<C-d>', -- reverse shift default action,
+               enable_backwards = true, -- well ...
+               completion = true,       -- if the tabkey is used in a completion pum
+               tabouts = {
+                  { open = "'", close = "'" },
+                  { open = '"', close = '"' },
+                  { open = '`', close = '`' },
+                  { open = '(', close = ')' },
+                  { open = '[', close = ']' },
+                  { open = '{', close = '}' },
+               },
+               ignore_beginning = true, --[[ if the cursor is at the beginning of a filled element it will rather tab out than shift the content ]]
+               exclude = {}, -- tabout will ignore these filetypes
+            })
+         end,
+         wants = { 'nvim-treesitter' }, -- (optional) or require if not used so far
+         after = { 'nvim-cmp' },     -- if a completion plugin is using tabs load it before
+      },
+      {
+         'atiladefreitas/dooing',
+         opts = {
+            quick_keys = false, -- Completely disables the quick keys/help pane at the bottom
+            window = {
+               dimensions = {
+                  width = 85,
+                  height = 35,
+               },
+            },
+         },
+         keys = {
+            { '<leader>td', '<cmd>Dooing<cr>', desc = 'Toggle Todo List' },
+         },
+      },
+      {
          'b0o/incline.nvim',
          event = 'VeryLazy',
          opts = {
@@ -1263,14 +1314,27 @@ return {
       },
       {
          'stevearc/aerial.nvim',
-         config = function()
-            require('aerial').setup()
+         config = function(_, opts)
+            require('aerial').setup(opts)
          end,
          keys = {
             { '<leader>ct', '<cmd>AerialToggle!<CR>', desc = 'Toggle Code Symbols (Aerial)' },
          },
          opts = {
-            filter_kind = false, -- Disables filtering to show everything
+            backends = { 'treesitter', 'lsp', 'markdown', 'man' },
+            -- Explicitly include every kind you want to see
+            filter_kind = {
+               'Class',
+               'Constructor',
+               'Enum',
+               'Function',
+               'Interface',
+               'Module',
+               'Method',
+               'Struct',
+               'Variable',
+               'Constant',
+            },
          },
       },
       {
